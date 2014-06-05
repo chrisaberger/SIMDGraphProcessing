@@ -13,7 +13,14 @@
 #include <fcntl.h>    /* For O_RDWR */
 #include <unistd.h>   /* For open(), creat() */
 
+using namespace std;
+
 int main (int argc, char* argv[]) {
+  if(argc != 4){
+    cout << "Please see usage below: " << endl;
+    cout << "\t./main <adjacency list file/folder> <# of files> <# of threads>" << endl;
+    exit(0);
+  }
   /*
   int *foo = new int[10];
   //short *bar = new short[30];

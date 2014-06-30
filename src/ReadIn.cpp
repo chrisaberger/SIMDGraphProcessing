@@ -19,13 +19,12 @@ static inline VectorGraph* ReadFile (string path,int num) {
   string holder = path;
   //Place graph into vector of vectors then decide how you want to
   //store the graph.
-  for(size_t i=0; i <= num;++i){
+  for(size_t i=0; i <= (size_t) num;++i){
     path = holder;
     if(num!=0) path.append(to_string(i));
     string line;
     ifstream myfile (path);
     if (myfile.is_open()){
-      size_t node = 0;
       while ( getline (myfile,line) ){
         vector<size_t> *cur = new vector<size_t>(); //guess a size
         cur->reserve(line.length());
@@ -58,7 +57,6 @@ static inline VectorGraph* ReadFile (string path,int num) {
   }
   size_t num_nodes = neighborhoods->size();
 
-  size_t index = 0;
   cout << "Finished reading file :)" << endl;
   for(size_t i = 0; i < neighborhoods->size(); ++i) {
     vector<size_t> *hood = neighborhoods->at(i);
@@ -67,9 +65,11 @@ static inline VectorGraph* ReadFile (string path,int num) {
       hood->at(j) = external_ids->find(hood->at(j))->second;
     }
     sort(hood->begin(),hood->end());
+    /*
     for(size_t j = 0; j < hood->size(); ++j) {
       //cout << hood->at(j) << endl;
     }
+    */
   } 
 
   return new VectorGraph(num_nodes,num_edges,external_ids,neighborhoods);

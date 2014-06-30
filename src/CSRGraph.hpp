@@ -110,11 +110,11 @@ struct CSRGraph {
 };
 
 void printCSRGraph(CSRGraph *graph) {
-  for(int i = 0; i < graph->num_nodes; ++i) {
+  for(size_t i = 0; i < graph->num_nodes; ++i) {
     cout << "Neighborhood: " << graph->nodes[i] << endl;
     size_t start,end;
     graph->getRange(i,start,end);
-    for(int j = start; j < end; ++j) {
+    for(size_t j = start; j < end; ++j) {
       cout << graph->edges[j] << " ";
     }
     cout << endl;
@@ -137,11 +137,10 @@ CSRGraph* createCSRGraph(VectorGraph *vg){
     for(size_t j = 0; j < hood->size(); ++j) {
       edges[index++] = hood->at(j); 
     }
-    hood->clear();
-    delete hood;
+    //delete hood;
   }
 
-  delete vg;
+  //delete vg;
 
   cout << "Num nodes: " << num_nodes << " Num edges: " << num_edges << endl;
 

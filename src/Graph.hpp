@@ -20,7 +20,7 @@ int getBit(int value, int position) {
 
 
 // a simple implementation, we don't care about performance here
-static __m128i shuffle_mask16[16]; // precomputed dictionary
+//static __m128i shuffle_mask16[16]; // precomputed dictionary
 // a simple implementation, we don't care about performance here
 /*
 void prepare_shuffling_dictionary() {
@@ -117,17 +117,16 @@ inline size_t intersect_partitioned(const unsigned short *A, const unsigned shor
   return counter;
 }
 void print_partition(unsigned short *A, size_t s_a){
-  size_t i_a = 0;
   for(size_t i = 0; i < s_a; i++){
-      
     unsigned int prefix = (A[i] << 16);
     unsigned short size = A[i+1];
     cout << "size: " << size << endl;
     i += 2;
     size_t inner_end = i+size;
-    for(i; i < inner_end; ++i){
+    while(i < inner_end){
       unsigned int tmp = prefix | A[i];
       cout << prefix << " " << tmp << endl;
+      ++i;
     }
     i--;
   }
@@ -243,11 +242,11 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
     nodes[i] = index;
     index = partition(tmp_hood,hood->size(),edges,index);
     delete[] tmp_hood;
-    hood->clear();
-    delete hood;
+    //hood->clear();
+    //delete hood;
   }
 
-  delete vg;
+  //delete vg;
 
   return new CompressedGraph(num_nodes,index,nodes,edges,external_ids);
 }

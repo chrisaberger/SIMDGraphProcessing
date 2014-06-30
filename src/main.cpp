@@ -67,21 +67,30 @@ int main (int argc, char* argv[]) {
   */
 
   startClock();
-  CompressedGraph *graph = createCompressedGraph(ReadFile(argv[1],atoi(argv[2])));
-  CSRGraph *graph2 = createCSRGraph(ReadFile(argv[1],atoi(argv[2])));
-  stopClock("input");
+  VectorGraph *vg = ReadFile(argv[1],atoi(argv[2]));
+  stopClock("INPUT");
 
-  
-  //printCSRGraph(graph);
+  cout << endl;
+
+  startClock();
+  CompressedGraph *graph = createCompressedGraph(vg);
+  stopClock("COMPRESSED CREATION");
+
   startClock();
   long triangles = graph->countTriangles(1);
   cout << "Triangles: " << triangles << endl;
-  stopClock("COMPRESSED");
+  stopClock("COMPRESSED APPLICATION");
+
+  cout << endl;
+
+  startClock();
+  CSRGraph *graph2 = createCSRGraph(vg);
+  stopClock("CSR CREATION");
 
   startClock();
   long triangles2 = graph2->countTriangles(1);
   cout << "Triangles: " << triangles2 << endl;
-  stopClock("CSR counting");
+  stopClock("CSR APPLICATION");
 
   return 0;
 }

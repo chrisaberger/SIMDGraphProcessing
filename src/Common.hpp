@@ -55,6 +55,11 @@ struct VectorGraph {
     neighborhoods(neighborhoods_in){}
   ~VectorGraph(){
     delete external_ids;
+    for(size_t i = 0; i < num_nodes; ++i) {
+      vector<size_t> *hood = neighborhoods->at(i);
+      hood->clear();
+      delete hood;
+    }
     neighborhoods->erase(neighborhoods->begin(),neighborhoods->end());
     delete neighborhoods;
   }

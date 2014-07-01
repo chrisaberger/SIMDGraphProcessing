@@ -29,7 +29,7 @@ struct CSRGraph {
   }
   inline long countTriangles(int numThreads) const{
     //std::cout << "Number of threads: " << numThreads << std::endl;
-    //cout << "CSR EDGE BYTES: " << (num_edges * 32)/8 << endl;
+    cout << "CSR EDGE BYTES: " << (num_edges * 32)/8 << endl;
 
     omp_set_num_threads(numThreads);
     

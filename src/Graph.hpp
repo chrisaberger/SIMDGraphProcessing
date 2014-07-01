@@ -41,7 +41,49 @@ void prepare_shuffling_dictionary() {
     }
 }
 */
-inline size_t intersect_vector16(const bool print,const size_t lim,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+inline size_t simd_intersect_vector16(const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+  size_t count = 0;
+  size_t i_a = 0, i_b = 0;
+
+  size_t st_a = (s_a / SHORTS_PER_REG) * SHORTS_PER_REG;
+  size_t st_b = (s_b / SHORTS_PER_REG) * SHORTS_PER_REG;
+  //scout << "Sizes:: " << st_a << " " << st_b << endl;
+ 
+  while(i_a < st_a && i_b < st_b ) {
+    __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
+    __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);    
+    unsigned short a_max = _mm_extract_epi16(v_a, SHORTS_PER_REG-1);
+    unsigned short b_max = _mm_extract_epi16(v_b, SHORTS_PER_REG-1);
+    
+    __m128i res_v = _mm_cmpestrm(v_b, SHORTS_PER_REG, v_a, SHORTS_PER_REG,
+            _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
+    int r = _mm_extract_epi32(res_v, 0);
+    //__m128i p = _mm_shuffle_epi8(v_a, shuffle_mask16[r]);
+    //_mm_storeu_si128((__m128i*)&C[count], p);
+    count += _mm_popcnt_u32(r);
+    
+    i_a += (a_max <= b_max) * SHORTS_PER_REG;
+    i_b += (a_max >= b_max) * SHORTS_PER_REG;
+  }
+  // intersect the tail using scalar intersection
+  //...
+
+  bool notFinished = i_a < s_a  && i_b < s_b;
+  while(notFinished){
+    while(notFinished && B[i_b] < A[i_a]){
+      ++i_b;
+      notFinished = i_b < s_b;
+    }
+    if(notFinished && A[i_a] == B[i_b]){
+     ++count;
+    }
+    ++i_a;
+    notFinished = notFinished && i_a < s_a;
+  }
+
+  return count;
+}
+inline size_t intersect_vector16(const size_t lim,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
   
   size_t count = 0;
   size_t i_a = 0, i_b = 0;
@@ -91,7 +133,7 @@ inline size_t intersect_partitioned(const size_t lim,const unsigned short *A, co
   size_t i_a = 0, i_b = 0;
   size_t counter = 0;
   size_t limPrefix = (lim & 0x0FFFF0000) >> 16;
-  size_t limLowerHolder = lim & 0x0FFFF;
+  size_t limLower = lim & 0x0FFFF;
   bool notFinished = i_a < s_a && i_b < s_b && A[i_a] <= limPrefix && B[i_b] <= limPrefix;
 
   //cout << lim << endl;
@@ -105,12 +147,13 @@ inline size_t intersect_partitioned(const size_t lim,const unsigned short *A, co
       i_b += B[i_b + 1] + 2;
       notFinished = i_b < s_b && B[i_b] <= limPrefix;
     } else {
-      size_t limLower = limLowerHolder;
+      unsigned short partition_size;
       //If we are not in the range of the limit we don't need to worry about it.
       if(A[i_a] < limPrefix && B[i_b] < limPrefix){
-        limLower = 100000000;
+        partition_size = simd_intersect_vector16(&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
+      } else {
+        partition_size = intersect_vector16(limLower,&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
       }
-      unsigned short partition_size = intersect_vector16(lim==65630,limLower,&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
       counter += partition_size;
       i_a += A[i_a + 1] + 2;
       i_b += B[i_b + 1] + 2;

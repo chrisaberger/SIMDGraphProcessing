@@ -1,16 +1,18 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <unordered_map>
 #include <ctime>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <stdio.h>  
 
 using namespace std;
 
 double t1;
 double t2;
 struct timeval tim;  
-   
+
 void startClock (){
   gettimeofday(&tim, NULL);  
   t1=tim.tv_sec+(tim.tv_usec/1000000.0); 

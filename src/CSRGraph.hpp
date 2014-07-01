@@ -28,8 +28,8 @@ struct CSRGraph {
     else end = nodes[node+1];
   }
   inline long countTriangles(int numThreads) const{
-    std::cout << "Number of threads: " << numThreads << std::endl;
-    cout << "CSR EDGE BYTES: " << (num_edges * 32)/8 << endl;
+    //std::cout << "Number of threads: " << numThreads << std::endl;
+    //cout << "CSR EDGE BYTES: " << (num_edges * 32)/8 << endl;
 
     omp_set_num_threads(numThreads);
     
@@ -39,12 +39,14 @@ struct CSRGraph {
       size_t start,end;
       getRange(i,start,end);
       for(size_t j = start; j < end; ++j) {
-        if(i < edges[j]) result += intersectStandard(i,edges[j]);
+        if(i > edges[j]) 
+          result += intersectStandard(edges[j],i);
       }
     }
     return result;
   }
   inline long intersectStandard(const size_t node1, const size_t node2) const{
+    //cout << "Intersecting: " << node1 << " " << node2 << endl;
     size_t i, endI, j, endJ;
     getRange(node1,i,endI);
     getRange(node2,j,endJ);
@@ -109,17 +111,16 @@ struct CSRGraph {
   */
 };
 
-void printCSRGraph(CSRGraph *graph) {
+void printGraph(CSRGraph *graph) {
   for(size_t i = 0; i < graph->num_nodes; ++i) {
-    cout << "Neighborhood: " << graph->nodes[i] << endl;
+    cout << "Node: " << i << endl;
     size_t start,end;
     graph->getRange(i,start,end);
     for(size_t j = start; j < end; ++j) {
-      cout << graph->edges[j] << " ";
+      cout << "nbr: " << graph->edges[j] << endl;
     }
     cout << endl;
   }
-  cout << endl;
 }
 
 CSRGraph* createCSRGraph(VectorGraph *vg){
@@ -142,7 +143,7 @@ CSRGraph* createCSRGraph(VectorGraph *vg){
 
   //delete vg;
 
-  cout << "Num nodes: " << num_nodes << " Num edges: " << num_edges << endl;
+  //cout << "Num nodes: " << num_nodes << " Num edges: " << num_edges << endl;
 
   return new CSRGraph(num_nodes,num_edges,nodes,edges,external_ids);
 }

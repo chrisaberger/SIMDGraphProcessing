@@ -65,11 +65,6 @@ static inline VectorGraph* ReadFile (string path,int num) {
       hood->at(j) = external_ids->find(hood->at(j))->second;
     }
     sort(hood->begin(),hood->end());
-    /*
-    for(size_t j = 0; j < hood->size(); ++j) {
-      //cout << hood->at(j) << endl;
-    }
-    */
   } 
 
   return new VectorGraph(num_nodes,num_edges,external_ids,neighborhoods);

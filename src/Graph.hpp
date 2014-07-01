@@ -41,7 +41,7 @@ void prepare_shuffling_dictionary() {
     }
 }
 */
-inline size_t intersect_vector16(const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+inline size_t intersect_vector16(const bool print,const size_t lim,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
   
   size_t count = 0;
   size_t i_a = 0, i_b = 0;
@@ -50,6 +50,7 @@ inline size_t intersect_vector16(const unsigned short *A, const unsigned short *
   size_t st_b = (s_b / SHORTS_PER_REG) * SHORTS_PER_REG;
   //scout << "Sizes:: " << st_a << " " << st_b << endl;
  
+  /* 
   while(i_a < st_a && i_b < st_b ) {
     __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
     __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);    
@@ -68,52 +69,54 @@ inline size_t intersect_vector16(const unsigned short *A, const unsigned short *
   }
   // intersect the tail using scalar intersection
   //...
- 
-  bool notFinished = i_a < s_a  && i_b < s_b;
+  */
+
+  bool notFinished = i_a < s_a  && i_b < s_b && A[i_a] < lim && B[i_b] < lim;
   while(notFinished){
     while(notFinished && B[i_b] < A[i_a]){
       ++i_b;
-      notFinished = i_b < s_b;
+      notFinished = i_b < s_b && B[i_b] < lim;
     }
     if(notFinished && A[i_a] == B[i_b]){
      ++count;
     }
     ++i_a;
-    notFinished = notFinished && i_a < s_a;
+    notFinished = notFinished && i_a < s_a && A[i_a] < lim;
   }
-  /*
-  while(i_a < s_a && i_b < s_b) {
-    if(A[i_a] < B[i_b]) {
-      i_a++;
-    } else if(B[i_b] < A[i_a]) {
-      i_b++;
-    } else {
-      ++count;//C[count++] = A[i_a];
-      i_a++; i_b++;
-    }
-  }
-  */
+
   return count;
 }
 // A, B - partitioned operands
-inline size_t intersect_partitioned(const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+inline size_t intersect_partitioned(const size_t lim,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
   size_t i_a = 0, i_b = 0;
   size_t counter = 0;
+  size_t limPrefix = (lim & 0x0FFFF0000) >> 16;
+  size_t limLowerHolder = lim & 0x0FFFF;
+  bool notFinished = i_a < s_a && i_b < s_b && A[i_a] <= limPrefix && B[i_b] <= limPrefix;
 
-  while(i_a < s_a && i_b < s_b) {
+  //cout << lim << endl;
+  while(notFinished) {
+    //size_t limLower = limLowerHolder;
     //cout << "looping" << endl;
     if(A[i_a] < B[i_b]) {
       i_a += A[i_a + 1] + 2;
+      notFinished = i_a < s_a && A[i_a] <= limPrefix;
     } else if(B[i_b] < A[i_a]) {
       i_b += B[i_b + 1] + 2;
+      notFinished = i_b < s_b && B[i_b] <= limPrefix;
     } else {
-      unsigned short partition_size = intersect_vector16(&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
+      size_t limLower = limLowerHolder;
+      //If we are not in the range of the limit we don't need to worry about it.
+      if(A[i_a] < limPrefix && B[i_b] < limPrefix){
+        limLower = 100000000;
+      }
+      unsigned short partition_size = intersect_vector16(lim==65630,limLower,&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
       counter += partition_size;
       i_a += A[i_a + 1] + 2;
       i_b += B[i_b + 1] + 2;
+      notFinished = i_a < s_a && i_b < s_b && A[i_a] <= lim && B[i_b] <= limPrefix;
     }
   }
-
   return counter;
 }
 void print_partition(unsigned short *A, size_t s_a){
@@ -179,7 +182,33 @@ struct CompressedGraph {
     edges(edges_in),
     external_ids(external_ids_in){}
 
+    inline void printGraph(){
+      for(size_t i = 0; i < num_nodes; ++i){
+        size_t start1 = nodes[i];
+        const int start1F = start1;
+        
+        size_t end1 = 0;
+        if(i+1 < num_nodes) end1 = nodes[i+1];
+        else end1 = num_edges;
+        size_t len1 = end1-start1;
 
+        size_t j = start1;
+        cout << "Node: " << i <<endl;
+
+        while(j < end1){
+          unsigned int prefix = (edges[j] << 16);
+          size_t inner_end = j+edges[j+1]+2;
+          j += 2;
+          while(j < inner_end){
+            size_t cur = prefix | edges[j];
+            cout << "nbr: " << cur << endl;
+            ++j;
+          }
+        }
+        cout << endl;
+      }
+    }
+    
     inline long countTriangles(int numThreads){
       cout << "COMPRESSED EDGE BYTES: " << (num_edges * 16)/8 << endl;
 
@@ -200,21 +229,25 @@ struct CompressedGraph {
           size_t inner_end = j+edges[j+1]+2;
           j += 2;
 
-          bool notFinished = edges[j-2] <= (i >> 16);
+          bool notFinished = (i >> 16) >= edges[j-2];
+          //cout << "Prefixes: " << (i >> 16) << " and " << edges[j-2] << endl;
 
           while(j < inner_end && notFinished){
             size_t cur = prefix | edges[j];
-            //finished = i < cur;
+              //cout << "Here: " << i << " and " << cur << endl;
 
             size_t start2 = nodes[cur];
-            //cout << "start: " << start2 << " num_edges: " << num_edges << endl;
             size_t end2 = 0;
             if(cur+1 < num_nodes) end2 = nodes[cur+1];
             else end2 = num_edges;
             size_t len2 = end2-start2;
 
-            notFinished = cur < i;
-            count += notFinished * intersect_partitioned(edges+start1F,edges+start2,len1,len2);
+            notFinished = i > cur; //has to be reverse cause cutoff could
+            //be in the middle of a partition.
+            if(notFinished){
+              long ncount = intersect_partitioned(cur,edges+start1F,edges+start2,len1,len2);
+              count += ncount;
+            }
             ++j;
           }
           j = inner_end;
@@ -229,7 +262,7 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   size_t num_nodes = vg->num_nodes;
   const unordered_map<size_t,size_t> *external_ids = vg->external_ids;
 
-  cout  << "Num nodes: " << vg->num_nodes << endl;
+  //cout  << "Num nodes: " << vg->num_nodes << " Num edges: " << vg->num_edges << endl;
 
   size_t index = 0;
   for(size_t i = 0; i < vg->num_nodes; ++i){

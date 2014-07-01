@@ -27,6 +27,67 @@ struct CSRGraph {
     if(node+1 >= num_nodes) end = num_edges;
     else end = nodes[node+1];
   }
+  inline double pagerank(int numThreads) const{
+    //std::cout << "Number of threads: " << numThreads << std::endl;
+    cout << "CSR EDGE BYTES: " << (num_edges * 32)/8 << endl;
+
+    double *pr = new double[num_nodes];
+    double *oldpr = new double[num_nodes];
+    const double damp = 0.85;
+    const int maxIter = 100;
+    const double threshold = 0.0001;
+
+    for(size_t i=0; i < num_nodes; ++i){
+      oldpr[i] = 1.0/num_nodes;
+    }
+
+    //omp_set_num_threads(numThreads);
+    //#pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
+    int iter = 0;
+    double delta = 1000000000000.0;
+    double totalpr = 0.0;
+    while(delta > threshold && iter < maxIter){
+      /*
+      cout << "Iter: " << iter << endl;
+      for(size_t i=0; i < num_nodes; ++i){
+        cout << "Old pr: " << oldpr[i] << endl;
+      }
+      */
+      for(size_t i=0; i < num_nodes; ++i){
+        size_t start,end;
+        getRange(i,start,end);
+        double sum = 0.0;
+        for(size_t j = start; j < end; ++j) {
+          size_t start2,end2;
+          getRange(edges[j],start2,end2);
+          sum += oldpr[edges[j]]/(end2-start2);
+        }
+        pr[i] = ((1.0-damp)/num_nodes) + damp * sum;
+      }
+
+      totalpr = 0.0;
+      delta = 0.0;
+      for(size_t i=0; i < num_nodes; ++i){
+        delta += abs(pr[i]-oldpr[i]);
+        totalpr += pr[i];
+      }
+
+      double *tmp = oldpr;
+      oldpr = pr;
+      pr = tmp;
+      ++iter;
+    }
+    pr = oldpr;
+
+    /*
+    cout << "Iter: " << iter << endl;
+    for(size_t i=0; i < num_nodes; ++i){
+      cout << "Node: " << i << " PR: " << pr[i] << endl;
+    }
+    */
+
+    return totalpr;
+  }
   inline long countTriangles(int numThreads) const{
     //std::cout << "Number of threads: " << numThreads << std::endl;
     cout << "CSR EDGE BYTES: " << (num_edges * 32)/8 << endl;
@@ -39,8 +100,8 @@ struct CSRGraph {
       size_t start,end;
       getRange(i,start,end);
       for(size_t j = start; j < end; ++j) {
-        if(i > edges[j]) 
-          result += intersectStandard(edges[j],i);
+        if(i < edges[j]) 
+          result += intersectStandard(i,edges[j]);
       }
     }
     return result;

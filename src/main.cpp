@@ -34,8 +34,10 @@ int main (int argc, char* argv[]) {
   stopClock("COMPRESSED CREATION");
   
   startClock();
-  long triangles = graph->countTriangles(atoi(argv[3]));
-  cout << "Triangles: " << triangles << endl;
+  double prc = graph->pagerank();
+  cout << "Total pr: " << prc << endl;
+  //long triangles = graph->countTriangles(atoi(argv[3]));
+  //cout << "Triangles: " << triangles << endl;
   stopClock("COMPRESSED APPLICATION");
 
   cout << endl;
@@ -45,8 +47,10 @@ int main (int argc, char* argv[]) {
   stopClock("CSR CREATION");
 
   startClock();
-  long triangles2 = graph2->countTriangles(atoi(argv[3]));
-  cout << "Triangles: " << triangles2 << endl;
+  double pr = graph2->pagerank(atoi(argv[3]));
+  cout << "Total pr: " << pr << endl;
+  //long triangles2 = graph2->countTriangles(atoi(argv[3]));
+  //cout << "Triangles: " << triangles2 << endl;
   stopClock("CSR APPLICATION");
 
   return 0;

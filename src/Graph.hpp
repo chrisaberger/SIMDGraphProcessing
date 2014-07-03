@@ -166,20 +166,23 @@ inline size_t partition(int *A, size_t s_a, unsigned short *R, size_t index) {
 struct CompressedGraph {
   const size_t num_nodes;
   const size_t num_edges;
+  const int *nbr_lengths;
   const int *nodes;
   unsigned short *edges;
   const unordered_map<size_t,size_t> *external_ids;
   CompressedGraph(  
     const size_t num_nodes_in, 
-    const size_t num_edges_in, 
+    const size_t num_edges_in,
+    const int *nbrs_lengths_in, 
     const int *nodes_in,
     unsigned short *edges_in,
     const unordered_map<size_t,size_t> *external_ids_in): 
-    num_nodes(num_nodes_in), 
-    num_edges(num_edges_in),
-    nodes(nodes_in), 
-    edges(edges_in),
-    external_ids(external_ids_in){}
+      num_nodes(num_nodes_in), 
+      num_edges(num_edges_in),
+      nbr_lengths(nbrs_lengths_in),
+      nodes(nodes_in), 
+      edges(edges_in),
+      external_ids(external_ids_in){}
 
     inline void printGraph(){
       for(size_t i = 0; i < num_nodes; ++i){
@@ -188,7 +191,6 @@ struct CompressedGraph {
         size_t end1 = 0;
         if(i+1 < num_nodes) end1 = nodes[i+1];
         else end1 = num_edges;
-        size_t len1 = end1-start1;
 
         size_t j = start1;
         cout << "Node: " << i <<endl;
@@ -223,14 +225,14 @@ struct CompressedGraph {
       double delta = 1000000000000.0;
       double totalpr = 0.0;
       while(delta > threshold && iter < maxIter){
-
+        totalpr = 0.0;
+        delta = 0.0;
         for(size_t i = 0; i < num_nodes; ++i){
           size_t start1 = nodes[i];
           
           size_t end1 = 0;
           if(i+1 < num_nodes) end1 = nodes[i+1];
           else end1 = num_edges;
-          size_t len1 = end1-start1;
 
           size_t j = start1;
           double sum = 0.0;
@@ -240,31 +242,12 @@ struct CompressedGraph {
             j += 2;
             while(j < inner_end){
               size_t cur = prefix | edges[j];
-
-              size_t start2 = nodes[cur];
-              size_t end2 = 0;
-              if(cur+1 < num_nodes) end2 = nodes[cur+1];
-              else end2 = num_edges;
-              size_t len2 = 0;
-              size_t k = start2;
-
-              while(k < end2){
-                size_t inner_len = edges[k+1];
-                len2 += inner_len;
-                k = k+inner_len+2;
-              }
-
+              size_t len2 = nbr_lengths[cur];
               sum += oldpr[cur]/len2;
-
               ++j;
             }
           }
           pr[i] = ((1.0-damp)/num_nodes) + damp * sum;
-        }
-
-        totalpr = 0.0;
-        delta = 0.0;
-        for(size_t i=0; i < num_nodes; ++i){
           delta += abs(pr[i]-oldpr[i]);
           totalpr += pr[i];
         }
@@ -275,12 +258,14 @@ struct CompressedGraph {
         ++iter;
       }
       pr = oldpr;
-
+    
+      /*
       cout << "Iter: " << iter << endl;
       for(size_t i=0; i < num_nodes; ++i){
         cout << "Node: " << i << " PR: " << pr[i] << endl;
       }
-  
+      */
+
       return 1.0;
     }   
     inline long countTriangles(int numThreads){
@@ -332,7 +317,8 @@ struct CompressedGraph {
 };
 static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   int *nodes = new int[vg->num_nodes];
-  unsigned short *edges = new unsigned short[vg->num_edges*8];
+  int *nbrlengths = new int[vg->num_nodes];
+  unsigned short *edges = new unsigned short[vg->num_edges*2];
   size_t num_nodes = vg->num_nodes;
   const unordered_map<size_t,size_t> *external_ids = vg->external_ids;
 
@@ -341,7 +327,7 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   size_t index = 0;
   for(size_t i = 0; i < vg->num_nodes; ++i){
     vector<size_t> *hood = vg->neighborhoods->at(i);
-
+    nbrlengths[i] = hood->size();
     int *tmp_hood = new int[hood->size()];
     for(size_t j = 0; j < hood->size(); ++j) {
       tmp_hood[j] = hood->at(j);
@@ -349,13 +335,9 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
     nodes[i] = index;
     index = partition(tmp_hood,hood->size(),edges,index);
     delete[] tmp_hood;
-    //hood->clear();
-    //delete hood;
   }
 
-  //delete vg;
-
-  return new CompressedGraph(num_nodes,index,nodes,edges,external_ids);
+  return new CompressedGraph(num_nodes,index,nbrlengths,nodes,edges,external_ids);
 }
 
 #endif

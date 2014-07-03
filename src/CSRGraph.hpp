@@ -53,6 +53,8 @@ struct CSRGraph {
         cout << "Old pr: " << oldpr[i] << endl;
       }
       */
+      totalpr = 0.0;
+      delta = 0.0;
       for(size_t i=0; i < num_nodes; ++i){
         size_t start,end;
         getRange(i,start,end);
@@ -63,15 +65,9 @@ struct CSRGraph {
           sum += oldpr[edges[j]]/(end2-start2);
         }
         pr[i] = ((1.0-damp)/num_nodes) + damp * sum;
-      }
-
-      totalpr = 0.0;
-      delta = 0.0;
-      for(size_t i=0; i < num_nodes; ++i){
         delta += abs(pr[i]-oldpr[i]);
         totalpr += pr[i];
       }
-
       double *tmp = oldpr;
       oldpr = pr;
       pr = tmp;

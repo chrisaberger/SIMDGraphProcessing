@@ -147,14 +147,14 @@ inline size_t partition(int *A, size_t s_a, unsigned short *R, size_t index) {
 struct CompressedGraph {
   const size_t num_nodes;
   const size_t num_edges;
-  const size_t *nbr_lengths;
+  const unsigned int *nbr_lengths;
   const size_t *nodes;
   unsigned short *edges;
   const unordered_map<size_t,size_t> *external_ids;
   CompressedGraph(  
     const size_t num_nodes_in, 
     const size_t num_edges_in,
-    const size_t *nbrs_lengths_in, 
+    const unsigned int *nbrs_lengths_in, 
     const size_t *nodes_in,
     unsigned short *edges_in,
     const unordered_map<size_t,size_t> *external_ids_in): 
@@ -201,25 +201,26 @@ struct CompressedGraph {
         cout << endl;
       }
     }
-    inline double pagerank(){
+    inline double pagerank(int num_threads){
       double *pr = new double[num_nodes];
       double *oldpr = new double[num_nodes];
       const double damp = 0.85;
       const int maxIter = 100;
       const double threshold = 0.0001;
 
+      omp_set_num_threads(num_threads);        
+      #pragma omp parallel for default(none) schedule(static,150) shared(pr,oldpr)
       for(size_t i=0; i < num_nodes; ++i){
         oldpr[i] = 1.0/num_nodes;
       }
-
-      //omp_num_threads(numThreads);
-      //#pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
+      
       int iter = 0;
       double delta = 1000000000000.0;
       double totalpr = 0.0;
       while(delta > threshold && iter < maxIter){
         totalpr = 0.0;
         delta = 0.0;
+        #pragma omp parallel for default(none) shared(pr,oldpr) schedule(static,150) reduction(+:delta) reduction(+:totalpr)
         for(size_t i = 0; i < num_nodes; ++i){
           const size_t start1 = nodes[i];
           const size_t end1 = getEndOfNeighborhood(i);
@@ -295,7 +296,7 @@ struct CompressedGraph {
 };
 static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   size_t *nodes = new size_t[vg->num_nodes];
-  size_t *nbrlengths = new size_t[vg->num_nodes];
+  unsigned int *nbrlengths = new unsigned int[vg->num_nodes];
   unsigned short *edges = new unsigned short[vg->num_edges*5];
   size_t num_nodes = vg->num_nodes;
   const unordered_map<size_t,size_t> *external_ids = vg->external_ids;

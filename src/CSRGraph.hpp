@@ -27,7 +27,7 @@ struct CSRGraph {
     if(node+1 >= num_nodes) end = num_edges;
     else end = nodes[node+1];
   }
-  inline double pagerank(int numThreads) const{
+  inline double pagerank(int num_threads) const{
     //std::cout << "Number of threads: " << numThreads << std::endl;
 
     double *pr = new double[num_nodes];
@@ -35,22 +35,20 @@ struct CSRGraph {
     const double damp = 0.85;
     const int maxIter = 100;
     const double threshold = 0.0001;
-
+      
+    omp_set_num_threads(num_threads);        
+    #pragma omp parallel for default(none) schedule(static,150) shared(pr,oldpr)
     for(size_t i=0; i < num_nodes; ++i){
       oldpr[i] = 1.0/num_nodes;
     }
-
-    //omp_set_num_threads(numThreads);
-    //#pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
+       
     int iter = 0;
     double delta = 1000000000000.0;
     double totalpr = 0.0;
     while(delta > threshold && iter < maxIter){
-      //cout << "Iter: " << iter << endl;
-      //cout << "Total PR: " << totalpr << endl;
-
       totalpr = 0.0;
       delta = 0.0;
+      #pragma omp parallel for default(none) shared(pr,oldpr) schedule(static,150) reduction(+:delta) reduction(+:totalpr)
       for(size_t i=0; i < num_nodes; ++i){
         size_t start,end;
         getRange(i,start,end);

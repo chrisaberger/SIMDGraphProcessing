@@ -35,13 +35,15 @@ int main (int argc, char* argv[]) {
   cout << "COMPRESSED EDGE BYTES: " << (graph->num_edges * 16)/8 << endl;
   startClock();
   
-  double prc = graph->pagerank();
+  double prc = graph->pagerank(atoi(argv[3]));
   cout << "Total pr: " << prc << endl;
   stopClock("COMPRESSED APPLICATION");
   
+  /*
   long triangles = graph->countTriangles(atoi(argv[3]));
   cout << "Triangles: " << triangles << endl;
   stopClock("COMPRESSED APPLICATION");
+  */
   cout << endl;
 
   startClock();
@@ -53,9 +55,10 @@ int main (int argc, char* argv[]) {
   cout << "Total pr: " << pr << endl;
   stopClock("CSR APPLICATION");
 
+  /*
   long triangles2 = graph2->countTriangles(atoi(argv[3]));
   cout << "Triangles: " << triangles2 << endl;
   stopClock("CSR APPLICATION");
-
+  */
   return 0;
 }

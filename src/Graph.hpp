@@ -165,7 +165,19 @@ struct CompressedGraph {
       nodes(nodes_in), 
       edges(edges_in),
       external_ids(external_ids_in){}
-
+    inline size_t getEndOfNeighborhood(const size_t node){
+      size_t end = 0;
+      if(node+1 < num_nodes) end = nodes[node+1];
+      else end = num_edges;
+      return end;
+    }
+    inline void setupPartitionForTraversal(size_t &i, size_t &prefix, size_t &end){
+      const size_t header_length = 2;
+      const size_t start = i;
+      prefix = edges[i++]; //need
+      const size_t len = edges[i++];
+      end = start+len+header_length; //need
+    }
     inline void printGraph(){
       for(size_t i = 0; i < num_nodes; ++i){
         size_t start1 = nodes[i];
@@ -258,30 +270,20 @@ struct CompressedGraph {
       #pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
       for(size_t i = 0; i < num_nodes; ++i){
         const size_t start1 = nodes[i];
-        
-        size_t end1 = 0;
-        if(i+1 < num_nodes) end1 = nodes[i+1];
-        else end1 = num_edges;
+        const size_t end1 = getEndOfNeighborhood(i);
         const size_t len1 = end1-start1;
 
         size_t j = start1;
-
         while(j < end1){
-          const size_t prefix = (edges[j] << 16);
-          const size_t inner_end = j+edges[j+1]+2l;
-          j += 2;
+          size_t prefix, inner_end;
+          setupPartitionForTraversal(j,prefix,inner_end);
 
-          bool notFinished = (i >> 16) >= edges[j-2];
-          //cout << "Prefixes: " << (i >> 16) << " and " << edges[j-2] << endl;
-
+          bool notFinished = (i >> 16) >= prefix;
           while(j < inner_end && notFinished){
-            const size_t cur = prefix | edges[j];
-              //cout << "Here: " << i << " and " << cur << endl;
-
+            const size_t cur = (prefix << 16) | edges[j];
+            
             const size_t start2 = nodes[cur];
-            size_t end2 = 0;
-            if(cur+1 < num_nodes) end2 = nodes[cur+1];
-            else end2 = num_edges;
+            const size_t end2 = getEndOfNeighborhood(cur);
             const size_t len2 = end2-start2;
 
             notFinished = i > cur; //has to be reverse cause cutoff could

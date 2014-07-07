@@ -122,27 +122,26 @@ inline size_t partition(int *A, size_t s_a, unsigned short *R, size_t index) {
   size_t partition_size_position = index+1;
   size_t counter = index;
   for(size_t p = 0; p < s_a; p++) {
-      unsigned short chigh = (A[p] & 0xFFFF0000) >> 16; // upper dword
-      unsigned short clow = A[p] & 0x0FFFF;   // lower dword
-      if(chigh == high && p != 0) { // add element to the current partition
-        R[counter++] = clow;
-        partition_length++;
-      } else { // start new partition
-        R[counter++] = chigh; // partition prefix
-        R[counter++] = 0;     // reserve place for partition size
-        R[counter++] = clow;  // write the first element
-        R[partition_size_position] = partition_length;
-        numSets++;
-        if(partition_length > 4096)
-          numSetsCompressed++;
-        //cout << "setting: " << partition_size_position << " to: " << partition_length << endl;
-        partition_length = 1; // reset counters
-        partition_size_position = counter - 2;
-        high = chigh;
-      }
+    unsigned short chigh = (A[p] & 0xFFFF0000) >> 16; // upper dword
+    unsigned short clow = A[p] & 0x0FFFF;   // lower dword
+    if(chigh == high && p != 0) { // add element to the current partition
+      R[counter++] = clow;
+      partition_length++;
+    } else { // start new partition
+      R[counter++] = chigh; // partition prefix
+      R[counter++] = 0;     // reserve place for partition size
+      R[counter++] = clow;  // write the first element
+      R[partition_size_position] = partition_length;
+      numSets++;
+      if(partition_length > 4096)
+        numSetsCompressed++;
+      //cout << "setting: " << partition_size_position << " to: " << partition_length << endl;
+      partition_length = 1; // reset counters
+      partition_size_position = counter - 2;
+      high = chigh;
+    }
   }
   R[partition_size_position] = partition_length;
-
   return counter;
 }
 struct CompressedGraph {
@@ -171,7 +170,7 @@ struct CompressedGraph {
       else end = num_edges;
       return end;
     }
-    inline void setupPartitionForTraversal(size_t &i, size_t &prefix, size_t &end){
+    inline void traverseInnerPartition(size_t &i, size_t &prefix, size_t &end){
       const size_t header_length = 2;
       const size_t start = i;
       prefix = edges[i++]; //need
@@ -213,7 +212,7 @@ struct CompressedGraph {
         oldpr[i] = 1.0/num_nodes;
       }
 
-      //omp_set_num_threads(numThreads);
+      //omp_num_threads(numThreads);
       //#pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
       int iter = 0;
       double delta = 1000000000000.0;
@@ -222,21 +221,17 @@ struct CompressedGraph {
         totalpr = 0.0;
         delta = 0.0;
         for(size_t i = 0; i < num_nodes; ++i){
-          size_t start1 = nodes[i];
-          
-          size_t end1 = 0;
-          if(i+1 < num_nodes) end1 = nodes[i+1];
-          else end1 = num_edges;
+          const size_t start1 = nodes[i];
+          const size_t end1 = getEndOfNeighborhood(i);
 
           size_t j = start1;
           double sum = 0.0;
           while(j < end1){
-            unsigned int prefix = (edges[j] << 16);
-            size_t inner_end = j+edges[j+1]+2;
-            j += 2;
+          size_t prefix, inner_end;
+          traverseInnerPartition(j,prefix,inner_end);
             while(j < inner_end){
-              size_t cur = prefix | edges[j];
-              size_t len2 = nbr_lengths[cur];
+              const size_t cur = (prefix << 16) | edges[j];
+              const size_t len2 = nbr_lengths[cur];
               sum += oldpr[cur]/len2;
               ++j;
             }
@@ -253,30 +248,28 @@ struct CompressedGraph {
       }
       pr = oldpr;
     
-      /*
       cout << "Iter: " << iter << endl;
+      /*
       for(size_t i=0; i < num_nodes; ++i){
         cout << "Node: " << i << " PR: " << pr[i] << endl;
       }
       */
 
-      return 1.0;
+      return totalpr;
     }   
     inline long countTriangles(int numThreads){
-      cout << "COMPRESSED EDGE BYTES: " << (num_edges * 16)/8 << endl;
-
       long count = 0;
-      omp_set_num_threads(numThreads);  
+      omp_set_num_threads(numThreads);        
       #pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
       for(size_t i = 0; i < num_nodes; ++i){
         const size_t start1 = nodes[i];
         const size_t end1 = getEndOfNeighborhood(i);
         const size_t len1 = end1-start1;
 
-        size_t j = start1;
+        size_t j = start1; //need to skip size area
         while(j < end1){
           size_t prefix, inner_end;
-          setupPartitionForTraversal(j,prefix,inner_end);
+          traverseInnerPartition(j,prefix,inner_end);
 
           bool notFinished = (i >> 16) >= prefix;
           while(j < inner_end && notFinished){

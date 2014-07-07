@@ -29,7 +29,6 @@ struct CSRGraph {
   }
   inline double pagerank(int numThreads) const{
     //std::cout << "Number of threads: " << numThreads << std::endl;
-    cout << "CSR EDGE BYTES: " << (num_edges * 32)/8 << endl;
 
     double *pr = new double[num_nodes];
     double *oldpr = new double[num_nodes];
@@ -47,12 +46,9 @@ struct CSRGraph {
     double delta = 1000000000000.0;
     double totalpr = 0.0;
     while(delta > threshold && iter < maxIter){
-      /*
-      cout << "Iter: " << iter << endl;
-      for(size_t i=0; i < num_nodes; ++i){
-        cout << "Old pr: " << oldpr[i] << endl;
-      }
-      */
+      //cout << "Iter: " << iter << endl;
+      //cout << "Total PR: " << totalpr << endl;
+
       totalpr = 0.0;
       delta = 0.0;
       for(size_t i=0; i < num_nodes; ++i){
@@ -75,19 +71,16 @@ struct CSRGraph {
     }
     pr = oldpr;
 
-    /*
     cout << "Iter: " << iter << endl;
+    /*
     for(size_t i=0; i < num_nodes; ++i){
       cout << "Node: " << i << " PR: " << pr[i] << endl;
     }
     */
-
     return totalpr;
   }
   inline long countTriangles(int numThreads) const{
     //std::cout << "Number of threads: " << numThreads << std::endl;
-    cout << "CSR EDGE BYTES: " << (num_edges * 32)/8 << endl;
-
     omp_set_num_threads(numThreads);
     
     long result = 0l;

@@ -202,8 +202,8 @@ struct CompressedGraph {
       }
     }
     inline double pagerank(int num_threads){
-      double *pr = new double[num_nodes];
-      double *oldpr = new double[num_nodes];
+      float *pr = new float[num_nodes];
+      float *oldpr = new float[num_nodes];
       const double damp = 0.85;
       const int maxIter = 100;
       const double threshold = 0.0001;
@@ -216,7 +216,7 @@ struct CompressedGraph {
       
       int iter = 0;
       double delta = 1000000000000.0;
-      double totalpr = 0.0;
+      float totalpr = 0.0;
       while(delta > threshold && iter < maxIter){
         totalpr = 0.0;
         delta = 0.0;
@@ -226,7 +226,7 @@ struct CompressedGraph {
           const size_t end1 = getEndOfNeighborhood(i);
 
           size_t j = start1;
-          double sum = 0.0;
+          float sum = 0.0;
           while(j < end1){
           size_t prefix, inner_end;
           traverseInnerPartition(j,prefix,inner_end);
@@ -242,7 +242,7 @@ struct CompressedGraph {
           totalpr += pr[i];
         }
 
-        double *tmp = oldpr;
+        float *tmp = oldpr;
         oldpr = pr;
         pr = tmp;
         ++iter;

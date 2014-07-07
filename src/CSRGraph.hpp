@@ -30,8 +30,8 @@ struct CSRGraph {
   inline double pagerank(int num_threads) const{
     //std::cout << "Number of threads: " << numThreads << std::endl;
 
-    double *pr = new double[num_nodes];
-    double *oldpr = new double[num_nodes];
+    float *pr = new float[num_nodes];
+    float *oldpr = new float[num_nodes];
     const double damp = 0.85;
     const int maxIter = 100;
     const double threshold = 0.0001;
@@ -44,7 +44,7 @@ struct CSRGraph {
        
     int iter = 0;
     double delta = 1000000000000.0;
-    double totalpr = 0.0;
+    float totalpr = 0.0;
     while(delta > threshold && iter < maxIter){
       totalpr = 0.0;
       delta = 0.0;
@@ -52,7 +52,7 @@ struct CSRGraph {
       for(size_t i=0; i < num_nodes; ++i){
         size_t start,end;
         getRange(i,start,end);
-        double sum = 0.0;
+        float sum = 0.0;
         for(size_t j = start; j < end; ++j) {
           size_t start2,end2;
           getRange(edges[j],start2,end2);
@@ -62,7 +62,7 @@ struct CSRGraph {
         delta += abs(pr[i]-oldpr[i]);
         totalpr += pr[i];
       }
-      double *tmp = oldpr;
+      float *tmp = oldpr;
       oldpr = pr;
       pr = tmp;
       ++iter;

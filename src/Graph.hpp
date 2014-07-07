@@ -13,34 +13,13 @@
 #define SHORTS_PER_REG 8
 
 using namespace std;
+long numSets = 0;
+long numSetsCompressed = 0;
 
 int getBit(int value, int position) {
   return ( ( value & (1 << position) ) >> position);
 }
 
-
-// a simple implementation, we don't care about performance here
-//static __m128i shuffle_mask16[16]; // precomputed dictionary
-// a simple implementation, we don't care about performance here
-/*
-void prepare_shuffling_dictionary() {
-    for(int i = 0; i < 16; i++) {
-        int counter = 0;
-        char permutation[16];
-        memset(permutation, 0xFF, sizeof(permutation));
-        for(char b = 0; b < 4; b++) {
-            if(getBit(i, b)) {
-                permutation[counter++] = 4*b;
-                permutation[counter++] = 4*b + 1;
-                permutation[counter++] = 4*b + 2;
-                permutation[counter++] = 4*b + 3;
-            }
-        }
-        __m128i mask = _mm_loadu_si128((const __m128i*)permutation);
-        shuffle_mask16[i] = mask;
-    }
-}
-*/
 inline size_t simd_intersect_vector16(const size_t lim,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
   size_t count = 0;
   size_t i_a = 0, i_b = 0;
@@ -153,6 +132,9 @@ inline size_t partition(int *A, size_t s_a, unsigned short *R, size_t index) {
         R[counter++] = 0;     // reserve place for partition size
         R[counter++] = clow;  // write the first element
         R[partition_size_position] = partition_length;
+        numSets++;
+        if(partition_length > 4096)
+          numSetsCompressed++;
         //cout << "setting: " << partition_size_position << " to: " << partition_length << endl;
         partition_length = 1; // reset counters
         partition_size_position = counter - 2;
@@ -166,15 +148,15 @@ inline size_t partition(int *A, size_t s_a, unsigned short *R, size_t index) {
 struct CompressedGraph {
   const size_t num_nodes;
   const size_t num_edges;
-  const int *nbr_lengths;
-  const int *nodes;
+  const size_t *nbr_lengths;
+  const size_t *nodes;
   unsigned short *edges;
   const unordered_map<size_t,size_t> *external_ids;
   CompressedGraph(  
     const size_t num_nodes_in, 
     const size_t num_edges_in,
-    const int *nbrs_lengths_in, 
-    const int *nodes_in,
+    const size_t *nbrs_lengths_in, 
+    const size_t *nodes_in,
     unsigned short *edges_in,
     const unordered_map<size_t,size_t> *external_ids_in): 
       num_nodes(num_nodes_in), 
@@ -272,39 +254,40 @@ struct CompressedGraph {
       cout << "COMPRESSED EDGE BYTES: " << (num_edges * 16)/8 << endl;
 
       long count = 0;
+      omp_set_num_threads(numThreads);  
+      #pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
       for(size_t i = 0; i < num_nodes; ++i){
-        size_t start1 = nodes[i];
-        const int start1F = start1;
+        const size_t start1 = nodes[i];
         
         size_t end1 = 0;
         if(i+1 < num_nodes) end1 = nodes[i+1];
         else end1 = num_edges;
-        size_t len1 = end1-start1;
+        const size_t len1 = end1-start1;
 
         size_t j = start1;
 
         while(j < end1){
-          unsigned int prefix = (edges[j] << 16);
-          size_t inner_end = j+edges[j+1]+2;
+          const size_t prefix = (edges[j] << 16);
+          const size_t inner_end = j+edges[j+1]+2l;
           j += 2;
 
           bool notFinished = (i >> 16) >= edges[j-2];
           //cout << "Prefixes: " << (i >> 16) << " and " << edges[j-2] << endl;
 
           while(j < inner_end && notFinished){
-            size_t cur = prefix | edges[j];
+            const size_t cur = prefix | edges[j];
               //cout << "Here: " << i << " and " << cur << endl;
 
-            size_t start2 = nodes[cur];
+            const size_t start2 = nodes[cur];
             size_t end2 = 0;
             if(cur+1 < num_nodes) end2 = nodes[cur+1];
             else end2 = num_edges;
-            size_t len2 = end2-start2;
+            const size_t len2 = end2-start2;
 
             notFinished = i > cur; //has to be reverse cause cutoff could
             //be in the middle of a partition.
             if(notFinished){
-              long ncount = intersect_partitioned(cur,edges+start1F,edges+start2,len1,len2);
+              long ncount = intersect_partitioned(cur,edges+start1,edges+start2,len1,len2);
               count += ncount;
             }
             ++j;
@@ -316,9 +299,9 @@ struct CompressedGraph {
     }
 };
 static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
-  int *nodes = new int[vg->num_nodes];
-  int *nbrlengths = new int[vg->num_nodes];
-  unsigned short *edges = new unsigned short[vg->num_edges*2];
+  size_t *nodes = new size_t[vg->num_nodes];
+  size_t *nbrlengths = new size_t[vg->num_nodes];
+  unsigned short *edges = new unsigned short[vg->num_edges*5];
   size_t num_nodes = vg->num_nodes;
   const unordered_map<size_t,size_t> *external_ids = vg->external_ids;
 
@@ -336,6 +319,8 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
     index = partition(tmp_hood,hood->size(),edges,index);
     delete[] tmp_hood;
   }
+
+  cout << "num sets: " << numSets << " numSetsCompressed: " << numSetsCompressed << endl;
 
   return new CompressedGraph(num_nodes,index,nbrlengths,nodes,edges,external_ids);
 }

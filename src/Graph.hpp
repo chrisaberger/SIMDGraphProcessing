@@ -16,8 +16,26 @@ using namespace std;
 long numSets = 0;
 long numSetsCompressed = 0;
 
+static __m256i pr_mask[8]; // precomputed dictionary
+
+// a simple implementation, we don't care about performance here
+void prepare_pr_mask() {
+  for(size_t i = 0; i < 8; i++) {
+    
+    int permutation[8];
+    for(size_t b = 0; b < 8; b++) {
+      permutation[b] = 0;
+      if(i == b){
+        permutation[b] = 0x80000000; 
+      }
+    }
+    __m256i mask = _mm256_load_si256((const __m256i*)permutation);
+    pr_mask[i] = mask;
+  }
+}
+ 
 int getBit(int value, int position) {
-  return ( ( value & (1 << position) ) >> position);
+    return ( ( value & (1 << position) ) >> position);
 }
 
 inline size_t simd_intersect_vector16(const size_t lim,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
@@ -37,8 +55,6 @@ inline size_t simd_intersect_vector16(const size_t lim,const unsigned short *A, 
     __m128i res_v = _mm_cmpestrm(v_b, SHORTS_PER_REG, v_a, SHORTS_PER_REG,
             _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
     int r = _mm_extract_epi32(res_v, 0);
-    //__m128i p = _mm_shuffle_epi8(v_a, shuffle_mask16[r]);
-    //_mm_storeu_si128((__m128i*)&C[count], p);
     count += _mm_popcnt_u32(r);
     
     i_a += (a_max <= b_max) * SHORTS_PER_REG;
@@ -147,6 +163,7 @@ inline size_t partition(int *A, size_t s_a, unsigned short *R, size_t index) {
 struct CompressedGraph {
   const size_t num_nodes;
   const size_t num_edges;
+  const size_t edge_array_length;
   const unsigned int *nbr_lengths;
   const size_t *nodes;
   unsigned short *edges;
@@ -154,12 +171,14 @@ struct CompressedGraph {
   CompressedGraph(  
     const size_t num_nodes_in, 
     const size_t num_edges_in,
+    const size_t edge_array_length_in,
     const unsigned int *nbrs_lengths_in, 
     const size_t *nodes_in,
     unsigned short *edges_in,
     const unordered_map<size_t,size_t> *external_ids_in): 
       num_nodes(num_nodes_in), 
       num_edges(num_edges_in),
+      edge_array_length(edge_array_length_in),
       nbr_lengths(nbrs_lengths_in),
       nodes(nodes_in), 
       edges(edges_in),
@@ -167,7 +186,7 @@ struct CompressedGraph {
     inline size_t getEndOfNeighborhood(const size_t node){
       size_t end = 0;
       if(node+1 < num_nodes) end = nodes[node+1];
-      else end = num_edges;
+      else end = edge_array_length;
       return end;
     }
     inline void traverseInnerPartition(size_t &i, size_t &prefix, size_t &end){
@@ -183,7 +202,7 @@ struct CompressedGraph {
         
         size_t end1 = 0;
         if(i+1 < num_nodes) end1 = nodes[i+1];
-        else end1 = num_edges;
+        else end1 = edge_array_length;
 
         size_t j = start1;
         cout << "Node: " << i <<endl;
@@ -202,6 +221,7 @@ struct CompressedGraph {
       }
     }
     inline double pagerank(int num_threads){
+      prepare_pr_mask();
       float *pr = new float[num_nodes];
       float *oldpr = new float[num_nodes];
       const double damp = 0.85;
@@ -220,10 +240,13 @@ struct CompressedGraph {
       while(delta > threshold && iter < maxIter){
         totalpr = 0.0;
         delta = 0.0;
-        #pragma omp parallel for default(none) shared(pr,oldpr) schedule(static,150) reduction(+:delta) reduction(+:totalpr)
+        //#pragma omp parallel for default(none) shared(pr,oldpr,pr_mask) schedule(static,150) reduction(+:delta) reduction(+:totalpr)
         for(size_t i = 0; i < num_nodes; ++i){
           const size_t start1 = nodes[i];
           const size_t end1 = getEndOfNeighborhood(i);
+          
+          //float *tmp_degree_holder = new float[len];
+          //size_t k = 0;
 
           size_t j = start1;
           float sum = 0.0;
@@ -231,12 +254,57 @@ struct CompressedGraph {
           size_t prefix, inner_end;
           traverseInnerPartition(j,prefix,inner_end);
             while(j < inner_end){
-              const size_t cur = (prefix << 16) | edges[j];
-              const size_t len2 = nbr_lengths[cur];
-              sum += oldpr[cur]/len2;
-              ++j;
+              if(j+7 < inner_end){
+                float tmp_pr_holder[8];
+                float tmp_deg_holder[8];
+                for(size_t k = 0; k < 8; k++){
+                  size_t cur = (prefix << 16) | edges[j+k];
+                  tmp_pr_holder[k] = oldpr[cur];
+                  tmp_deg_holder[k] = nbr_lengths[cur];
+                }
+                __m256 pr = _mm256_load_ps(tmp_pr_holder);
+                __m256 deg = _mm256_load_ps(tmp_deg_holder);
+                __m256 d = _mm256_div_ps(pr, deg);
+                _mm256_storeu_ps(tmp_pr_holder, d);
+                for(size_t o = 0; o < 8; o++){
+                  sum += tmp_pr_holder[o]; //should be auto vectorized.
+                }
+                j += 8;
+                //const size_t len2 = nbr_lengths[cur];
+                //sum += oldpr[cur]/len2;
+              }
+              else{
+                const size_t cur = (prefix << 16) | edges[j];
+                const size_t len2 = nbr_lengths[cur];
+                sum += oldpr[cur]/len2;
+                ++j;
+              }
+
+              /*
+              __m256 v_a = _mm256_maskload_ps((const float*)&oldpr[cur],pr_mask[0]);
+              __m256 v_b = _mm256_maskload_ps((const float*)&oldpr[cur],pr_mask[1]);
+
+              _mm256_storeu_ps(&tmp_pr_holder[0], v_a);
+
+              
+              for(size_t o = 0; o < 8; o++){
+                cout << "i: " << o << " data: " << tmp_pr_holder[o] << endl;
+              }
+              */
+
+              //tmp_pr_holder[k] = oldpr[cur];
+              //tmp_degree_holder[k] = len2;
+              //++k;
             }
           }
+          /*
+          for(k = 0; k < len; k++){
+            sum += tmp_pr_holder[k]/tmp_degree_holder[k];
+          }
+          delete[] tmp_pr_holder;
+          delete[] tmp_degree_holder;
+          */
+
           pr[i] = ((1.0-damp)/num_nodes) + damp * sum;
           delta += abs(pr[i]-oldpr[i]);
           totalpr += pr[i];
@@ -302,10 +370,11 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   const unordered_map<size_t,size_t> *external_ids = vg->external_ids;
 
   //cout  << "Num nodes: " << vg->num_nodes << " Num edges: " << vg->num_edges << endl;
-
+  size_t num_edges = 0;
   size_t index = 0;
   for(size_t i = 0; i < vg->num_nodes; ++i){
     vector<size_t> *hood = vg->neighborhoods->at(i);
+    num_edges += hood->size();
     nbrlengths[i] = hood->size();
     int *tmp_hood = new int[hood->size()];
     for(size_t j = 0; j < hood->size(); ++j) {
@@ -318,7 +387,7 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
 
   cout << "num sets: " << numSets << " numSetsCompressed: " << numSetsCompressed << endl;
 
-  return new CompressedGraph(num_nodes,index,nbrlengths,nodes,edges,external_ids);
+  return new CompressedGraph(num_nodes,num_edges,index,nbrlengths,nodes,edges,external_ids);
 }
 
 #endif

@@ -4,7 +4,7 @@ CC = g++
 # compiler flags:
 #  -g    adds debugging information to the executable file
 #  -Wall turns on most, but not all, compiler warnings
-CFLAGS  = -g -Wall -O3 -fopenmp -std=c++11 -mavx
+CFLAGS  = -g -Wall -O3 -fopenmp -std=c++11 -mavx -ftree-vectorize
 
 # the build target executable:
 TARGET = main

@@ -52,7 +52,17 @@ inline void createBitSet(unsigned short *in_array, const size_t len){
   }
   delete [] tmp;
 }
-inline long andCardinalityInRange(unsigned short *in_array1, unsigned short *in_array2, size_t max){
+inline void printBitSet(unsigned short prefix,size_t size, unsigned short *in_array){
+  for(size_t i=0;i<size;i++){
+    for(size_t j=0;j<16;j++){
+      if(in_array[i] >> j){
+        short cur = j + i*16;
+        cout << cur << endl;
+      }
+    }
+  }
+}
+inline long andCardinalityInRange(const unsigned short *in_array1,const unsigned short *in_array2, size_t max){
   long count = 0l;
   size_t smallLength = wordIndex(max);
 
@@ -61,22 +71,40 @@ inline long andCardinalityInRange(unsigned short *in_array1, unsigned short *in_
   //4 longs
 
   size_t i = 0;
+
   while((i+15) < smallLength){
-    __m256i a1 = _mm256_load_si256((const __m256i*)&in_array1[i]);
-    __m256i a2 = _mm256_load_si256((const __m256i*)&in_array2[i]);
+    //cout <<" here1" << endl;
+    __m256i a1 = _mm256_loadu_si256((const __m256i*)&in_array1[i]);
+    //cout << "0.5" << endl;
+    __m256i a2 = _mm256_loadu_si256((const __m256i*)&in_array2[i]);
+    
+    //cout << "0" << endl;
     __m256i r = _mm256_castps_si256(
         _mm256_and_ps(_mm256_castsi256_ps(a1), _mm256_castsi256_ps(a2)));
-    for(size_t j=0; j<4;++j){
-      count += _mm_popcnt_u64(_mm_extract_epi64(_mm256_extractf128_si256(r,(j<1)*1),j%2));
-    }
+
+    //cout << "1" << endl;
+
+    __m128i t = _mm256_extractf128_si256(r,0);
+    unsigned long l = _mm_extract_epi64(t,0);
+    count += _mm_popcnt_u64(l);
+    l = _mm_extract_epi64(t,1);
+    count += _mm_popcnt_u64(l);
+    t = _mm256_extractf128_si256(r,1);
+    l = _mm_extract_epi64(t,0);
+    count += _mm_popcnt_u64(l);
+    l = _mm_extract_epi64(t,1);
+    count += _mm_popcnt_u64(l);
+
     i += 16;
   }
   for(;i < smallLength;++i){
+    //cout << "here2" << endl;
     count += _mm_popcnt_u32(in_array1[i] & in_array2[i]);
   }
   max &= 0x000F; //0x00f mask off index
   unsigned short mask = 0;
   for(i=0;i<max;++i){
+    //cout << "here3" << endl;
     mask |= (1 << (i%BITS_PER_WORD));
   }
   count += _mm_popcnt_u32(in_array1[smallLength] & in_array2[smallLength] & mask);

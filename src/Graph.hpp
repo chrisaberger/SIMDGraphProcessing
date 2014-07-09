@@ -7,7 +7,7 @@
 #include <cstring>
 #include <immintrin.h>
 #include <unordered_map>
-
+#include "BitSet.hpp"
 #define SHORTS_PER_REG 8
 
 using namespace std;
@@ -117,13 +117,19 @@ void print_partition(unsigned short *A, size_t s_a){
     unsigned short size = A[i+1];
     cout << "size: " << size << endl;
     i += 2;
-    size_t inner_end = i+size;
-    while(i < inner_end){
-      unsigned int tmp = prefix | A[i];
-      cout << prefix << " " << tmp << endl;
-      ++i;
+    if(size > 4096){
+      printBitSet(prefix,4096,&A[i]);
+      i += size;
     }
-    i--;
+    else{
+      size_t inner_end = i+size;
+      while(i < inner_end){
+        unsigned int tmp = prefix | A[i];
+        cout << prefix << " " << tmp << endl;
+        ++i;
+      }
+      i--;
+    }
   }
 }
 
@@ -139,16 +145,25 @@ inline size_t partition(int *A, size_t s_a, unsigned short *R, size_t index) {
     unsigned short chigh = (A[p] & 0xFFFF0000) >> 16; // upper dword
     unsigned short clow = A[p] & 0x0FFFF;   // lower dword
     if(chigh == high && p != 0) { // add element to the current partition
-      R[counter++] = clow;
+      if(partition_length == 4096){
+        createBitSet(&R[counter-4096],4096);
+      }
       partition_length++;
+      if(partition_length > 4096){
+        addToBitSet(clow,&R[counter-4096]);
+      } else{
+        R[counter++] = clow;
+      }
     } else { // start new partition
+      //cout << "New partition" << endl;
       R[counter++] = chigh; // partition prefix
       R[counter++] = 0;     // reserve place for partition size
       R[counter++] = clow;  // write the first element
       R[partition_size_position] = partition_length;
       numSets++;
-      if(partition_length > 4096)
+      if(partition_length > 4096){
         numSetsCompressed++;
+      }
       //cout << "setting: " << partition_size_position << " to: " << partition_length << endl;
       partition_length = 1; // reset counters
       partition_size_position = counter - 2;
@@ -156,6 +171,7 @@ inline size_t partition(int *A, size_t s_a, unsigned short *R, size_t index) {
     }
   }
   R[partition_size_position] = partition_length;
+  //print_partition(R,s_a);
   return counter;
 }
 struct CompressedGraph {
@@ -248,8 +264,8 @@ struct CompressedGraph {
           size_t j = start1;
           float sum = 0.0;
           while(j < end1){
-          size_t prefix, inner_end;
-          traverseInnerPartition(j,prefix,inner_end);
+            size_t prefix, inner_end;
+            traverseInnerPartition(j,prefix,inner_end);
             while(j < inner_end){
               if(j+7 < inner_end){
                 float tmp_pr_holder[8];
@@ -276,32 +292,8 @@ struct CompressedGraph {
                 sum += oldpr[cur]/len2;
                 ++j;
               }
-
-              /*
-              __m256 v_a = _mm256_maskload_ps((const float*)&oldpr[cur],pr_mask[0]);
-              __m256 v_b = _mm256_maskload_ps((const float*)&oldpr[cur],pr_mask[1]);
-
-              _mm256_storeu_ps(&tmp_pr_holder[0], v_a);
-
-              
-              for(size_t o = 0; o < 8; o++){
-                cout << "i: " << o << " data: " << tmp_pr_holder[o] << endl;
-              }
-              */
-
-              //tmp_pr_holder[k] = oldpr[cur];
-              //tmp_degree_holder[k] = len2;
-              //++k;
             }
           }
-          /*
-          for(k = 0; k < len; k++){
-            sum += tmp_pr_holder[k]/tmp_degree_holder[k];
-          }
-          delete[] tmp_pr_holder;
-          delete[] tmp_degree_holder;
-          */
-
           pr[i] = ((1.0-damp)/num_nodes) + damp * sum;
           delta += abs(pr[i]-oldpr[i]);
           totalpr += pr[i];
@@ -325,7 +317,7 @@ struct CompressedGraph {
     }   
     inline long countTriangles(){
       long count = 0;
-      #pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
+      //#pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
       for(size_t i = 0; i < num_nodes; ++i){
         const size_t start1 = nodes[i];
         const size_t end1 = getEndOfNeighborhood(i);
@@ -333,26 +325,48 @@ struct CompressedGraph {
 
         size_t j = start1; //need to skip size area
         while(j < end1){
+          size_t len = edges[j+2];
           size_t prefix, inner_end;
           traverseInnerPartition(j,prefix,inner_end);
+          if(len < 4096){
+            bool notFinished = (i >> 16) >= prefix;
+            while(j < inner_end && notFinished){
+              const size_t cur = (prefix << 16) | edges[j];
+              
+              const size_t start2 = nodes[cur];
+              const size_t end2 = getEndOfNeighborhood(cur);
+              const size_t len2 = end2-start2;
 
-          bool notFinished = (i >> 16) >= prefix;
-          while(j < inner_end && notFinished){
-            const size_t cur = (prefix << 16) | edges[j];
-            
-            const size_t start2 = nodes[cur];
-            const size_t end2 = getEndOfNeighborhood(cur);
-            const size_t len2 = end2-start2;
-
-            notFinished = i > cur; //has to be reverse cause cutoff could
-            //be in the middle of a partition.
-            if(notFinished){
-              long ncount = intersect_partitioned(cur,edges+start1,edges+start2,len1,len2);
-              count += ncount;
+              notFinished = i > cur; //has to be reverse cause cutoff could
+              //be in the middle of a partition.
+              if(notFinished){
+                long ncount = intersect_partitioned(cur,edges+start1,edges+start2,len1,len2);
+                count += ncount;
+              }
+              ++j;
             }
-            ++j;
-          }
-          j = inner_end;
+          }else{
+            bool notFinished = (i >> 16) >= prefix;
+            for(size_t ii=0;ii<4096 && notFinished;ii++){
+              for(size_t jj=0;jj<16 && notFinished;jj++){
+                if(edges[ii+j] >> jj){
+                  const size_t cur = (prefix << 16) | (jj + (ii << 4));
+                  const size_t start2 = nodes[cur];
+                  //const size_t end2 = getEndOfNeighborhood(cur);
+                  //const size_t len2 = end2-start2;
+
+                  notFinished = i > cur; //has to be reverse cause cutoff could
+                  if(notFinished){
+                    //cout << "Node: " <<  i << " Nbr: " << cur << endl;
+                    long ncount = andCardinalityInRange(&edges[start1+2],&edges[start2+2],cur);
+                    count += ncount;
+                    //cout << "out: " << ncount << endl;
+
+                  }
+                  //cout << cur << endl;
+            }}}
+          }//end else
+          j = inner_end;   
         }
       }
       return count;

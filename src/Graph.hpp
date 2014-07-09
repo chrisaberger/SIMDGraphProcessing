@@ -1,14 +1,12 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
-#include "Common.hpp"
 #include <omp.h>
 #include <unordered_map>
 #include <xmmintrin.h>
 #include <cstring>
 #include <immintrin.h>
 #include <unordered_map>
-
 
 #define SHORTS_PER_REG 8
 
@@ -166,7 +164,7 @@ struct CompressedGraph {
   const size_t edge_array_length;
   const unsigned int *nbr_lengths;
   const size_t *nodes;
-  unsigned short *edges;
+  const unsigned short *edges;
   const unordered_map<size_t,size_t> *external_ids;
   CompressedGraph(  
     const size_t num_nodes_in, 
@@ -174,7 +172,7 @@ struct CompressedGraph {
     const size_t edge_array_length_in,
     const unsigned int *nbrs_lengths_in, 
     const size_t *nodes_in,
-    unsigned short *edges_in,
+    const unsigned short *edges_in,
     const unordered_map<size_t,size_t> *external_ids_in): 
       num_nodes(num_nodes_in), 
       num_edges(num_edges_in),
@@ -220,7 +218,7 @@ struct CompressedGraph {
         cout << endl;
       }
     }
-    inline double pagerank(int num_threads){
+    inline double pagerank(){
       prepare_pr_mask();
       float *pr = new float[num_nodes];
       float *oldpr = new float[num_nodes];
@@ -228,7 +226,6 @@ struct CompressedGraph {
       const int maxIter = 100;
       const double threshold = 0.0001;
 
-      omp_set_num_threads(num_threads);        
       #pragma omp parallel for default(none) schedule(static,150) shared(pr,oldpr)
       for(size_t i=0; i < num_nodes; ++i){
         oldpr[i] = 1.0/num_nodes;
@@ -326,9 +323,8 @@ struct CompressedGraph {
 
       return totalpr;
     }   
-    inline long countTriangles(int numThreads){
+    inline long countTriangles(){
       long count = 0;
-      omp_set_num_threads(numThreads);        
       #pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
       for(size_t i = 0; i < num_nodes; ++i){
         const size_t start1 = nodes[i];
@@ -362,32 +358,5 @@ struct CompressedGraph {
       return count;
     }
 };
-static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
-  size_t *nodes = new size_t[vg->num_nodes];
-  unsigned int *nbrlengths = new unsigned int[vg->num_nodes];
-  unsigned short *edges = new unsigned short[vg->num_edges*5];
-  size_t num_nodes = vg->num_nodes;
-  const unordered_map<size_t,size_t> *external_ids = vg->external_ids;
-
-  //cout  << "Num nodes: " << vg->num_nodes << " Num edges: " << vg->num_edges << endl;
-  size_t num_edges = 0;
-  size_t index = 0;
-  for(size_t i = 0; i < vg->num_nodes; ++i){
-    vector<size_t> *hood = vg->neighborhoods->at(i);
-    num_edges += hood->size();
-    nbrlengths[i] = hood->size();
-    int *tmp_hood = new int[hood->size()];
-    for(size_t j = 0; j < hood->size(); ++j) {
-      tmp_hood[j] = hood->at(j);
-    }
-    nodes[i] = index;
-    index = partition(tmp_hood,hood->size(),edges,index);
-    delete[] tmp_hood;
-  }
-
-  cout << "num sets: " << numSets << " numSetsCompressed: " << numSetsCompressed << endl;
-
-  return new CompressedGraph(num_nodes,num_edges,index,nbrlengths,nodes,edges,external_ids);
-}
 
 #endif

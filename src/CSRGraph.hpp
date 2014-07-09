@@ -27,7 +27,7 @@ struct CSRGraph {
     if(node+1 >= num_nodes) end = num_edges;
     else end = nodes[node+1];
   }
-  inline double pagerank(int num_threads) const{
+  inline double pagerank() const{
     //std::cout << "Number of threads: " << numThreads << std::endl;
 
     float *pr = new float[num_nodes];
@@ -36,7 +36,6 @@ struct CSRGraph {
     const int maxIter = 100;
     const double threshold = 0.0001;
       
-    omp_set_num_threads(num_threads);        
     #pragma omp parallel for default(none) schedule(static,150) shared(pr,oldpr)
     for(size_t i=0; i < num_nodes; ++i){
       oldpr[i] = 1.0/num_nodes;
@@ -77,10 +76,7 @@ struct CSRGraph {
     */
     return totalpr;
   }
-  inline long countTriangles(int numThreads) const{
-    //std::cout << "Number of threads: " << numThreads << std::endl;
-    omp_set_num_threads(numThreads);
-    
+  inline long countTriangles() const{
     long result = 0l;
     #pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
     for(size_t i=0; i < num_nodes; i++){
@@ -169,30 +165,5 @@ void printGraph(CSRGraph *graph) {
     }
     cout << endl;
   }
-}
-
-CSRGraph* createCSRGraph(VectorGraph *vg){
-  size_t *nodes = new size_t[vg->num_nodes];
-  const size_t num_nodes = vg->num_nodes;
-  const size_t num_edges = vg->num_edges;
-  size_t *edges = new size_t[num_edges]; 
-  const unordered_map<size_t,size_t> *external_ids = vg->external_ids;
- 
-
-  size_t index = 0;
-  for(size_t i = 0; i < vg->num_nodes; ++i) {
-    nodes[i] = index;
-    vector<size_t> *hood = vg->neighborhoods->at(i);
-    for(size_t j = 0; j < hood->size(); ++j) {
-      edges[index++] = hood->at(j); 
-    }
-    //delete hood;
-  }
-
-  //delete vg;
-
-  //cout << "Num nodes: " << num_nodes << " Num edges: " << num_edges << endl;
-
-  return new CSRGraph(num_nodes,num_edges,nodes,edges,external_ids);
 }
 #endif

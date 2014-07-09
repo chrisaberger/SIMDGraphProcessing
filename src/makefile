@@ -7,12 +7,22 @@ CC = g++
 CFLAGS  = -g -Wall -O3 -fopenmp -std=c++11 -mavx -ftree-vectorize
 
 # the build target executable:
-TARGET = main
+TARGET1 = main
+TARGET2 = UndirectedTriangleCounting
+TARGET3 = PageRank
 
-all: $(TARGET)
+all: $(TARGET1) $(TARGET2) $(TARGET3)
 
-$(TARGET): $(TARGET).cpp
-	$(CC) $(CFLAGS) -o $(TARGET) $(TARGET).cpp
+$(TARGET1): $(TARGET1).cpp
+	$(CC) $(CFLAGS) -o $(TARGET1) $(TARGET1).cpp
+
+$(TARGET2): $(TARGET2).cpp
+	$(CC) $(CFLAGS) -o $(TARGET2) $(TARGET2).cpp
+
+$(TARGET3): $(TARGET3).cpp
+	$(CC) $(CFLAGS) -o $(TARGET3) $(TARGET3).cpp
 
 clean:
-	$(RM) $(TARGET)
+	$(RM) $(TARGET1)
+	$(RM) $(TARGET2)
+	$(RM) $(TARGET3)

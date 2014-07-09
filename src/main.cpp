@@ -1,66 +1,30 @@
 // class templates
-#include <iostream>
-#include <vector>
-#include <iterator>
-#include "ReadIn.cpp"
-#include "Graph.hpp"
-#include "CSRGraph.hpp"
 #include "Common.hpp"
-#include <algorithm>  // for std::find
-#include <iostream>   // for std::cout
-#include <cstring>
-#include <sys/mman.h>
-#include <fcntl.h>    /* For O_RDWR */
-#include <unistd.h>   /* For open(), creat() */
-#include <fstream>
 
 using namespace std;
 
-int main (int argc, char* argv[]) {
-  if(argc != 4){
-    cout << "Please see usage below: " << endl;
-    cout << "\t./main <adjacency list file/folder> <# of files> <# of threads>" << endl;
-    exit(0);
+int main (int argc, char* argv[]) {  
+  omp_set_num_threads(atoi(argv[2]));        
+
+  unsigned short *test = new unsigned short[4096];
+  for(size_t i = 0; i < 4096; ++i){
+    test[i] = i*2;
   }
 
-  startClock();
-  VectorGraph *vg = ReadFile(argv[1],atoi(argv[2]));
-  stopClock("INPUT");
+  createBitSet(test,4096);
 
-  cout << endl;
+  for(size_t i = 4096; i < 65536; ++i){
+    addToBitSet(i*2,test);
+  }
 
-  startClock();
-  CompressedGraph *graph = createCompressedGraph(vg);
-  stopClock("COMPRESSED CREATION");
-  cout << "COMPRESSED EDGE BYTES: " << ((graph->edge_array_length * 16)/8)+((graph->num_nodes*32)/8) << endl;
-  startClock();
-  
+  //addToBitSet(1,test);
+  //addToBitSet(3,test);
+  long count = andCardinalityInRange(test,test,10);
+  cout << "Count: " << count << endl;
 
-  double prc = graph->pagerank(atoi(argv[3]));
-  cout << "Total pr: " << prc << endl;
-  stopClock("COMPRESSED APPLICATION");
-  
-  /*
-  long triangles = graph->countTriangles(atoi(argv[3]));
-  cout << "Triangles: " << triangles << endl;
-  stopClock("COMPRESSED APPLICATION");
-  */
-  cout << endl;
+  for(size_t i = 0; i < 16; ++i){
+    cout << "Index: " << i << " Data: " << test[i] << endl;
+  }
 
-  startClock();
-  CSRGraph *graph2 = createCSRGraph(vg);
-  stopClock("CSR CREATION");
-  cout << "CSR EDGE BYTES: " << (graph2->num_edges * 32)/8 << endl;
-  startClock();
-
-  double pr = graph2->pagerank(atoi(argv[3]));
-  cout << "Total pr: " << pr << endl;
-  stopClock("CSR APPLICATION");
-  
-  /*
-  long triangles2 = graph2->countTriangles(atoi(argv[3]));
-  cout << "Triangles: " << triangles2 << endl;
-  stopClock("CSR APPLICATION");
-  */
   return 0;
 }

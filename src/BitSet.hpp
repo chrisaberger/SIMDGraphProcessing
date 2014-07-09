@@ -52,15 +52,18 @@ inline void createBitSet(unsigned short *in_array, const size_t len){
   }
   delete [] tmp;
 }
-inline void printBitSet(unsigned short prefix,size_t size, unsigned short *in_array){
+inline void printBitSet(unsigned short prefix,size_t size, const unsigned short *in_array){
   for(size_t i=0;i<size;i++){
     for(size_t j=0;j<16;j++){
-      if(in_array[i] >> j){
-        short cur = j + i*16;
-        cout << cur << endl;
+      if((in_array[i] >> j) % 2){
+        unsigned short cur = j + i*16;
+        cout << "Nbr: " << cur << endl;
       }
     }
   }
+}
+inline bool getBitSetBit(unsigned short index, const unsigned short *in_array){
+  return in_array[wordIndex(index)] & (1 << (index%BITS_PER_WORD));
 }
 inline long andCardinalityInRange(const unsigned short *in_array1,const unsigned short *in_array2, size_t max){
   long count = 0l;

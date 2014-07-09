@@ -8,6 +8,8 @@
 #include <immintrin.h>
 #include <unordered_map>
 #include "BitSet.hpp"
+
+#define WORDS_IN_BS 4096
 #define SHORTS_PER_REG 8
 
 using namespace std;
@@ -34,6 +36,17 @@ void prepare_pr_mask() {
  
 int getBit(int value, int position) {
     return ( ( value & (1 << position) ) >> position);
+}
+inline size_t simd_intersect_bitset_and_set(const size_t lim,const unsigned short *A, const unsigned short *B, const size_t s_b) {
+  size_t count = 0;
+  bool notFinished = true;
+  for(size_t i_b=0;i_b<s_b && notFinished;++i_b){
+    unsigned short cur = B[i_b];
+    notFinished = cur < lim;
+    if(notFinished && getBitSetBit(cur,A)) 
+      ++count; 
+  }
+  return count;
 }
 
 inline size_t simd_intersect_vector16(const size_t lim,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
@@ -77,7 +90,6 @@ inline size_t simd_intersect_vector16(const size_t lim,const unsigned short *A, 
   return count;
 }
 
-// A, B - partitioned operands
 inline size_t intersect_partitioned(const size_t lim,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
   size_t i_a = 0, i_b = 0;
   size_t counter = 0;
@@ -96,36 +108,62 @@ inline size_t intersect_partitioned(const size_t lim,const unsigned short *A, co
       i_b += B[i_b + 1] + 2;
       notFinished = i_b < s_b && B[i_b] <= limPrefix;
     } else {
-      unsigned short partition_size;
+      unsigned short partition_size = 0;
       //If we are not in the range of the limit we don't need to worry about it.
-      if(A[i_a] < limPrefix && B[i_b] < limPrefix){
-        partition_size = simd_intersect_vector16(10000000,&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
-      } else {
-        partition_size = simd_intersect_vector16(limLower,&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
+      if(A[i_a+1] < WORDS_IN_BS && B[i_b+1] < WORDS_IN_BS){
+        //cout << "1" << endl;
+        if(A[i_a] < limPrefix && B[i_b] < limPrefix){
+          partition_size = simd_intersect_vector16(10000000,&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
+        } else {
+          partition_size = simd_intersect_vector16(limLower,&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
+        }  
+        i_a += A[i_a + 1] + 2;
+        i_b += B[i_b + 1] + 2;      
+      }else if(A[i_a+1] > WORDS_IN_BS && B[i_b+1] > WORDS_IN_BS){
+          //cout << "2" << endl;
+          if(A[i_a] < limPrefix && B[i_b] < limPrefix)
+            partition_size = andCardinalityInRange(&A[i_a+2],&B[i_b+2],65535);
+          else
+            partition_size = andCardinalityInRange(&A[i_a+2],&B[i_b+2],limLower);
+        i_a += WORDS_IN_BS + 2;
+        i_b += WORDS_IN_BS + 2;   
+      } else if(A[i_a+1] > WORDS_IN_BS && B[i_b+1] < WORDS_IN_BS){
+          if(A[i_a] < limPrefix && B[i_b] < limPrefix)
+            partition_size += simd_intersect_bitset_and_set(10000000,&A[i_a + 2], &B[i_b + 2], B[i_b + 1]);
+          else
+            partition_size += simd_intersect_bitset_and_set(limLower,&A[i_a + 2], &B[i_b + 2], B[i_b + 1]);
+        i_a += WORDS_IN_BS + 2;
+        i_b += B[i_b + 1] + 2;      
+      } else{
+          if(A[i_a] < limPrefix && B[i_b] < limPrefix)
+            partition_size += simd_intersect_bitset_and_set(10000000,&B[i_b + 2], &A[i_a + 2], A[i_a + 1]);
+          else
+            partition_size += simd_intersect_bitset_and_set(limLower,&B[i_b + 2], &A[i_a + 2], A[i_a + 1]);
+        i_b += WORDS_IN_BS + 2;   
+        i_a += A[i_a + 1] + 2;
       }
+
       counter += partition_size;
-      i_a += A[i_a + 1] + 2;
-      i_b += B[i_b + 1] + 2;
       notFinished = i_a < s_a && i_b < s_b && A[i_a] <= lim && B[i_b] <= limPrefix;
     }
   }
   return counter;
 }
-void print_partition(unsigned short *A, size_t s_a){
+void print_partition(const unsigned short *A, const size_t s_a){
   for(size_t i = 0; i < s_a; i++){
     unsigned int prefix = (A[i] << 16);
     unsigned short size = A[i+1];
-    cout << "size: " << size << endl;
+    //cout << "size: " << size << endl;
     i += 2;
-    if(size > 4096){
-      printBitSet(prefix,4096,&A[i]);
+    if(size > WORDS_IN_BS){
+      printBitSet(prefix,WORDS_IN_BS,&A[i]);
       i += size;
     }
     else{
       size_t inner_end = i+size;
       while(i < inner_end){
         unsigned int tmp = prefix | A[i];
-        cout << prefix << " " << tmp << endl;
+        cout << prefix << tmp << endl;
         ++i;
       }
       i--;
@@ -145,23 +183,23 @@ inline size_t partition(int *A, size_t s_a, unsigned short *R, size_t index) {
     unsigned short chigh = (A[p] & 0xFFFF0000) >> 16; // upper dword
     unsigned short clow = A[p] & 0x0FFFF;   // lower dword
     if(chigh == high && p != 0) { // add element to the current partition
-      if(partition_length == 4096){
-        createBitSet(&R[counter-4096],4096);
+      if(partition_length == WORDS_IN_BS){
+        createBitSet(&R[counter-WORDS_IN_BS],WORDS_IN_BS);
       }
       partition_length++;
-      if(partition_length > 4096){
-        addToBitSet(clow,&R[counter-4096]);
+      if(partition_length > WORDS_IN_BS){
+        addToBitSet(clow,&R[counter-WORDS_IN_BS]);
       } else{
         R[counter++] = clow;
       }
-    } else { // start new partition
+    }else{ // start new partition
       //cout << "New partition" << endl;
       R[counter++] = chigh; // partition prefix
       R[counter++] = 0;     // reserve place for partition size
       R[counter++] = clow;  // write the first element
       R[partition_size_position] = partition_length;
       numSets++;
-      if(partition_length > 4096){
+      if(partition_length > WORDS_IN_BS){
         numSetsCompressed++;
       }
       //cout << "setting: " << partition_size_position << " to: " << partition_length << endl;
@@ -169,6 +207,9 @@ inline size_t partition(int *A, size_t s_a, unsigned short *R, size_t index) {
       partition_size_position = counter - 2;
       high = chigh;
     }
+  }
+  if(partition_length > WORDS_IN_BS){
+    numSetsCompressed++;
   }
   R[partition_size_position] = partition_length;
   //print_partition(R,s_a);
@@ -223,13 +264,24 @@ struct CompressedGraph {
 
         while(j < end1){
           unsigned int prefix = (edges[j] << 16);
-          size_t inner_end = j+edges[j+1]+2;
+          size_t len = edges[j+1];
           j += 2;
-          while(j < inner_end){
-            size_t cur = prefix | edges[j];
-            cout << "nbr: " << cur << endl;
-            ++j;
+          size_t inner_end;
+          if(len > WORDS_IN_BS){
+            inner_end = j+4096;
+            printBitSet(prefix,WORDS_IN_BS,&edges[j]);
+            j = inner_end;
           }
+          else{
+            inner_end = j+len;
+            while(j < inner_end){
+              unsigned int tmp = prefix | edges[j];
+              cout << "Nbr: " << tmp << endl;
+              ++j;
+            }
+            j--;
+          }
+          j = inner_end;
         }
         cout << endl;
       }
@@ -325,10 +377,10 @@ struct CompressedGraph {
 
         size_t j = start1; //need to skip size area
         while(j < end1){
-          size_t len = edges[j+2];
+          size_t len = edges[j+1];
           size_t prefix, inner_end;
           traverseInnerPartition(j,prefix,inner_end);
-          if(len < 4096){
+          if(len < WORDS_IN_BS){
             bool notFinished = (i >> 16) >= prefix;
             while(j < inner_end && notFinished){
               const size_t cur = (prefix << 16) | edges[j];
@@ -340,32 +392,38 @@ struct CompressedGraph {
               notFinished = i > cur; //has to be reverse cause cutoff could
               //be in the middle of a partition.
               if(notFinished){
+                //cout << "Node: " <<  i << " Nbr: " << cur << endl;
                 long ncount = intersect_partitioned(cur,edges+start1,edges+start2,len1,len2);
+                //cout << "out: " << ncount << endl;
                 count += ncount;
               }
               ++j;
             }
           }else{
             bool notFinished = (i >> 16) >= prefix;
-            for(size_t ii=0;ii<4096 && notFinished;ii++){
-              for(size_t jj=0;jj<16 && notFinished;jj++){
-                if(edges[ii+j] >> jj){
+            size_t ii = 0;
+            inner_end = j +4096;
+            while((ii < WORDS_IN_BS) && notFinished){
+              size_t jj = 0;
+              while((jj < 16) && notFinished){
+                if((edges[ii+j] >> jj) % 2){
                   const size_t cur = (prefix << 16) | (jj + (ii << 4));
                   const size_t start2 = nodes[cur];
-                  //const size_t end2 = getEndOfNeighborhood(cur);
-                  //const size_t len2 = end2-start2;
+                  const size_t end2 = getEndOfNeighborhood(cur);
+                  const size_t len2 = end2-start2;
 
                   notFinished = i > cur; //has to be reverse cause cutoff could
                   if(notFinished){
-                    //cout << "Node: " <<  i << " Nbr: " << cur << endl;
-                    long ncount = andCardinalityInRange(&edges[start1+2],&edges[start2+2],cur);
+                    long ncount = intersect_partitioned(cur,edges+start1,edges+start2,len1,len2);;
                     count += ncount;
-                    //cout << "out: " << ncount << endl;
-
-                  }
+                  } else break;
                   //cout << cur << endl;
-            }}}
-          }//end else
+                }
+                ++jj;
+              }
+              ++ii;
+            }
+          }//end else */
           j = inner_end;   
         }
       }

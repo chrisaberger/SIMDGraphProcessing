@@ -7,9 +7,13 @@
 #include <cstring>
 #include <immintrin.h>
 #include <unordered_map>
+#include <setjmp.h>
+
 #include "Partition.hpp"
 
 using namespace std;
+
+jmp_buf env;
 
 struct CompressedGraph {
   const size_t num_nodes;
@@ -57,11 +61,13 @@ struct CompressedGraph {
       prefix = edges[i++];
       const size_t len = edges[i++];
       isBitSet = len > WORDS_IN_BS;
-      end = start+len+header_length;
+      if(isBitSet)
+        end = start+header_length+WORDS_IN_BS;
+      else
+        end = start+header_length+len;
     }
     inline long countTriangles(){
       long count = 0;
-      cout << "Num threads: " << omp_get_num_threads() << endl;
       #pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
       for(size_t i = 0; i < num_nodes; ++i){
         count += foreachNbr(i,&CompressedGraph::intersect_neighborhoods);
@@ -69,13 +75,18 @@ struct CompressedGraph {
       return count;
     }
     inline long intersect_neighborhoods(const size_t n, const size_t nbr) {
-      const size_t start1 = neighborhoodStart(n);
-      const size_t end1 = neighborhoodEnd(n);
+      if(nbr > n){
+        const size_t start1 = neighborhoodStart(n);
+        const size_t end1 = neighborhoodEnd(n);
 
-      const size_t start2 = neighborhoodStart(nbr);
-      const size_t end2 = neighborhoodEnd(nbr);
+        const size_t start2 = neighborhoodStart(nbr);
+        const size_t end2 = neighborhoodEnd(nbr);
 
-      return intersect_partitioned(n,edges+start1,edges+start2,end1-start1,end2-start2);
+        return intersect_partitioned(n,edges+start1,edges+start2,end1-start1,end2-start2);
+      }
+      else{
+        return -1; //we are done with this neighborhood
+      }
     }
     inline long foreachNbr(size_t node,long (CompressedGraph::*func)(const size_t,const size_t)){
       long count = 0;
@@ -83,49 +94,36 @@ struct CompressedGraph {
       const size_t end1 = neighborhoodEnd(node);
       for(size_t j = start1; j < end1; ++j){
         bool isBitSet;
-        size_t prefix, inner_end;
-        setupInnerPartition(j,prefix,inner_end,isBitSet);
+        size_t prefix, partition_end;
+        setupInnerPartition(j,prefix,partition_end,isBitSet);
        
-        bool notFinished = (node >> 16) >= prefix; //this is t counting specific
-
         if(!isBitSet){
-          while(j < inner_end && notFinished){
-            const size_t cur = (prefix << 16) | edges[j];
-            
-            notFinished = node > cur; //has to be reverse cause cutoff could
-            //be in the middle of a partition.
-            
-            if(notFinished){
-              long ncount = (this->*func)(cur,node);
-              count += ncount;
-            } else break;
-            ++j;
+          //Traverse partition use prefix to get nbr id.
+          for(;j < partition_end;++j){
+            const size_t cur = (prefix << 16) | edges[j]; //neighbor node
+            long ncount = (this->*func)(cur,node);
+            if(ncount == -1) goto outer; //bad coding practice?
+            count += ncount;
           }
         }else{
-          size_t ii = 0;
-          inner_end = j + WORDS_IN_BS;
-          while((ii < WORDS_IN_BS) && notFinished){
-            size_t jj = 0;
-            while((jj < 16) && notFinished){
-              if((edges[ii+j] >> jj) % 2){
-                const size_t cur = (prefix << 16) | (jj + (ii << 4));
-                
-                notFinished = node > cur; //has to be reverse cause cutoff could
-                
-                if(notFinished){
-                  long ncount = (this->*func)(cur,node);
-                  count += ncount;
-                } else break;
-
+          //4096 shorts in every BS
+          for(size_t ii=0;(ii < WORDS_IN_BS);++ii){
+            //Go through each bit
+            for(size_t jj = 0;(jj < 16);++jj){
+              unsigned short index = (jj + (ii << 4)); // jj + ii *16; I don't trust compilers.
+              if(isSet(index,&edges[j])){
+                const size_t cur = (prefix << 16) | index; //neighbor node
+                long ncount = (this->*func)(cur,node);
+                if(ncount == -1) goto outer; //bad coding practice?
+                count += ncount;
               }
-              ++jj;
             }
-            ++ii;
-          }
+          } //end outer for
         }//end else */
-        j = inner_end-1;   
+        j = partition_end-1;   
       }
-      return count;
+      outer:
+        return count;
     }
     /*
     inline void printGraph(){

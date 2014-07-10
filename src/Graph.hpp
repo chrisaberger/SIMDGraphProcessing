@@ -13,8 +13,6 @@
 
 using namespace std;
 
-jmp_buf env;
-
 struct CompressedGraph {
   const size_t num_nodes;
   const size_t num_edges;
@@ -93,8 +91,7 @@ struct CompressedGraph {
       const size_t start1 = neighborhoodStart(node);
       const size_t end1 = neighborhoodEnd(node);
       for(size_t j = start1; j < end1; ++j){
-        bool isBitSet;
-        size_t prefix, partition_end;
+        size_t prefix, partition_end; bool isBitSet;
         setupInnerPartition(j,prefix,partition_end,isBitSet);
        
         if(!isBitSet){

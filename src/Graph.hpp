@@ -15,7 +15,7 @@
 using namespace std;
 long numSets = 0;
 long numSetsCompressed = 0;
- 
+
 int getBit(int value, int position) {
     return ( ( value & (1 << position) ) >> position);
 }
@@ -71,7 +71,6 @@ inline size_t simd_intersect_vector16(const size_t lim,const unsigned short *A, 
 
   return count;
 }
-
 inline size_t intersect_partitioned(const size_t lim,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
   size_t i_a = 0, i_b = 0;
   size_t counter = 0;
@@ -226,6 +225,19 @@ struct CompressedGraph {
       else end = edge_array_length;
       return end;
     }
+    inline size_t neighborhoodStart(const size_t node){
+      return nodes[node];
+    }
+    inline size_t neighborhoodEnd(const size_t node){
+      size_t end = 0;
+      if(node+1 < num_nodes) end = nodes[node+1];
+      else end = edge_array_length;
+      return end;
+    }
+    inline size_t physicalNeighborhoodLength(const size_t node){
+      return neighborhoodEnd(node)-neighborhoodStart(node);
+    }
+
     inline void traverseInnerPartition(size_t &i, size_t &prefix, size_t &end){
       const size_t header_length = 2;
       const size_t start = i;
@@ -347,67 +359,71 @@ struct CompressedGraph {
       */
 
       return totalpr;
-    }   
+    }
+    inline long intersect_neighborhoods(const size_t n, const size_t nbr) {
+      const size_t start1 = neighborhoodStart(n);
+      const size_t end1 = neighborhoodEnd(n);
+      const size_t start2 = neighborhoodStart(nbr);
+      const size_t end2 = neighborhoodEnd(nbr);
+      return intersect_partitioned(n,edges+start1,edges+start2,end1-start1,end2-start2);
+    }
+    inline long foreachNbr(size_t node,long (CompressedGraph::*func)(const size_t,const size_t)){
+      long count = 0;
+      const size_t start1 = neighborhoodStart(node);
+      const size_t end1 = neighborhoodEnd(node);
+
+      for(size_t j = start1; j < end1; ++j){
+        size_t len = edges[j+1];
+        size_t prefix, inner_end;
+        traverseInnerPartition(j,prefix,inner_end);
+        if(len < WORDS_IN_BS){
+          bool notFinished = (node >> 16) >= prefix;
+          while(j < inner_end && notFinished){
+            const size_t cur = (prefix << 16) | edges[j];
+
+            notFinished = node > cur; //has to be reverse cause cutoff could
+            //be in the middle of a partition.
+            if(notFinished){
+              //cout << "Node: " <<  i << " Nbr: " << cur << endl;
+              long ncount = (this->*func)(cur,node);//intersect_partitioned(cur,edges+start1,edges+start2,end1-start1,len2);
+              //cout << "out: " << ncount << endl;
+              count += ncount;
+            }
+            ++j;
+          }
+        }else{
+          bool notFinished = (node >> 16) >= prefix;
+          size_t ii = 0;
+          inner_end = j +4096;
+          while((ii < WORDS_IN_BS) && notFinished){
+            size_t jj = 0;
+            while((jj < 16) && notFinished){
+              if((edges[ii+j] >> jj) % 2){
+                const size_t cur = (prefix << 16) | (jj + (ii << 4));
+
+                notFinished = node > cur; //has to be reverse cause cutoff could
+                if(notFinished){
+                  long ncount = (this->*func)(cur,node);//intersect_partitioned(cur,edges+start1,edges+start2,end1-start1,len2);;
+                  count += ncount;
+                } else break;
+                //cout << cur << endl;
+              }
+              ++jj;
+            }
+            ++ii;
+          }
+          }//end else */
+          j = inner_end-1;   
+        }
+      return count;
+    }
+
     inline long countTriangles(){
       long count = 0;
       cout << "Num threads: " << omp_get_num_threads() << endl;
       #pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
       for(size_t i = 0; i < num_nodes; ++i){
-        const size_t start1 = nodes[i];
-        const size_t end1 = getEndOfNeighborhood(i);
-        const size_t len1 = end1-start1;
-
-        size_t j = start1; //need to skip size area
-        while(j < end1){
-          size_t len = edges[j+1];
-          size_t prefix, inner_end;
-          traverseInnerPartition(j,prefix,inner_end);
-          if(len < WORDS_IN_BS){
-            bool notFinished = (i >> 16) >= prefix;
-            while(j < inner_end && notFinished){
-              const size_t cur = (prefix << 16) | edges[j];
-              
-              const size_t start2 = nodes[cur];
-              const size_t end2 = getEndOfNeighborhood(cur);
-              const size_t len2 = end2-start2;
-
-              notFinished = i > cur; //has to be reverse cause cutoff could
-              //be in the middle of a partition.
-              if(notFinished){
-                //cout << "Node: " <<  i << " Nbr: " << cur << endl;
-                long ncount = intersect_partitioned(cur,edges+start1,edges+start2,len1,len2);
-                //cout << "out: " << ncount << endl;
-                count += ncount;
-              }
-              ++j;
-            }
-          }else{
-            bool notFinished = (i >> 16) >= prefix;
-            size_t ii = 0;
-            inner_end = j +4096;
-            while((ii < WORDS_IN_BS) && notFinished){
-              size_t jj = 0;
-              while((jj < 16) && notFinished){
-                if((edges[ii+j] >> jj) % 2){
-                  const size_t cur = (prefix << 16) | (jj + (ii << 4));
-                  const size_t start2 = nodes[cur];
-                  const size_t end2 = getEndOfNeighborhood(cur);
-                  const size_t len2 = end2-start2;
-
-                  notFinished = i > cur; //has to be reverse cause cutoff could
-                  if(notFinished){
-                    long ncount = intersect_partitioned(cur,edges+start1,edges+start2,len1,len2);;
-                    count += ncount;
-                  } else break;
-                  //cout << cur << endl;
-                }
-                ++jj;
-              }
-              ++ii;
-            }
-          }//end else */
-          j = inner_end;   
-        }
+        count += foreachNbr(i,&CompressedGraph::intersect_neighborhoods);
       }
       return count;
     }

@@ -9,7 +9,9 @@ int main (int argc, char* argv[]) {
     cout << "\t./main <adjacency list file/folder> <# of files> <# of threads>" << endl;
     exit(0);
   } 
-  omp_set_num_threads(atoi(argv[2]));        
+
+  cout << "Number of threads: " << atoi(argv[3]) << endl;
+  omp_set_num_threads(atoi(argv[3]));      
 
   /*
   unsigned short *test = new unsigned short[4096];

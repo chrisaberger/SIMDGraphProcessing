@@ -15,24 +15,6 @@
 using namespace std;
 long numSets = 0;
 long numSetsCompressed = 0;
-
-static __m256i pr_mask[8]; // precomputed dictionary
-
-// a simple implementation, we don't care about performance here
-void prepare_pr_mask() {
-  for(size_t i = 0; i < 8; i++) {
-    
-    int permutation[8];
-    for(size_t b = 0; b < 8; b++) {
-      permutation[b] = 0;
-      if(i == b){
-        permutation[b] = 0x80000000; 
-      }
-    }
-    __m256i mask = _mm256_load_si256((const __m256i*)permutation);
-    pr_mask[i] = mask;
-  }
-}
  
 int getBit(int value, int position) {
     return ( ( value & (1 << position) ) >> position);
@@ -287,7 +269,6 @@ struct CompressedGraph {
       }
     }
     inline double pagerank(){
-      prepare_pr_mask();
       float *pr = new float[num_nodes];
       float *oldpr = new float[num_nodes];
       const double damp = 0.85;
@@ -305,7 +286,7 @@ struct CompressedGraph {
       while(delta > threshold && iter < maxIter){
         totalpr = 0.0;
         delta = 0.0;
-        //#pragma omp parallel for default(none) shared(pr,oldpr,pr_mask) schedule(static,150) reduction(+:delta) reduction(+:totalpr)
+        #pragma omp parallel for default(none) shared(pr,oldpr) schedule(static,150) reduction(+:delta) reduction(+:totalpr)
         for(size_t i = 0; i < num_nodes; ++i){
           const size_t start1 = nodes[i];
           const size_t end1 = getEndOfNeighborhood(i);
@@ -369,7 +350,8 @@ struct CompressedGraph {
     }   
     inline long countTriangles(){
       long count = 0;
-      //#pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
+      cout << "Num threads: " << omp_get_num_threads() << endl;
+      #pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
       for(size_t i = 0; i < num_nodes; ++i){
         const size_t start1 = nodes[i];
         const size_t end1 = getEndOfNeighborhood(i);

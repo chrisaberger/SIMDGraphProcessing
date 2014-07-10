@@ -10,8 +10,9 @@ int main (int argc, char* argv[]) {
     exit(0);
   }
   
-  omp_set_num_threads(atoi(argv[3]));        
-
+  cout << "Number of threads: " << atoi(argv[3]) << endl;
+  omp_set_num_threads(atoi(argv[3]));  
+  
   startClock();
   VectorGraph *vg = ReadFile(argv[1],atoi(argv[2]));
   stopClock("INPUT");

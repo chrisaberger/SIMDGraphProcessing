@@ -25,7 +25,6 @@ int main (int argc, char* argv[]) {
   cout << "COMPRESSED EDGE BYTES: " << ((graph->edge_array_length * 16)/8)+((graph->num_nodes*32)/8) << endl;
   startClock();
 
-  /*
   double prc = graph->pagerank();
   cout << "Total pr: " << prc << endl;
   stopClock("COMPRESSED APPLICATION");
@@ -41,6 +40,6 @@ int main (int argc, char* argv[]) {
   double pr = graph2->pagerank();
   cout << "Total pr: " << pr << endl;
   stopClock("CSR APPLICATION");
-  */
+
   return 0;
 }

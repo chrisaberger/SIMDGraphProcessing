@@ -122,6 +122,96 @@ struct CompressedGraph {
       outer:
         return count;
     }
+    inline double pagerank(){
+      float *pr = new float[num_nodes];
+      float *oldpr = new float[num_nodes];
+      const double damp = 0.85;
+      const int maxIter = 100;
+      const double threshold = 0.0001;
+
+      #pragma omp parallel for default(none) schedule(static,150) shared(pr,oldpr)
+      for(size_t i=0; i < num_nodes; ++i){
+        oldpr[i] = 1.0/num_nodes;
+      }
+      
+      int iter = 0;
+      double delta = 1000000000000.0;
+      float totalpr = 0.0;
+      while(delta > threshold && iter < maxIter){
+        totalpr = 0.0;
+        delta = 0.0;
+        #pragma omp parallel for default(none) shared(pr,oldpr) schedule(static,150) reduction(+:delta) reduction(+:totalpr)
+        for(size_t i = 0; i < num_nodes; ++i){
+          float sum = 0.0;
+          const size_t start1 = neighborhoodStart(i);
+          const size_t end1 = neighborhoodEnd(i);
+          for(size_t j = start1; j < end1; ++j){
+            size_t prefix, partition_end; bool isBitSet;
+            setupInnerPartition(j,prefix,partition_end,isBitSet);
+           
+            if(!isBitSet){
+              //Traverse partition use prefix to get nbr id.
+              for(;j < partition_end;++j){
+                //to be honest this doesn't really speed anything up, looks cool tho :)
+                if(j+7 < partition_end){
+                  float tmp_pr_holder[8];
+                  float tmp_deg_holder[8];
+                  for(size_t k = 0; k < 8; k++){
+                    size_t cur = (prefix << 16) | edges[j+k];
+                    tmp_pr_holder[k] = oldpr[cur];
+                    tmp_deg_holder[k] = nbr_lengths[cur];
+                  }
+                  __m256 pr = _mm256_load_ps(tmp_pr_holder);
+                  __m256 deg = _mm256_load_ps(tmp_deg_holder);
+                  __m256 d = _mm256_div_ps(pr, deg);
+                  _mm256_storeu_ps(tmp_pr_holder, d);
+                  for(size_t o = 0; o < 8; o++){
+                    sum += tmp_pr_holder[o]; //should be auto vectorized.
+                  }
+                  j += 7;
+                  //const size_t len2 = nbr_lengths[cur];
+                  //sum += oldpr[cur]/len2;
+                } else{
+                    const size_t cur = (prefix << 16) | edges[j]; //neighbor node
+                    const size_t len = nbr_lengths[cur];
+                    sum += oldpr[cur]/len;
+                }
+              }
+            }else{
+              //4096 shorts in every BS
+              for(size_t ii=0;(ii < WORDS_IN_BS);++ii){
+                //Go through each bit
+                for(size_t jj = 0;(jj < 16);++jj){
+                  unsigned short index = (jj + (ii << 4)); // jj + ii *16; I don't trust compilers.
+                  if(isSet(index,&edges[j])){
+                    const size_t cur = (prefix << 16) | index; //neighbor node
+                    const size_t len = nbr_lengths[cur];
+                    sum += oldpr[cur]/len;
+                  }
+                }
+              } //end outer for
+            }//end else */
+            j = partition_end-1;  
+          }
+          pr[i] = ((1.0-damp)/num_nodes) + damp * sum;
+          delta += abs(pr[i]-oldpr[i]);
+          totalpr += pr[i];
+        }
+
+        float *tmp = oldpr;
+        oldpr = pr;
+        pr = tmp;
+        ++iter;
+      }
+      pr = oldpr;
+      cout << "Iter: " << iter << endl;
+      /*
+      for(size_t i=0; i < num_nodes; ++i){
+        cout << "Node: " << i << " PR: " << pr[i] << endl;
+      }
+      */
+      return totalpr;
+    }
     /*
     inline void printGraph(){
       for(size_t i = 0; i < num_nodes; ++i){

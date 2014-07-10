@@ -129,7 +129,7 @@ inline size_t simd_intersect_bitset_and_set(const size_t lim,const unsigned shor
     unsigned short cur = B[i_b];
     notFinished = cur < lim;
     if(notFinished && isSet(cur,A)) 
-      ++count; 
+      ++count;       
   }
   return count;
 }

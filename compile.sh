@@ -1,1 +1,0 @@
-g++ main.cpp -fopenmp -std=c++11 -O -mavx

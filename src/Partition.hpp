@@ -10,6 +10,8 @@
 #include <memory>
 #include <algorithm>
 #include <x86intrin.h>
+#include <limits>
+#include "BitSet.hpp"
 
 #define WORDS_IN_BS 4096
 #define SHORTS_PER_REG 8
@@ -18,55 +20,6 @@
 
 using namespace std;
 
-inline size_t wordIndex(unsigned short bitIndex){
-  return bitIndex >> ADDRESS_BITS_PER_WORD;
-}
-inline void addToBitSet(unsigned short bitIndex, unsigned short *in_array){
-  size_t word = wordIndex(bitIndex);
-  in_array[word] |= (1 << (bitIndex % BITS_PER_WORD));
-}
-
-inline void createBitSet(unsigned short *in_array, const size_t len){
-  unsigned short *tmp = new unsigned short[len];
-
-  //Parallel copy & clear to tmp array.
-  #pragma omp parallel for default(none) shared(tmp,in_array)
-  for(size_t j=0;j<len;++j){
-    tmp[j] = in_array[j];
-    in_array[j] = 0;
-  }
-
-  size_t i = 0;
-  while(i<len){
-    unsigned short cur = tmp[i];
-    size_t word = wordIndex(cur);
-    unsigned short setValue = 1 << (cur % BITS_PER_WORD);
-    bool sameWord = true;
-    ++i;
-    while(i<len && sameWord){
-      if(wordIndex(tmp[i])==word){
-        cur = tmp[i];
-        setValue |= (1 << (cur%BITS_PER_WORD));
-        ++i;
-      } else sameWord = false;
-    }
-    in_array[word] = setValue; 
-  }
-  delete [] tmp;
-}
-inline void printBitSet(unsigned short prefix,size_t size, const unsigned short *in_array){
-  for(size_t i=0;i<size;i++){
-    for(size_t j=0;j<16;j++){
-      if((in_array[i] >> j) % 2){
-        unsigned short cur = j + i*16;
-        cout << "Nbr: " << cur << endl;
-      }
-    }
-  }
-}
-inline bool isSet(unsigned short index, const unsigned short *in_array){
-  return (in_array[wordIndex(index)] & (1 << (index%16)));
-}
 inline long andCardinalityInRange(const unsigned short *in_array1,const unsigned short *in_array2, size_t max){
   long count = 0l;
   size_t smallLength = wordIndex(max);
@@ -119,9 +72,6 @@ inline long andCardinalityInRange(const unsigned short *in_array1,const unsigned
 long numSets = 0;
 long numSetsCompressed = 0;
 
-int getBit(int value, int position) {
-    return ( ( value & (1 << position) ) >> position);
-}
 inline size_t simd_intersect_bitset_and_set(const size_t lim,const unsigned short *A, const unsigned short *B, const size_t s_b) {
   size_t count = 0;
   bool notFinished = true;
@@ -194,33 +144,31 @@ inline size_t intersect_partitioned(const size_t lim,const unsigned short *A, co
     } else {
       unsigned short partition_size = 0;
       //If we are not in the range of the limit we don't need to worry about it.
-      if(A[i_a+1] < WORDS_IN_BS && B[i_b+1] < WORDS_IN_BS){
-        //cout << "1" << endl;
+      if(A[i_a+1] <= WORDS_IN_BS && B[i_b+1] <= WORDS_IN_BS){
         if(A[i_a] < limPrefix && B[i_b] < limPrefix){
-          partition_size = simd_intersect_vector16(10000000,&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
+          partition_size = simd_intersect_vector16(std::numeric_limits<std::size_t>::max(),&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
         } else {
           partition_size = simd_intersect_vector16(limLower,&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
         }  
         i_a += A[i_a + 1] + 2;
         i_b += B[i_b + 1] + 2;      
       }else if(A[i_a+1] > WORDS_IN_BS && B[i_b+1] > WORDS_IN_BS){
-          //cout << "2" << endl;
           if(A[i_a] < limPrefix && B[i_b] < limPrefix)
             partition_size = andCardinalityInRange(&A[i_a+2],&B[i_b+2],65535);
           else
             partition_size = andCardinalityInRange(&A[i_a+2],&B[i_b+2],limLower);
         i_a += WORDS_IN_BS + 2;
         i_b += WORDS_IN_BS + 2;   
-      } else if(A[i_a+1] > WORDS_IN_BS && B[i_b+1] < WORDS_IN_BS){
+      } else if(A[i_a+1] > WORDS_IN_BS && B[i_b+1] <= WORDS_IN_BS){
           if(A[i_a] < limPrefix && B[i_b] < limPrefix)
-            partition_size += simd_intersect_bitset_and_set(10000000,&A[i_a + 2], &B[i_b + 2], B[i_b + 1]);
+            partition_size += simd_intersect_bitset_and_set(std::numeric_limits<std::size_t>::max(),&A[i_a + 2], &B[i_b + 2], B[i_b + 1]);
           else
             partition_size += simd_intersect_bitset_and_set(limLower,&A[i_a + 2], &B[i_b + 2], B[i_b + 1]);
         i_a += WORDS_IN_BS + 2;
         i_b += B[i_b + 1] + 2;      
       } else{
           if(A[i_a] < limPrefix && B[i_b] < limPrefix)
-            partition_size += simd_intersect_bitset_and_set(10000000,&B[i_b + 2], &A[i_a + 2], A[i_a + 1]);
+            partition_size += simd_intersect_bitset_and_set(std::numeric_limits<std::size_t>::max(),&B[i_b + 2], &A[i_a + 2], A[i_a + 1]);
           else
             partition_size += simd_intersect_bitset_and_set(limLower,&B[i_b + 2], &A[i_a + 2], A[i_a + 1]);
         i_b += WORDS_IN_BS + 2;   
@@ -247,7 +195,7 @@ void print_partition(const unsigned short *A, const size_t s_a){
       size_t inner_end = i+size;
       while(i < inner_end){
         unsigned int tmp = prefix | A[i];
-        cout << prefix << tmp << endl;
+        cout << "Nbr: " << tmp << endl;
         ++i;
       }
       i--;

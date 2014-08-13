@@ -72,15 +72,37 @@ struct CompressedGraph {
       }
       return count;
     }
-    inline long intersect_neighborhoods(const size_t n, const size_t nbr) {
-      if(nbr > n){
-        const size_t start1 = neighborhoodStart(n);
-        const size_t end1 = neighborhoodEnd(n);
+    inline void test() {
+      size_t n = 5660;
+      size_t nbr = 373;
+      const size_t start1 = neighborhoodStart(nbr);
+      const size_t end1 = neighborhoodEnd(nbr);
 
-        const size_t start2 = neighborhoodStart(nbr);
-        const size_t end2 = neighborhoodEnd(nbr);
+//        cout << "NODE: " << nbr << endl;
+ //       print_partition(edges+start1,end1-start1);
 
-        return intersect_partitioned(n,edges+start1,edges+start2,end1-start1,end2-start2);
+      const size_t start2 = neighborhoodStart(n);
+      const size_t end2 = neighborhoodEnd(n);
+
+   //     cout << "NODE: " << n << endl;
+   //     print_partition(edges+start2,end2-start2);
+
+      long result = intersect_partitioned(nbr,edges+start1,edges+start2,end1-start1,end2-start2);
+      cout << "OUTPUT: " << result << endl;
+    }
+    inline long intersect_neighborhoods(const size_t nbr, const size_t n) {
+      if(n > nbr){
+        //cout << "Intersecting: " << n << " with " << nbr << endl;
+
+        const size_t start1 = neighborhoodStart(nbr);
+        const size_t end1 = neighborhoodEnd(nbr);
+
+        const size_t start2 = neighborhoodStart(n);
+        const size_t end2 = neighborhoodEnd(n);
+
+        long result = intersect_partitioned(nbr,edges+start1,edges+start2,end1-start1,end2-start2);
+        //cout << "OUTPUT: " << result << endl;
+        return result;
       }
       else{
         return -1; //we are done with this neighborhood

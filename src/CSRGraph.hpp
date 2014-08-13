@@ -76,15 +76,44 @@ struct CSRGraph {
     */
     return totalpr;
   }
+  inline void test() const{
+    /*
+    size_t i = 373;
+    cout << "Node: " << i << endl;
+    size_t start,end;
+    getRange(i,start,end);
+    for(size_t j = start; j < end; ++j) {
+      cout << "nbr: " << edges[j] << endl;
+    }
+    i = 5660;
+    cout << "Node: " << i << endl;
+    getRange(i,start,end);
+    for(size_t j = start; j < end; ++j) {
+      cout << "nbr: " << edges[j] << endl;
+    }
+    */
+    long output = intersectStandard(373,5660);
+    cout << "OUTPUT: " << output << endl;
+  }
+
   inline long countTriangles() const{
     long result = 0l;
-    #pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
+    //#pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
     for(size_t i=0; i < num_nodes; i++){
       size_t start,end;
       getRange(i,start,end);
       for(size_t j = start; j < end; ++j) {
         if(i < edges[j]) 
           result += intersectStandard(i,edges[j]);
+        /*
+        //Debug when comparing to compressed will compare in the same order.
+        if(i > edges[j]){ 
+          cout << "Intersecting: " << i << " with " << edges[j] << endl;
+          long output = intersectStandard(edges[j],i);
+          result += output;
+          cout << "OUTPUT: " << output << endl;
+        }
+        */
       }
     }
     return result;
@@ -105,6 +134,7 @@ struct CSRGraph {
         notFinished = j < endJ && edges[j] < lim;
       }
       if(notFinished && edges[i] == edges[j]){
+        cout << "MATCH: " << edges[i] << " " << edges[j] << endl;
        ++count;
       }
       ++i;

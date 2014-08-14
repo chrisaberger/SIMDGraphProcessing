@@ -98,7 +98,7 @@ struct CSRGraph {
 
   inline long countTriangles() const{
     long result = 0l;
-    //#pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
+    #pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
     for(size_t i=0; i < num_nodes; i++){
       size_t start,end;
       getRange(i,start,end);

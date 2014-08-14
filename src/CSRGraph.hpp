@@ -134,7 +134,6 @@ struct CSRGraph {
         notFinished = j < endJ && edges[j] < lim;
       }
       if(notFinished && edges[i] == edges[j]){
-        cout << "MATCH: " << edges[i] << " " << edges[j] << endl;
        ++count;
       }
       ++i;

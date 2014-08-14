@@ -14,6 +14,7 @@ int main (int argc, char* argv[]) {
   omp_set_num_threads(atoi(argv[3]));        
 
   VectorGraph *vg = ReadFile(argv[1],atoi(argv[2]));
+  cout << endl;
 
   startClock();
   CompressedGraph *graph = createCompressedGraph(vg);

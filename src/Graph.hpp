@@ -72,26 +72,7 @@ struct CompressedGraph {
       }
       return count;
     }
-    inline void test() {
-      size_t n = 5660;
-      size_t nbr = 373;
-      const size_t start1 = neighborhoodStart(nbr);
-      const size_t end1 = neighborhoodEnd(nbr);
-
-//        cout << "NODE: " << nbr << endl;
- //       print_partition(edges+start1,end1-start1);
-
-      const size_t start2 = neighborhoodStart(n);
-      const size_t end2 = neighborhoodEnd(n);
-
-   //     cout << "NODE: " << n << endl;
-   //     print_partition(edges+start2,end2-start2);
-
-      long result = intersect_partitioned(nbr,edges+start1,edges+start2,end1-start1,end2-start2);
-      cout << "OUTPUT: " << result << endl;
-    }
     inline long intersect_neighborhoods(const size_t nbr, const size_t n) {
-      if(n > nbr){
         //cout << "Intersecting: " << n << " with " << nbr << endl;
 
         const size_t start1 = neighborhoodStart(nbr);
@@ -100,13 +81,9 @@ struct CompressedGraph {
         const size_t start2 = neighborhoodStart(n);
         const size_t end2 = neighborhoodEnd(n);
 
-        long result = intersect_partitioned(nbr,edges+start1,edges+start2,end1-start1,end2-start2);
+        long result = intersect_partitioned(edges+start1,edges+start2,end1-start1,end2-start2);
         //cout << "OUTPUT: " << result << endl;
         return result;
-      }
-      else{
-        return -1; //we are done with this neighborhood
-      }
     }
     inline long foreachNbr(size_t node,long (CompressedGraph::*func)(const size_t,const size_t)){
       long count = 0;
@@ -121,7 +98,6 @@ struct CompressedGraph {
           for(;j < partition_end;++j){
             const size_t cur = (prefix << 16) | edges[j]; //neighbor node
             long ncount = (this->*func)(cur,node);
-            if(ncount == -1) goto outer; //bad coding practice?
             count += ncount;
           }
         }else{
@@ -133,7 +109,6 @@ struct CompressedGraph {
               if(isSet(index,&edges[j])){
                 const size_t cur = (prefix << 16) | index; //neighbor node
                 long ncount = (this->*func)(cur,node);
-                if(ncount == -1) goto outer; //bad coding practice?
                 count += ncount;
               }
             }
@@ -141,8 +116,7 @@ struct CompressedGraph {
         }//end else */
         j = partition_end-1;   
       }
-      outer:
-        return count;
+      return count;
     }
     inline double pagerank(){
       float *pr = new float[num_nodes];

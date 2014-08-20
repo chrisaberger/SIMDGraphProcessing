@@ -20,9 +20,9 @@
 
 using namespace std;
 
-inline long andCardinalityInRange(const unsigned short *in_array1,const unsigned short *in_array2, size_t max){
+inline long andCardinalityInRange(const unsigned short *in_array1,const unsigned short *in_array2){
   long count = 0l;
-  size_t smallLength = wordIndex(max);
+  size_t smallLength = wordIndex(65535);
 
   //16 unsigned shorts
   //8 ints
@@ -55,36 +55,24 @@ inline long andCardinalityInRange(const unsigned short *in_array1,const unsigned
 
     i += 16;
   }
-  for(;i < smallLength;++i){
-    //cout << "here2" << endl;
-    count += _mm_popcnt_u32(in_array1[i] & in_array2[i]);
-  }
-  max &= 0x000F; //0x00f mask off index
-  unsigned short mask = 0;
-  for(i=0;i<max;++i){
-    //cout << "here3" << endl;
-    mask |= (1 << (i%BITS_PER_WORD));
-  }
-  count += _mm_popcnt_u32(in_array1[smallLength] & in_array2[smallLength] & mask);
   return count;
 }
 
 long numSets = 0;
 long numSetsCompressed = 0;
 
-inline size_t simd_intersect_bitset_and_set(const size_t lim,const unsigned short *A, const unsigned short *B, const size_t s_b) {
+inline size_t simd_intersect_bitset_and_set(const unsigned short *A, const unsigned short *B, const size_t s_b) {
   size_t count = 0;
   bool notFinished = true;
   for(size_t i_b=0;i_b<s_b && notFinished;++i_b){
     unsigned short cur = B[i_b];
-    notFinished = cur < lim;
-    if(notFinished && isSet(cur,A)) 
+    if(isSet(cur,A)) 
       ++count;       
   }
   return count;
 }
 
-inline size_t simd_intersect_vector16(const size_t lim,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+inline size_t simd_intersect_vector16(const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
   size_t count = 0;
   size_t i_a = 0, i_b = 0;
 
@@ -92,7 +80,7 @@ inline size_t simd_intersect_vector16(const size_t lim,const unsigned short *A, 
   size_t st_b = (s_b / SHORTS_PER_REG) * SHORTS_PER_REG;
   //scout << "Sizes:: " << st_a << " " << st_b << endl;
  
-  while(i_a < st_a && i_b < st_b && A[i_a+SHORTS_PER_REG-1] < lim && B[i_b+SHORTS_PER_REG-1] < lim) {
+  while(i_a < st_a && i_b < st_b) {
     __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
     __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);    
     unsigned short a_max = _mm_extract_epi16(v_a, SHORTS_PER_REG-1);
@@ -109,27 +97,25 @@ inline size_t simd_intersect_vector16(const size_t lim,const unsigned short *A, 
   // intersect the tail using scalar intersection
   //...
 
-  bool notFinished = i_a < s_a  && i_b < s_b && A[i_a] < lim && B[i_b] < lim;
+  bool notFinished = i_a < s_a  && i_b < s_b;
   while(notFinished){
     while(notFinished && B[i_b] < A[i_a]){
       ++i_b;
-      notFinished = i_b < s_b && B[i_b] < lim;
+      notFinished = i_b < s_b;
     }
     if(notFinished && A[i_a] == B[i_b]){
      ++count;
     }
     ++i_a;
-    notFinished = notFinished && i_a < s_a && A[i_a] < lim;
+    notFinished = notFinished && i_a < s_a;
   }
 
   return count;
 }
-inline size_t intersect_partitioned(const size_t lim,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+inline size_t intersect_partitioned(const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
   size_t i_a = 0, i_b = 0;
   size_t counter = 0;
-  size_t limPrefix = (lim & 0x0FFFF0000) >> 16;
-  size_t limLower = lim & 0x0FFFF;
-  bool notFinished = i_a < s_a && i_b < s_b && A[i_a] <= limPrefix && B[i_b] <= limPrefix;
+  bool notFinished = i_a < s_a && i_b < s_b;
 
   //cout << lim << endl;
   while(notFinished) {
@@ -137,46 +123,33 @@ inline size_t intersect_partitioned(const size_t lim,const unsigned short *A, co
     //cout << "looping" << endl;
     if(A[i_a] < B[i_b]) {
       i_a += A[i_a + 1] + 2;
-      notFinished = i_a < s_a && A[i_a] <= limPrefix;
+      notFinished = i_a < s_a;
     } else if(B[i_b] < A[i_a]) {
       i_b += B[i_b + 1] + 2;
-      notFinished = i_b < s_b && B[i_b] <= limPrefix;
+      notFinished = i_b < s_b;
     } else {
       unsigned short partition_size = 0;
       //If we are not in the range of the limit we don't need to worry about it.
       if(A[i_a+1] <= WORDS_IN_BS && B[i_b+1] <= WORDS_IN_BS){
-        if(A[i_a] < limPrefix && B[i_b] < limPrefix){
-          partition_size = simd_intersect_vector16(std::numeric_limits<std::size_t>::max(),&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
-        } else {
-          partition_size = simd_intersect_vector16(limLower,&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
-        }  
+        partition_size = simd_intersect_vector16(&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
         i_a += A[i_a + 1] + 2;
         i_b += B[i_b + 1] + 2;      
       }else if(A[i_a+1] > WORDS_IN_BS && B[i_b+1] > WORDS_IN_BS){
-          if(A[i_a] < limPrefix && B[i_b] < limPrefix)
-            partition_size = andCardinalityInRange(&A[i_a+2],&B[i_b+2],65535);
-          else
-            partition_size = andCardinalityInRange(&A[i_a+2],&B[i_b+2],limLower);
+        partition_size = andCardinalityInRange(&A[i_a+2],&B[i_b+2]);
         i_a += WORDS_IN_BS + 2;
         i_b += WORDS_IN_BS + 2;   
       } else if(A[i_a+1] > WORDS_IN_BS && B[i_b+1] <= WORDS_IN_BS){
-          if(A[i_a] < limPrefix && B[i_b] < limPrefix)
-            partition_size += simd_intersect_bitset_and_set(std::numeric_limits<std::size_t>::max(),&A[i_a + 2], &B[i_b + 2], B[i_b + 1]);
-          else
-            partition_size += simd_intersect_bitset_and_set(limLower,&A[i_a + 2], &B[i_b + 2], B[i_b + 1]);
+        partition_size += simd_intersect_bitset_and_set(&A[i_a + 2], &B[i_b + 2], B[i_b + 1]);
         i_a += WORDS_IN_BS + 2;
         i_b += B[i_b + 1] + 2;      
       } else{
-          if(A[i_a] < limPrefix && B[i_b] < limPrefix)
-            partition_size += simd_intersect_bitset_and_set(std::numeric_limits<std::size_t>::max(),&B[i_b + 2], &A[i_a + 2], A[i_a + 1]);
-          else
-            partition_size += simd_intersect_bitset_and_set(limLower,&B[i_b + 2], &A[i_a + 2], A[i_a + 1]);
+        partition_size += simd_intersect_bitset_and_set(&B[i_b + 2], &A[i_a + 2], A[i_a + 1]);
         i_b += WORDS_IN_BS + 2;   
         i_a += A[i_a + 1] + 2;
       }
 
       counter += partition_size;
-      notFinished = i_a < s_a && i_b < s_b && A[i_a] <= lim && B[i_b] <= limPrefix;
+      notFinished = i_a < s_a && i_b < s_b;
     }
   }
   return counter;

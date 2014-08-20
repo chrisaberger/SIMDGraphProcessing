@@ -186,11 +186,16 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
     num_edges += hood->size();
     nbrlengths[i] = hood->size();
     int *tmp_hood = new int[hood->size()];
+    size_t hood_size = 0;
     for(size_t j = 0; j < hood->size(); ++j) {
-      tmp_hood[j] = hood->at(j);
+      size_t nbr = hood->at(j);
+      if(nbr < i){
+        tmp_hood[j] = hood->at(j);
+        hood_size++;
+      }
     }
     nodes[i] = index;
-    index = partition(tmp_hood,hood->size(),edges,index);
+    index = partition(tmp_hood,hood_size,edges,index);
     delete[] tmp_hood;
   }
 
@@ -200,10 +205,10 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
 }
 
 CSRGraph* createCSRGraph(VectorGraph *vg){
-  size_t *nodes = new size_t[vg->num_nodes];
+  size_t *nodes = new size_t[vg->num_nodes+1];
   const size_t num_nodes = vg->num_nodes;
   const size_t num_edges = vg->num_edges;
-  size_t *edges = new size_t[num_edges]; 
+  unsigned int *edges = new unsigned int[num_edges]; 
   const unordered_map<size_t,size_t> *external_ids = vg->external_ids;
 
   size_t index = 0;
@@ -211,10 +216,16 @@ CSRGraph* createCSRGraph(VectorGraph *vg){
     nodes[i] = index;
     vector<size_t> *hood = vg->neighborhoods->at(i);
     for(size_t j = 0; j < hood->size(); ++j) {
-      edges[index++] = hood->at(j); 
+      size_t nbr = hood->at(j);
+      if(nbr < i){
+        edges[index++] = hood->at(j); 
+      }
     }
     //delete hood;
   }
+  nodes[num_nodes] = index;
+
+  cout << "Edge size(bytes): " << vg->num_edges*4 << endl;
   return new CSRGraph(num_nodes,num_edges,nodes,edges,external_ids);
 }
 

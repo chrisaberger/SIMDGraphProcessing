@@ -178,6 +178,14 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   size_t num_nodes = vg->num_nodes;
   const unordered_map<size_t,size_t> *external_ids = vg->external_ids;
 
+  size_t bitsused = ceil(log2(num_nodes));
+
+  size_t lower_prefix = 16;
+  size_t upper_prefix = bitsused-lower_prefix;
+
+  cout << "bitsused: " << bitsused << endl;
+  cout << "upper: " << upper_prefix << " lower: " << lower_prefix << endl;
+
   //cout  << "Num nodes: " << vg->num_nodes << " Num edges: " << vg->num_edges << endl;
   size_t num_edges = 0;
   size_t index = 0;
@@ -195,13 +203,15 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
       }
     }
     nodes[i] = index;
-    index = partition(tmp_hood,hood_size,edges,index);
+    index = partition(tmp_hood,hood_size,edges,index,upper_prefix,lower_prefix);
     delete[] tmp_hood;
   }
 
+  cout << "COMPRESSED EDGE SIZE[BYTES]: " << index*2 << endl;
+
   //cout << "num sets: " << numSets << " numSetsCompressed: " << numSetsCompressed << endl;
 
-  return new CompressedGraph(num_nodes,num_edges,index,nbrlengths,nodes,edges,external_ids);
+  return new CompressedGraph(upper_prefix,lower_prefix,num_nodes,num_edges,index,nbrlengths,nodes,edges,external_ids);
 }
 
 CSRGraph* createCSRGraph(VectorGraph *vg){
@@ -225,7 +235,7 @@ CSRGraph* createCSRGraph(VectorGraph *vg){
   }
   nodes[num_nodes] = index;
 
-  cout << "Edge size(bytes): " << vg->num_edges*4 << endl;
+  cout << "CSR EDGE SIZE[BYTES]: " << index*4 << endl;
   return new CSRGraph(num_nodes,num_edges,nodes,edges,external_ids);
 }
 

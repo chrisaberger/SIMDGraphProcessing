@@ -19,9 +19,7 @@ int main (int argc, char* argv[]) {
   startClock();
   CompressedGraph *graph = createCompressedGraph(vg);
   stopClock("COMPRESSED CREATION");
-  
-  cout << "COMPRESSED EDGE BYTES: " << ((graph->edge_array_length * 16)/8)+((graph->num_nodes*32)/8) << endl;
-  
+    
   startClock();
   long triangles = graph->countTriangles();
   cout << "Triangles: " << triangles << endl;
@@ -32,9 +30,7 @@ int main (int argc, char* argv[]) {
   startClock();
   CSRGraph *graph2 = createCSRGraph(vg);
   stopClock("CSR CREATION");
-  
-  cout << "CSR EDGE BYTES: " << (graph2->num_edges * 32)/8 << endl;
-  
+    
   startClock();
   long triangles2 = graph2->countTriangles();
   cout << "Triangles: " << triangles2 << endl;

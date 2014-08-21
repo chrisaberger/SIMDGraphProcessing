@@ -14,6 +14,8 @@
 using namespace std;
 
 struct CompressedGraph {
+  const size_t upper_shift;
+  const size_t lower_shift;
   const size_t num_nodes;
   const size_t num_edges;
   const size_t edge_array_length;
@@ -23,6 +25,8 @@ struct CompressedGraph {
   const unordered_map<size_t,size_t> *external_ids;
   
   CompressedGraph(  
+    const size_t upper_shift_in,
+    const size_t lower_shift_in,
     const size_t num_nodes_in, 
     const size_t num_edges_in,
     const size_t edge_array_length_in,
@@ -30,6 +34,8 @@ struct CompressedGraph {
     const size_t *nodes_in,
     const unsigned short *edges_in,
     const unordered_map<size_t,size_t> *external_ids_in): 
+      upper_shift(upper_shift_in),
+      lower_shift(lower_shift_in),
       num_nodes(num_nodes_in), 
       num_edges(num_edges_in),
       edge_array_length(edge_array_length_in),
@@ -96,7 +102,7 @@ struct CompressedGraph {
         if(!isBitSet){
           //Traverse partition use prefix to get nbr id.
           for(;j < partition_end;++j){
-            const size_t cur = (prefix << 16) | edges[j]; //neighbor node
+            const size_t cur = (prefix << lower_shift) | edges[j]; //neighbor node
             long ncount = (this->*func)(cur,node);
             count += ncount;
           }
@@ -107,7 +113,7 @@ struct CompressedGraph {
             for(size_t jj = 0;(jj < 16);++jj){
               unsigned short index = (jj + (ii << 4)); // jj + ii *16; I don't trust compilers.
               if(isSet(index,&edges[j])){
-                const size_t cur = (prefix << 16) | index; //neighbor node
+                const size_t cur = (prefix << lower_shift) | index; //neighbor node
                 long ncount = (this->*func)(cur,node);
                 count += ncount;
               }

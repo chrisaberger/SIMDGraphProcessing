@@ -19,8 +19,28 @@
 #define ADDRESS_BITS_PER_WORD 4
 
 using namespace std;
+// a simple implementation, we don't care about performance here
 
-inline long andCardinalityInRange(const unsigned short *in_array1,const unsigned short *in_array2){
+static __m128i shuffle_mask16[256]; // precomputed dictionary
+
+inline void prepare_shuffling_dictionary16() {
+  //Number of bits that can possibly be set are the lower 8
+  for(unsigned int i = 0; i < 256; i++) { // 2^8 possibilities we need to store masks for
+    unsigned int counter = 0;
+    unsigned char permutation[16];
+    memset(permutation, 0xFF, sizeof(permutation));
+    for(unsigned char b = 0; b < 8; b++) { //Check each possible bit that can be set 1-by-1
+      if(getBitSD(i, b)) {
+        permutation[counter++] = 2*b; //tell us byte offset to get from comparison vector
+        permutation[counter++] = 2*b + 1; //tess us byte offset to get from comparison vector
+      }
+    }
+    __m128i mask = _mm_loadu_si128((const __m128i*)permutation);
+    shuffle_mask16[i] = mask;
+  }
+}
+
+inline long intersect_bitsets(unsigned short *C,const unsigned short *in_array1,const unsigned short *in_array2){
   long count = 0l;
   size_t smallLength = wordIndex(65535);
 
@@ -61,18 +81,20 @@ inline long andCardinalityInRange(const unsigned short *in_array1,const unsigned
 long numSets = 0;
 long numSetsCompressed = 0;
 
-inline size_t simd_intersect_bitset_and_set(const unsigned short *A, const unsigned short *B, const size_t s_b) {
+inline size_t simd_intersect_bitset_and_set(unsigned short *C, const unsigned short *A, const unsigned short *B, const size_t s_b) {
   size_t count = 0;
   bool notFinished = true;
   for(size_t i_b=0;i_b<s_b && notFinished;++i_b){
     unsigned short cur = B[i_b];
-    if(isSet(cur,A)) 
+    if(isSet(cur,A)){
+      C[count] = cur;
       ++count;       
+    } 
   }
   return count;
 }
 
-inline size_t simd_intersect_vector16(const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+inline size_t simd_intersect_vector16(unsigned short *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
   size_t count = 0;
   size_t i_a = 0, i_b = 0;
 
@@ -88,7 +110,12 @@ inline size_t simd_intersect_vector16(const unsigned short *A, const unsigned sh
     
     __m128i res_v = _mm_cmpestrm(v_b, SHORTS_PER_REG, v_a, SHORTS_PER_REG,
             _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
-    int r = _mm_extract_epi32(res_v, 0);
+    unsigned int r = _mm_extract_epi32(res_v, 0);
+    //cout << "Mask: " << hex << val[7] << " " << val[6] << " " << val[5] << " " << val[4] << " " << val[3] << " " << val[2] << " " << val[1] << " " << val[0] << " "  << dec << endl;
+
+    __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask16[r]);
+    _mm_storeu_si128((__m128i*)&C[count], p);
+
     count += _mm_popcnt_u32(r);
     
     i_a += (a_max <= b_max) * SHORTS_PER_REG;
@@ -112,9 +139,10 @@ inline size_t simd_intersect_vector16(const unsigned short *A, const unsigned sh
 
   return count;
 }
-inline size_t intersect_partitioned(const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+inline size_t intersect_partitioned(unsigned short *C,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
   size_t i_a = 0, i_b = 0;
   size_t counter = 0;
+  size_t count = 0;
   bool notFinished = i_a < s_a && i_b < s_b;
 
   //cout << lim << endl;
@@ -131,28 +159,44 @@ inline size_t intersect_partitioned(const unsigned short *A, const unsigned shor
       unsigned short partition_size = 0;
       //If we are not in the range of the limit we don't need to worry about it.
       if(A[i_a+1] <= WORDS_IN_BS && B[i_b+1] <= WORDS_IN_BS){
-        partition_size = simd_intersect_vector16(&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
+        C[counter++] = A[i_a]; // write partition prefix
+        //cout << "1Counter: " << counter << endl;
+        partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
+        C[counter++] = partition_size; // write partition size
         i_a += A[i_a + 1] + 2;
         i_b += B[i_b + 1] + 2;      
       }else if(A[i_a+1] > WORDS_IN_BS && B[i_b+1] > WORDS_IN_BS){
-        partition_size = andCardinalityInRange(&A[i_a+2],&B[i_b+2]);
+        C[counter++] = A[i_a]; // write partition prefix
+        //cout << "2Counter: " << counter << endl;
+        partition_size = intersect_bitsets(&C[counter+1],&A[i_a+2],&B[i_b+2]);
+        C[counter++] = partition_size; // write partition size
+
         i_a += WORDS_IN_BS + 2;
         i_b += WORDS_IN_BS + 2;   
       } else if(A[i_a+1] > WORDS_IN_BS && B[i_b+1] <= WORDS_IN_BS){
-        partition_size += simd_intersect_bitset_and_set(&A[i_a + 2], &B[i_b + 2], B[i_b + 1]);
+        C[counter++] = A[i_a]; // write partition prefix
+        //cout << "3Counter: " << counter << endl;
+        partition_size += simd_intersect_bitset_and_set(&C[counter+1],&A[i_a + 2], &B[i_b + 2], B[i_b + 1]);
+        C[counter++] = partition_size; // write partition size
+
         i_a += WORDS_IN_BS + 2;
         i_b += B[i_b + 1] + 2;      
       } else{
-        partition_size += simd_intersect_bitset_and_set(&B[i_b + 2], &A[i_a + 2], A[i_a + 1]);
+        C[counter++] = A[i_a]; // write partition prefix
+        //cout << "4Counter: " << counter << endl;
+        partition_size += simd_intersect_bitset_and_set(&C[counter+1],&B[i_b + 2], &A[i_a + 2], A[i_a + 1]);
+        C[counter++] = partition_size; // write partition size
+
         i_b += WORDS_IN_BS + 2;   
         i_a += A[i_a + 1] + 2;
       }
 
+      count += partition_size;
       counter += partition_size;
       notFinished = i_a < s_a && i_b < s_b;
     }
   }
-  return counter;
+  return count;
 }
 void print_partition(const unsigned short *A, const size_t s_a){
   for(size_t i = 0; i < s_a; i++){

@@ -13,22 +13,28 @@ int main (int argc, char* argv[]) {
   cout << "Number of threads: " << atoi(argv[3]) << endl;
   omp_set_num_threads(atoi(argv[3]));      
 
-  /*
   unsigned short *test = new unsigned short[4096];
   for(size_t i = 0; i < 4096; ++i){
-    test[i] = i;
+    test[i] = i*2;
   }
 
-  createBitSet(test,4096);
+  //createBitSet(test,4096);
 
   unsigned short *test2 = new unsigned short[2048];
   for(size_t i = 0; i < 2048; ++i){
     test2[i] = i*2;
   }
 
-  long count = simd_intersect_bitset_and_set(1000,test,test2,2048);
-    cout << "Count: " << count << endl;
-*/
+  unsigned short *result = new unsigned short[2048];
+
+  prepare_shuffling_dictionary();
+  long count = simd_intersect_vector16(result,test,test2,4096,2048);
+
+  for(size_t i=0; i < (size_t) count; i++){
+    cout << "Index: " << i << " Data: " << result[i] << endl;
+  }
+
+  cout << "Count: " << count << endl;
   /*
   for(size_t i = 4096; i < 10000; ++i){
     addToBitSet(i,test);
@@ -42,7 +48,7 @@ int main (int argc, char* argv[]) {
   for(size_t i = 0; i < 20; ++i){
     cout << "Index: " << i << " Data: " << test[i] << endl;
   }
-  */
+  
   VectorGraph *vg = ReadFile(argv[1],atoi(argv[2]));
   CompressedGraph *graph = createCompressedGraph(vg);
   //CSRGraph *graph2 = createCSRGraph(vg);
@@ -58,6 +64,6 @@ int main (int argc, char* argv[]) {
 
   cout << "Triangles: " << triangles << endl;
   stopClock("COMPRESSED APPLICATION");
-  
+  */
   return 0;
 }

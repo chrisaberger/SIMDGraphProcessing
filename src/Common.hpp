@@ -171,7 +171,13 @@ static inline VectorGraph* ReadFile (const string path,const int num_files) {
 
 }
 
+inline int getBitSD(unsigned int value, unsigned int position) {
+  return ( ( value & (1 << position) ) >> position);
+}
+
 static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
+  prepare_shuffling_dictionary16();
+
   size_t *nodes = new size_t[vg->num_nodes];
   unsigned int *nbrlengths = new unsigned int[vg->num_nodes];
   unsigned short *edges = new unsigned short[vg->num_edges*5];

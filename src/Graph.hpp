@@ -23,7 +23,7 @@ struct CompressedGraph {
   const size_t *nodes;
   const unsigned short *edges;
   const unordered_map<size_t,size_t> *external_ids;
-  
+  unsigned short *result_a;
   CompressedGraph(  
     const size_t upper_shift_in,
     const size_t lower_shift_in,
@@ -42,7 +42,9 @@ struct CompressedGraph {
       nbr_lengths(nbrs_lengths_in),
       nodes(nodes_in), 
       edges(edges_in),
-      external_ids(external_ids_in){}
+      external_ids(external_ids_in){
+        result_a = new unsigned short[num_edges];
+      }
     
     inline size_t getEndOfNeighborhood(const size_t node){
       size_t end = 0;
@@ -72,6 +74,7 @@ struct CompressedGraph {
     }
     inline long countTriangles(){
       long count = 0;
+
       #pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
       for(size_t i = 0; i < num_nodes; ++i){
         count += foreachNbr(i,&CompressedGraph::intersect_neighborhoods);
@@ -79,17 +82,19 @@ struct CompressedGraph {
       return count;
     }
     inline long intersect_neighborhoods(const size_t nbr, const size_t n) {
-        //cout << "Intersecting: " << n << " with " << nbr << endl;
+      //cout << "Intersecting: " << n << " with " << nbr << endl;
 
-        const size_t start1 = neighborhoodStart(nbr);
-        const size_t end1 = neighborhoodEnd(nbr);
+      const size_t start1 = neighborhoodStart(nbr);
+      const size_t end1 = neighborhoodEnd(nbr);
 
-        const size_t start2 = neighborhoodStart(n);
-        const size_t end2 = neighborhoodEnd(n);
+      const size_t start2 = neighborhoodStart(n);
+      const size_t end2 = neighborhoodEnd(n);
 
-        long result = intersect_partitioned(edges+start1,edges+start2,end1-start1,end2-start2);
-        //cout << "OUTPUT: " << result << endl;
-        return result;
+      // /cout << "Length: " << (end1-start1) << endl;
+
+      long result = intersect_partitioned(result_a,edges+start1,edges+start2,end1-start1,end2-start2);
+      //cout << "OUTPUT: " << result << endl;
+      return result;
     }
     inline long foreachNbr(size_t node,long (CompressedGraph::*func)(const size_t,const size_t)){
       long count = 0;

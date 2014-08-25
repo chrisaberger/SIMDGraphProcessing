@@ -96,7 +96,7 @@ static inline VectorGraph* ReadFile (const string path,const int num_files) {
   //Place graph into vector of vectors then decide how you want to
   //store the graph.
   
-  startClock();
+  //startClock();
   #pragma omp parallel for default(none) shared(graph_in,path) reduction(+:num_edges) reduction(+:num_nodes)
   for(size_t i=0; i <= (size_t) num_files;++i){
     vector< vector<size_t>*  > *file_adj = new vector< vector<size_t>* >();
@@ -128,9 +128,9 @@ static inline VectorGraph* ReadFile (const string path,const int num_files) {
       graph_in[i] = file_adj;
     }
   }
-  stopClock("Reading files from disk");
+  //stopClock("Reading files from disk");
 
-  startClock();
+  //startClock();
   //Serial Merge: Could actually do a merge sort if I cared enough.
   vector< vector<size_t>*  > *neighborhoods = new vector< vector<size_t>* >();
   neighborhoods->reserve(num_nodes);
@@ -141,9 +141,9 @@ static inline VectorGraph* ReadFile (const string path,const int num_files) {
   delete[] graph_in;
   //Sort the neighborhoods by degree.
   std::sort(neighborhoods->begin(),neighborhoods->end(),Comparator());
-  stopClock("Merging and sorting");
+  //stopClock("Merging and sorting");
 
-  startClock();
+  //startClock();
   //Build hash map
   unordered_map<size_t,size_t> *external_ids = new unordered_map<size_t,size_t>();
   external_ids->reserve(neighborhoods->size());
@@ -153,27 +153,28 @@ static inline VectorGraph* ReadFile (const string path,const int num_files) {
     external_ids->insert(make_pair(hood->at(0),i));
     hood->erase(hood->begin());
   }
-  stopClock("Building hashmap");
+ // stopClock("Building hashmap");
 
-  startClock();
+  //startClock();
   #pragma omp parallel for default(none) shared(neighborhoods,external_ids) schedule(static,150)
   for(size_t i = 0; i < neighborhoods->size(); ++i) {
     vector<size_t> *hood = neighborhoods->at(i);
     //cout << "Node: " << i << endl;
+    size_t index = 0;
     for(size_t j = 0; j < hood->size(); ++j) {
-      hood->at(j) = external_ids->at(hood->at(j));
+      if(external_ids->at(hood->at(j)) < i){
+        hood->at(index) = external_ids->at(hood->at(j));
+        index++;
+      }
     }
+    hood->resize(index);
     sort(hood->begin(),hood->end());
   } 
-  stopClock("Reassigning ids");
+  //stopClock("Reassigning ids");
 
   return new VectorGraph(num_nodes,num_edges,external_ids,neighborhoods);
-
 }
 
-inline int getBitSD(unsigned int value, unsigned int position) {
-  return ( ( value & (1 << position) ) >> position);
-}
 
 static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   prepare_shuffling_dictionary16();

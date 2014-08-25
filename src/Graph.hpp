@@ -23,7 +23,6 @@ struct CompressedGraph {
   const size_t *nodes;
   const unsigned short *edges;
   const unordered_map<size_t,size_t> *external_ids;
-  unsigned short *result_a;
   CompressedGraph(  
     const size_t upper_shift_in,
     const size_t lower_shift_in,
@@ -42,9 +41,7 @@ struct CompressedGraph {
       nbr_lengths(nbrs_lengths_in),
       nodes(nodes_in), 
       edges(edges_in),
-      external_ids(external_ids_in){
-        result_a = new unsigned short[num_edges];
-      }
+      external_ids(external_ids_in){}
     
     inline size_t getEndOfNeighborhood(const size_t node){
       size_t end = 0;
@@ -77,11 +74,12 @@ struct CompressedGraph {
 
       #pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
       for(size_t i = 0; i < num_nodes; ++i){
-        count += foreachNbr(i,&CompressedGraph::intersect_neighborhoods);
+        unsigned short *result = new unsigned short[(num_edges/num_nodes)*3];
+        count += foreachNbr(i,&CompressedGraph::intersect_neighborhoods,result);
       }
       return count;
     }
-    inline long intersect_neighborhoods(const size_t nbr, const size_t n) {
+    inline long intersect_neighborhoods(const size_t nbr, const size_t n, unsigned short *r) {
       //cout << "Intersecting: " << n << " with " << nbr << endl;
 
       const size_t start1 = neighborhoodStart(nbr);
@@ -92,11 +90,11 @@ struct CompressedGraph {
 
       // /cout << "Length: " << (end1-start1) << endl;
 
-      long result = intersect_partitioned(result_a,edges+start1,edges+start2,end1-start1,end2-start2);
+      long result = intersect_partitioned(r,edges+start1,edges+start2,end1-start1,end2-start2);
       //cout << "OUTPUT: " << result << endl;
       return result;
     }
-    inline long foreachNbr(size_t node,long (CompressedGraph::*func)(const size_t,const size_t)){
+    inline long foreachNbr(size_t node,long (CompressedGraph::*func)(const size_t,const size_t,unsigned short*), unsigned short *r){
       long count = 0;
       const size_t start1 = neighborhoodStart(node);
       const size_t end1 = neighborhoodEnd(node);
@@ -108,7 +106,7 @@ struct CompressedGraph {
           //Traverse partition use prefix to get nbr id.
           for(;j < partition_end;++j){
             const size_t cur = (prefix << lower_shift) | edges[j]; //neighbor node
-            long ncount = (this->*func)(cur,node);
+            long ncount = (this->*func)(cur,node,r);
             count += ncount;
           }
         }else{
@@ -119,7 +117,7 @@ struct CompressedGraph {
               unsigned short index = (jj + (ii << 4)); // jj + ii *16; I don't trust compilers.
               if(isSet(index,&edges[j])){
                 const size_t cur = (prefix << lower_shift) | index; //neighbor node
-                long ncount = (this->*func)(cur,node);
+                long ncount = (this->*func)(cur,node,r);
                 count += ncount;
               }
             }

@@ -27,7 +27,7 @@ int main (int argc, char* argv[]) {
 
   unsigned short *result = new unsigned short[2048];
 
-  prepare_shuffling_dictionary();
+  prepare_shuffling_dictionary16();
   long count = simd_intersect_vector16(result,test,test2,4096,2048);
 
   for(size_t i=0; i < (size_t) count; i++){

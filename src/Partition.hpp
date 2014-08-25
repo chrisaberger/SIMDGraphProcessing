@@ -23,6 +23,10 @@ using namespace std;
 
 static __m128i shuffle_mask16[256]; // precomputed dictionary
 
+inline int getBitSD(unsigned int value, unsigned int position) {
+  return ( ( value & (1 << position) ) >> position);
+}
+
 inline void prepare_shuffling_dictionary16() {
   //Number of bits that can possibly be set are the lower 8
   for(unsigned int i = 0; i < 256; i++) { // 2^8 possibilities we need to store masks for

@@ -7,7 +7,7 @@ CC = g++
 CFLAGS  = -g -Wall -O3 -fopenmp -std=c++11 -mavx -ftree-vectorize
 
 # the build target executable:
-TARGET1 = main
+TARGET1 = Stats
 TARGET2 = UndirectedTriangleCounting
 TARGET3 = PageRank
 

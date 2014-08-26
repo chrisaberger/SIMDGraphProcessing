@@ -178,17 +178,15 @@ static inline VectorGraph* ReadFile (const string path,const int num_files) {
 
 static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   prepare_shuffling_dictionary16();
+  size_t sq = vg->num_nodes * vg->num_nodes;
+  cout << "SQ: " << sq << endl;
+  unsigned short *unions = new unsigned short[vg->num_nodes*500];//(unsigned short *) malloc(751346540*sizeof(unsigned short));	
 
-  size_t *nodes = new size_t[vg->num_nodes];
+  size_t *nodes = new size_t[vg->num_nodes+1];
   unsigned int *nbrlengths = new unsigned int[vg->num_nodes];
   unsigned short *edges = new unsigned short[vg->num_edges*5];
 
-  size_t *union_size = new size_t[vg->num_nodes];
-
-  unsigned short** unions = new unsigned short*[vg->num_nodes];
-  for(size_t i = 0; i < vg->num_nodes; i++)
-    unions[i] = new unsigned short[vg->num_nodes*3];
-
+  size_t *union_size = new size_t[vg->num_nodes+1]; 
   size_t num_nodes = vg->num_nodes;
   const unordered_map<size_t,size_t> *external_ids = vg->external_ids;
 
@@ -203,18 +201,22 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   //cout  << "Num nodes: " << vg->num_nodes << " Num edges: " << vg->num_edges << endl;
   size_t num_edges = 0;
   size_t index = 0;
+  size_t union_index = 0;
   for(size_t i = 0; i < vg->num_nodes; ++i){
     vector<size_t> *hood = vg->neighborhoods->at(i);
     num_edges += hood->size();
     nbrlengths[i] = hood->size();
-    int *tmp_hood = new int[hood->size()];
+    unsigned int *tmp_hood = new unsigned int[hood->size()];
     size_t hood_size = 0;
     vector<size_t> *un = new vector<size_t>();
+    //un->reserve(vg->num_nodes);
     bool clearable = false;
     for(size_t j = 0; j < hood->size(); ++j) {
       size_t nbr = hood->at(j);
 
       if(nbr < i){
+    	std::copy(vg->neighborhoods->at(nbr)->begin(), vg->neighborhoods->at(nbr)->end(), std::back_inserter(*un));   
+	/*	 
         if(j == 0){
           un = vg->neighborhoods->at(j);
         }
@@ -223,11 +225,12 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
           set_union(vg->neighborhoods->at(nbr)->begin(), vg->neighborhoods->at(nbr)->end(), un->begin(), un->end(), back_inserter(*un_tmp));
           if(clearable){
             un->clear();
+            delete un;
           }
           un = un_tmp;
           clearable = true;
         }
-        
+	*/
         tmp_hood[j] = hood->at(j);
         hood_size++;
       }
@@ -235,19 +238,30 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
     nodes[i] = index;
     index = partition(tmp_hood,hood_size,edges,index,upper_prefix,lower_prefix);
 
-    //FIXME    
-    int *tmp_un = new int[un->size()];
-    for(size_t j =0; j<un->size(); j++){
-      tmp_un[j] = un->at(j);
-    }
+    std::sort(un->begin(),un->end());
+    un->erase(unique(un->begin(),un->end()),un->end());
     
-    union_size[i] = partition(tmp_un,un->size(),unions[i],0,upper_prefix,lower_prefix);
-    if(clearable)
+    //FIXME    
+    unsigned int *tmp_un = new unsigned int[un->size()];//(unsigned int *) malloc((un->size())*sizeof(unsigned int));	 
+    for(size_t j =0; j<un->size(); j++){
+      tmp_un[j] = (unsigned int) un->at(j);
+    } 
+    union_size[i] = union_index;
+    //cout << union_index << " " << un->size() << " " << sq << endl;
+    union_index = partition(tmp_un,un->size(),unions,union_index,upper_prefix,lower_prefix);
+    //cout << "done" << endl;
+    if(clearable){
       un->clear();
+      delete un;
+    }
     delete[] tmp_un;
     delete[] tmp_hood;
   }
-
+ 
+  cout << "Union Index: " << union_index << endl;
+  nodes[vg->num_nodes] = index;
+  union_size[vg->num_nodes] = union_index;
+  
   cout << "COMPRESSED EDGE SIZE[BYTES]: " << index*2 << endl;
 
   //cout << "num sets: " << numSets << " numSetsCompressed: " << numSetsCompressed << endl;

@@ -23,7 +23,7 @@ struct CompressedGraph {
   const size_t *nodes;
   const unsigned short *edges;
   const unordered_map<size_t,size_t> *external_ids;
-  unsigned short **unions;
+  unsigned short *unions;
   size_t *union_size;
   CompressedGraph(  
     const size_t upper_shift_in,
@@ -35,7 +35,7 @@ struct CompressedGraph {
     const size_t *nodes_in,
     const unsigned short *edges_in,
     const unordered_map<size_t,size_t> *external_ids_in,
-    unsigned short **unions_in,
+    unsigned short *unions_in,
     size_t *union_size_in): 
       upper_shift(upper_shift_in),
       lower_shift(lower_shift_in),
@@ -59,10 +59,7 @@ struct CompressedGraph {
       return nodes[node];
     }
     inline size_t neighborhoodEnd(const size_t node){
-      size_t end = 0;
-      if(node+1 < num_nodes) end = nodes[node+1];
-      else end = edge_array_length;
-      return end;
+      return nodes[node+1];
     }
     inline void setupInnerPartition(size_t &i, size_t &prefix, size_t &end,bool &isBitSet){
       const size_t header_length = 2;
@@ -85,7 +82,7 @@ struct CompressedGraph {
         //count += foreachNbr(i,&CompressedGraph::intersect_neighborhoods,result);
           const size_t start1 = neighborhoodStart(i);
           const size_t end1 = neighborhoodEnd(i);
-          count += intersect_partitioned(result,edges+start1,unions[i],end1-start1,union_size[i]);
+          count += intersect_partitioned(result,edges+start1,unions+union_size[i],end1-start1,union_size[i+1]-union_size[i]);
       }
       return count;
     }

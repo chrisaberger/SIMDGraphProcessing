@@ -229,7 +229,7 @@ void print_partition(const unsigned short *A, const size_t s_a){
 // A - sorted array
 // s_a - size of A
 // R - partitioned sorted array
-inline size_t partition(int *A, size_t s_a, unsigned short *R, size_t index, size_t up, size_t lp) {
+inline size_t partition(unsigned int *A, size_t s_a, unsigned short *R, size_t index, size_t up, size_t lp) {
   unsigned short high = 0;
   size_t partition_length = 0;
   size_t partition_size_position = index+1;

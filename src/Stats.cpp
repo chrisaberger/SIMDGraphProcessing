@@ -43,6 +43,8 @@ void runStats(VectorGraph *vg){
   double avg_n2x_I_nx = 0;
   double avg_n2i = 0;
   double avg_ny = 0;
+  double avg_i = 0;
+  double avg_t = 0;
 
   //cout << "NUMBER OF NODES: " << num_nodes << " NUMBER OF EDGES: " << num_edges << endl;
   cout << "#x\tN(x)\tN2(x)\tN2^N\t^N" << endl;
@@ -55,6 +57,7 @@ void runStats(VectorGraph *vg){
       vector<size_t> *n2x = vg->neighborhoods->at(nx->at(0));
       vector<size_t> *n2i = vg->neighborhoods->at(nx->at(0));
       double ny_size = 0;
+      double t_size = 0;
       for(size_t j=1; j < nx->size(); ++j){
     
         vector<size_t> *nbr = vg->neighborhoods->at(nx->at(j));
@@ -67,6 +70,11 @@ void runStats(VectorGraph *vg){
         vector<size_t> *in = new vector<size_t>(); 
         set_intersection(nbr->begin(), nbr->end(), n2i->begin(), n2i->end(), back_inserter(*in));
  
+        vector<size_t> *t = new vector<size_t>(); 
+        set_intersection(nx->begin(), nx->end(), nbr->begin(), nbr->end(), back_inserter(*t));
+        t_size += t->size();
+        t->clear();
+
         if(j > 1){
           n2i->clear();
           n2x->clear();
@@ -78,6 +86,8 @@ void runStats(VectorGraph *vg){
         std::sort(n2i->begin(), n2i->end()); 
       }
       avg_ny += (ny_size/nx->size());
+      avg_t += (t_size/nx->size());
+      avg_i += t_size;
 
       vector<size_t> *n2x_I_nx = new vector<size_t>(); 
       set_intersection(nx->begin(), nx->end(), n2x->begin(), n2x->end(), back_inserter(*n2x_I_nx));
@@ -96,7 +106,7 @@ void runStats(VectorGraph *vg){
     }
   }
 
-  cout << "AVGs:\t" << (avg_nx/num_nodes) << "\t" << (avg_n2x/num_nodes) << "\t" << (avg_n2x_I_nx/num_nodes) << "\t" << (avg_n2i/num_nodes) << "\t" << (avg_ny/num_nodes) << endl;
+  cout << "AVGs:\t" << (avg_nx/num_nodes) << "\t" << (avg_n2x/num_nodes) << "\t" << (avg_n2x_I_nx/num_nodes) << "\t" << (avg_n2i/num_nodes) << "\t" << (avg_ny/num_nodes) << "\t" << (avg_i/num_nodes) << "\t" << (avg_t/num_nodes) << endl;
 
 }
 

@@ -16,7 +16,6 @@ int main (int argc, char* argv[]) {
   VectorGraph *vg = ReadFile(argv[1],atoi(argv[2]));
   cout << endl;
 
-  /*
   startClock();
   CompressedGraph *graph = createCompressedGraph(vg);
   stopClock("COMPRESSED CREATION");
@@ -25,7 +24,6 @@ int main (int argc, char* argv[]) {
   long triangles = graph->countTriangles();
   cout << "Triangles: " << triangles << endl;
   stopClock("COMPRESSED APPLICATION");
-  */
 
   cout << endl;
 

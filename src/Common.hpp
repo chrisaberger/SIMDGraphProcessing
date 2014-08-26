@@ -182,13 +182,20 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   size_t *nodes = new size_t[vg->num_nodes];
   unsigned int *nbrlengths = new unsigned int[vg->num_nodes];
   unsigned short *edges = new unsigned short[vg->num_edges*5];
+
+  size_t *union_size = new size_t[vg->num_nodes];
+
+  unsigned short** unions = new unsigned short*[vg->num_nodes];
+  for(size_t i = 0; i < vg->num_nodes; i++)
+    unions[i] = new unsigned short[vg->num_nodes*3];
+
   size_t num_nodes = vg->num_nodes;
   const unordered_map<size_t,size_t> *external_ids = vg->external_ids;
 
   size_t bitsused = ceil(log2(num_nodes));
 
   size_t lower_prefix = 16;
-  size_t upper_prefix = bitsused-lower_prefix;
+  size_t upper_prefix = 32-lower_prefix;
 
   cout << "bitsused: " << bitsused << endl;
   cout << "upper: " << upper_prefix << " lower: " << lower_prefix << endl;
@@ -202,15 +209,42 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
     nbrlengths[i] = hood->size();
     int *tmp_hood = new int[hood->size()];
     size_t hood_size = 0;
+    vector<size_t> *un = new vector<size_t>();
+    bool clearable = false;
     for(size_t j = 0; j < hood->size(); ++j) {
       size_t nbr = hood->at(j);
+
       if(nbr < i){
+        if(j == 0){
+          un = vg->neighborhoods->at(j);
+        }
+        else{
+          vector<size_t> *un_tmp = new vector<size_t>(); 
+          set_union(vg->neighborhoods->at(nbr)->begin(), vg->neighborhoods->at(nbr)->end(), un->begin(), un->end(), back_inserter(*un_tmp));
+          if(clearable){
+            un->clear();
+          }
+          un = un_tmp;
+          clearable = true;
+        }
+        
         tmp_hood[j] = hood->at(j);
         hood_size++;
       }
     }
     nodes[i] = index;
     index = partition(tmp_hood,hood_size,edges,index,upper_prefix,lower_prefix);
+
+    //FIXME    
+    int *tmp_un = new int[un->size()];
+    for(size_t j =0; j<un->size(); j++){
+      tmp_un[j] = un->at(j);
+    }
+    
+    union_size[i] = partition(tmp_un,un->size(),unions[i],0,upper_prefix,lower_prefix);
+    if(clearable)
+      un->clear();
+    delete[] tmp_un;
     delete[] tmp_hood;
   }
 
@@ -218,7 +252,7 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
 
   //cout << "num sets: " << numSets << " numSetsCompressed: " << numSetsCompressed << endl;
 
-  return new CompressedGraph(upper_prefix,lower_prefix,num_nodes,num_edges,index,nbrlengths,nodes,edges,external_ids);
+  return new CompressedGraph(upper_prefix,lower_prefix,num_nodes,num_edges,index,nbrlengths,nodes,edges,external_ids,unions,union_size);
 }
 
 CSRGraph* createCSRGraph(VectorGraph *vg){
@@ -244,6 +278,20 @@ CSRGraph* createCSRGraph(VectorGraph *vg){
 
   cout << "CSR EDGE SIZE[BYTES]: " << index*4 << endl;
   return new CSRGraph(num_nodes,num_edges,nodes,edges,external_ids);
+}
+void createGraphLabFile(VectorGraph *vg){
+  for(size_t i = 0; i < vg->num_nodes; ++i) {
+    vector<size_t> *hood = vg->neighborhoods->at(i);
+    for(size_t j = 0; j < hood->size(); ++j) {
+      size_t nbr = hood->at(j);
+      if(nbr < i){
+        cout << i << "\t" << nbr << endl;
+      }
+    }
+    //delete hood;
+  }
+  //cout << "CSR EDGE SIZE[BYTES]: " << index*4 << endl;
+  //return new CSRGraph(num_nodes,num_edges,nodes,edges,external_ids);
 }
 
 #endif

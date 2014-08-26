@@ -117,8 +117,10 @@ inline size_t simd_intersect_vector16(unsigned short *C, const unsigned short *A
     unsigned int r = _mm_extract_epi32(res_v, 0);
     //cout << "Mask: " << hex << val[7] << " " << val[6] << " " << val[5] << " " << val[4] << " " << val[3] << " " << val[2] << " " << val[1] << " " << val[0] << " "  << dec << endl;
 
+    /*
     __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask16[r]);
     _mm_storeu_si128((__m128i*)&C[count], p);
+    */
 
     count += _mm_popcnt_u32(r);
     

@@ -10,31 +10,11 @@ int main (int argc, char* argv[]) {
     exit(0);
   } 
 
-  cout << "Number of threads: " << atoi(argv[3]) << endl;
+  //cout << "Number of threads: " << atoi(argv[3]) << endl;
   omp_set_num_threads(atoi(argv[3]));      
-
-  unsigned short *test = new unsigned short[4096];
-  for(size_t i = 0; i < 4096; ++i){
-    test[i] = i*2;
-  }
-
-  //createBitSet(test,4096);
-
-  unsigned short *test2 = new unsigned short[2048];
-  for(size_t i = 0; i < 2048; ++i){
-    test2[i] = i*2;
-  }
-
-  unsigned short *result = new unsigned short[2048];
-
-  prepare_shuffling_dictionary16();
-  long count = simd_intersect_vector16(result,test,test2,4096,2048);
-
-  for(size_t i=0; i < (size_t) count; i++){
-    cout << "Index: " << i << " Data: " << result[i] << endl;
-  }
-
-  cout << "Count: " << count << endl;
+  
+  VectorGraph *vg = ReadFile(argv[1],atoi(argv[2]));
+  createGraphLabFile(vg);
   /*
   for(size_t i = 4096; i < 10000; ++i){
     addToBitSet(i,test);

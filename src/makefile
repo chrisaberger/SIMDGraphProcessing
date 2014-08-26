@@ -10,6 +10,7 @@ CFLAGS  = -g -Wall -O3 -fopenmp -std=c++11 -mavx -ftree-vectorize
 TARGET1 = Stats
 TARGET2 = UndirectedTriangleCounting
 TARGET3 = PageRank
+TARGET4 = main
 
 all: $(TARGET1) $(TARGET2) $(TARGET3)
 
@@ -22,7 +23,11 @@ $(TARGET2): $(TARGET2).cpp
 $(TARGET3): $(TARGET3).cpp
 	$(CC) $(CFLAGS) -o $(TARGET3) $(TARGET3).cpp
 
+$(TARGET4): $(TARGET4).cpp
+	$(CC) $(CFLAGS) -o $(TARGET4) $(TARGET4).cpp
+
 clean:
 	$(RM) $(TARGET1)
 	$(RM) $(TARGET2)
 	$(RM) $(TARGET3)
+	$(RM) $(TARGET4)

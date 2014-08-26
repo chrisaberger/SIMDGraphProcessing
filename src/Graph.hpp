@@ -23,6 +23,8 @@ struct CompressedGraph {
   const size_t *nodes;
   const unsigned short *edges;
   const unordered_map<size_t,size_t> *external_ids;
+  unsigned short **unions;
+  size_t *union_size;
   CompressedGraph(  
     const size_t upper_shift_in,
     const size_t lower_shift_in,
@@ -32,7 +34,9 @@ struct CompressedGraph {
     const unsigned int *nbrs_lengths_in, 
     const size_t *nodes_in,
     const unsigned short *edges_in,
-    const unordered_map<size_t,size_t> *external_ids_in): 
+    const unordered_map<size_t,size_t> *external_ids_in,
+    unsigned short **unions_in,
+    size_t *union_size_in): 
       upper_shift(upper_shift_in),
       lower_shift(lower_shift_in),
       num_nodes(num_nodes_in), 
@@ -41,7 +45,9 @@ struct CompressedGraph {
       nbr_lengths(nbrs_lengths_in),
       nodes(nodes_in), 
       edges(edges_in),
-      external_ids(external_ids_in){}
+      external_ids(external_ids_in),
+      unions(unions_in),
+      union_size(union_size_in){}
     
     inline size_t getEndOfNeighborhood(const size_t node){
       size_t end = 0;
@@ -71,11 +77,15 @@ struct CompressedGraph {
     }
     inline long countTriangles(){
       long count = 0;
+      unsigned short *result = new unsigned short[num_nodes];
 
-      #pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
+      #pragma omp parallel for default(none) shared(result) schedule(static,150) reduction(+:count)   
       for(size_t i = 0; i < num_nodes; ++i){
-        unsigned short *result = new unsigned short[(num_edges/num_nodes)*3];
-        count += foreachNbr(i,&CompressedGraph::intersect_neighborhoods,result);
+        //cout << i << endl;
+        //count += foreachNbr(i,&CompressedGraph::intersect_neighborhoods,result);
+          const size_t start1 = neighborhoodStart(i);
+          const size_t end1 = neighborhoodEnd(i);
+          count += intersect_partitioned(result,edges+start1,unions[i],end1-start1,union_size[i]);
       }
       return count;
     }

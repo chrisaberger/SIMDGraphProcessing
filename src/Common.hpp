@@ -180,7 +180,8 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   prepare_shuffling_dictionary16();
   size_t sq = vg->num_nodes * vg->num_nodes;
   cout << "SQ: " << sq << endl;
-  unsigned short *unions = new unsigned short[vg->num_nodes*500];//(unsigned short *) malloc(751346540*sizeof(unsigned short));	
+  unsigned short *unions = new unsigned short[vg->num_nodes*1000];//(unsigned short *) malloc(751346540*sizeof(unsigned short));	
+  unsigned short *nbr1_uni = new unsigned short[vg->num_nodes*1000];//(unsigned short *) malloc(751346540*sizeof(unsigned short));	
 
   size_t *nodes = new size_t[vg->num_nodes+1];
   unsigned int *nbrlengths = new unsigned int[vg->num_nodes];
@@ -215,7 +216,7 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
       size_t nbr = hood->at(j);
 
       if(nbr < i){
-    	std::copy(vg->neighborhoods->at(nbr)->begin(), vg->neighborhoods->at(nbr)->end(), std::back_inserter(*un));   
+    	std::copy(vg->neighborhoods->at(nbr)->begin(), vg->neighborhoods->at(nbr)->end(), std::back_inserter(*un));
 	/*	 
         if(j == 0){
           un = vg->neighborhoods->at(j);

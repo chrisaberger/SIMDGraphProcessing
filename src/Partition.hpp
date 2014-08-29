@@ -203,7 +203,7 @@ void print_partition(const unsigned short *A, const size_t s_a){
   for(size_t i = 0; i < s_a; i++){
     unsigned int prefix = (A[i] << 16);
     unsigned short size = A[i+1];
-    //cout << "size: " << size << endl;
+    cout << "size: " << size << endl;
     i += 2;
     if(size > WORDS_IN_BS){
       printBitSet(prefix,WORDS_IN_BS,&A[i]);
@@ -224,28 +224,17 @@ void print_partition(const unsigned short *A, const size_t s_a){
 // A - sorted array
 // s_a - size of A
 // R - partitioned sorted array
-inline size_t partition(unsigned int *A, size_t s_a, unsigned short *R, size_t index, size_t up, size_t lp) {
+// A - sorted array
+// s_a - size of A
+// R - partitioned sorted array
+inline size_t partition(unsigned int *A, size_t s_a, unsigned short *R, size_t index) {
   unsigned short high = 0;
   size_t partition_length = 0;
   size_t partition_size_position = index+1;
   size_t counter = index;
-
-  unsigned int upper_mask = 0;
-  for(size_t i=0;i<up;i++){
-    upper_mask = (upper_mask << 1) | 0x01;
-  }
-  upper_mask = upper_mask << lp;
-
-  unsigned int lower_mask = 0;
-  for(size_t i=0;i<lp;i++){
-    lower_mask = (lower_mask << 1) | 0x01;
-  }
-
-  //cout << hex << upper_mask << " " << lower_mask << dec << endl;
-
   for(size_t p = 0; p < s_a; p++) {
-    unsigned short chigh = (A[p] & upper_mask) >> lp; // upper dword
-    unsigned short clow = A[p] & lower_mask;   // lower dword
+    unsigned short chigh = (A[p] & 0xFFFF0000) >> 16; // upper dword
+    unsigned short clow = A[p] & 0x0FFFF;   // lower dword
     if(chigh == high && p != 0) { // add element to the current partition
       if(partition_length == WORDS_IN_BS){
         createBitSet(&R[counter-WORDS_IN_BS],WORDS_IN_BS);
@@ -257,7 +246,6 @@ inline size_t partition(unsigned int *A, size_t s_a, unsigned short *R, size_t i
         R[counter++] = clow;
       }
     }else{ // start new partition
-      //cout << "New partition" << endl;
       R[counter++] = chigh; // partition prefix
       R[counter++] = 0;     // reserve place for partition size
       R[counter++] = clow;  // write the first element

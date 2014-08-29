@@ -19,12 +19,12 @@ int main (int argc, char* argv[]) {
   startClock();
   CompressedGraph *graph = createCompressedGraph(vg);
   stopClock("COMPRESSED CREATION");
-    
+  
   startClock();
   long triangles = graph->countTriangles();
   cout << "Triangles: " << triangles << endl;
   stopClock("COMPRESSED APPLICATION");
-
+  
   cout << endl;
 
   startClock();

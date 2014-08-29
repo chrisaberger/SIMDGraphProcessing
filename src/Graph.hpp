@@ -25,6 +25,9 @@ struct CompressedGraph {
   const unordered_map<unsigned int,unsigned int> *external_ids;
   unsigned short *unions;
   size_t *union_size;
+  unordered_map<unsigned int,size_t> **back_index_map;
+  size_t *back_index;
+  unsigned int *back_edges;
   CompressedGraph(  
     const size_t upper_shift_in,
     const size_t lower_shift_in,
@@ -36,7 +39,10 @@ struct CompressedGraph {
     const unsigned short *edges_in,
     const unordered_map<unsigned int,unsigned int> *external_ids_in,
     unsigned short *unions_in,
-    size_t *union_size_in): 
+    size_t *union_size_in,
+    unordered_map<unsigned int,size_t> **back_index_map_in,
+    size_t *back_index_in,
+    unsigned int *back_edges_in): 
       upper_shift(upper_shift_in),
       lower_shift(lower_shift_in),
       num_nodes(num_nodes_in), 
@@ -47,7 +53,10 @@ struct CompressedGraph {
       edges(edges_in),
       external_ids(external_ids_in),
       unions(unions_in),
-      union_size(union_size_in){}
+      union_size(union_size_in),      
+      back_index_map(back_index_map_in),
+      back_index(back_index_in),
+      back_edges(back_edges_in){}
     
     inline size_t getEndOfNeighborhood(const size_t node){
       size_t end = 0;
@@ -84,36 +93,32 @@ struct CompressedGraph {
     }
     inline long countTriangles(){
       long count = 0;
-      unsigned short *r = new unsigned short[num_nodes];
+      //unsigned short *r = new unsigned short[num_nodes];
       unsigned short *result = new unsigned short[num_nodes];
 
       //#pragma omp parallel for default(none) shared(r) schedule(static,150) reduction(+:count)   
       for(size_t i = 0; i < num_nodes; ++i){
-        //cout << "Node: " << i << endl;
-        //count += foreachNbr(i,&CompressedGraph::intersect_neighborhoods,result);
         const size_t start1 = neighborhoodStart(i);
         const size_t end1 = neighborhoodEnd(i);
         size_t result_end = intersect_partitioned(result,edges+start1,unions+union_size[i],end1-start1,union_size[i+1]-union_size[i], false);
-        //print_partition(result,result_end);
+
+
         //cout << "Node prepped: " << result_end << endl;
-        /*
-        for(size_t j = 0; j < result_end; ++j){
-          size_t prefix, partition_end; bool isBitSet;
-          setupInnerPartition2(j,prefix,partition_end,isBitSet);
-         
-          //Traverse partition use prefix to get nbr id.
-          for(;j < partition_end;++j){
-            const size_t cur = (prefix << lower_shift) | result[j]; //neighbor node
-            //cout << cur << endl;
-            const size_t start2 = back_nodes[cur];
-            const size_t end2 = back_nodes[cur+1];
-            //print_partition(back_edges+start2,end2-start2);
-            long ncount = intersect_partitioned(r,edges+start1,back_edges+start2,end1-start1,end2-start2,false);
+        for(size_t j = 0; j < result_end; j++){
+          unsigned int prefix = (result[j] << 16);
+          unsigned short size = result[j+1];
+          j += 2;
+          size_t inner_end = j+size;
+          while(j < inner_end){
+            unsigned int cur = prefix | result[j];
+            //cout << i << " " << cur << endl;
+            const size_t start_index = back_index_map[i]->at(cur);
+            long ncount = back_index[start_index+1]-back_index[start_index]; //intersect_partitioned(r,edges+start1,back_edges+start2,end1-start1,end2-start2,false);
             count += ncount;
+            ++j;
           }
-          j = partition_end-1;  
-        }
-         */
+          j--;
+        } 
       }
       return count;
     }

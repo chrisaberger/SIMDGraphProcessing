@@ -160,11 +160,12 @@ struct CSRGraph {
 
   inline long countTriangles() const{
     long result = 0l;
-    #pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
+    //#pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
     for(size_t i=0; i < num_nodes; i++){
       unsigned int *resultV = new unsigned int[10];
       for(size_t j=nodes[i]; j<nodes[i+1]; ++j) {
-        result += intersect_vector(&edges[nodes[i]],&edges[nodes[edges[j]]],nodes[i+1]-nodes[i],nodes[edges[j]+1]-nodes[edges[j]],resultV);
+        long ncount = intersect_vector(&edges[nodes[i]],&edges[nodes[edges[j]]],nodes[i+1]-nodes[i],nodes[edges[j]+1]-nodes[edges[j]],resultV);
+        result += ncount;
       }
     }
     return result;

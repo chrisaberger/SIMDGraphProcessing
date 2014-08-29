@@ -72,12 +72,12 @@ struct CSRGraph {
   const size_t num_edges;
   const size_t *nodes;
   const unsigned int *edges;
-  const std::unordered_map<size_t,size_t> *external_ids;
+  const std::unordered_map<unsigned int,unsigned int> *external_ids;
   CSRGraph( const size_t num_nodes_in, 
     const size_t num_edges_in, 
     const size_t *nodes_in, 
     const unsigned int *edges_in, 
-    const std::unordered_map<size_t,size_t> *external_ids_in): 
+    const std::unordered_map<unsigned int,unsigned int> *external_ids_in): 
       num_nodes(num_nodes_in), 
       num_edges(num_edges_in), 
       nodes(nodes_in),edges(edges_in), 

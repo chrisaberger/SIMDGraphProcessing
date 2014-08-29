@@ -58,13 +58,13 @@ void allocateStack(){
 struct VectorGraph {
   size_t num_nodes;
   size_t num_edges;
-  unordered_map<size_t,size_t> *external_ids;
-  vector< vector<size_t>*  > *neighborhoods;
+  unordered_map<unsigned int,unsigned int> *external_ids;
+  vector< vector<unsigned int>*  > *neighborhoods;
 
   VectorGraph(  size_t num_nodes_in, 
       size_t num_edges_in,
-      unordered_map<size_t,size_t> *external_ids_in,
-      vector< vector<size_t>*  > *neighborhoods_in): 
+      unordered_map<unsigned int,unsigned int> *external_ids_in,
+      vector< vector<unsigned int>*  > *neighborhoods_in): 
     num_nodes(num_nodes_in), 
     num_edges(num_edges_in),
     external_ids(external_ids_in), 
@@ -72,7 +72,7 @@ struct VectorGraph {
   ~VectorGraph(){
     delete external_ids;
     for(size_t i = 0; i < num_nodes; ++i) {
-      vector<size_t> *hood = neighborhoods->at(i);
+      vector<unsigned int> *hood = neighborhoods->at(i);
       hood->clear();
       delete hood;
     }
@@ -80,16 +80,29 @@ struct VectorGraph {
     delete neighborhoods;
   }
 };
+struct CompareIndexVector : std::binary_function<size_t, size_t, bool>
+{
+  CompareIndexVector(const std::vector<unsigned int> *data)
+  : m_data(data)
+  {}
+
+  bool operator()(size_t Lhs, size_t Rhs)const
+  {
+    return m_data->at(Lhs) < m_data->at(Rhs);
+  }
+
+  const std::vector<unsigned int>* m_data;
+};
 //this is a functor
 struct Comparator {
-  bool operator()(vector<size_t> *i,vector<size_t> *j) const { 
+  bool operator()(vector<unsigned int> *i,vector<unsigned int> *j) const { 
     return (i->size() > j->size()); 
   }
 };
 
 static inline VectorGraph* ReadFile (const string path,const int num_files) {
 
-  vector< vector<size_t>* >* *graph_in = new vector< vector<size_t>* >*[num_files];
+  vector< vector<unsigned int>* >* *graph_in = new vector< vector<unsigned int>* >*[num_files];
 
   size_t num_edges = 0;
   size_t num_nodes = 0;
@@ -99,7 +112,7 @@ static inline VectorGraph* ReadFile (const string path,const int num_files) {
   //startClock();
   #pragma omp parallel for default(none) shared(graph_in,path) reduction(+:num_edges) reduction(+:num_nodes)
   for(size_t i=0; i <= (size_t) num_files;++i){
-    vector< vector<size_t>*  > *file_adj = new vector< vector<size_t>* >();
+    vector< vector<unsigned int>*  > *file_adj = new vector< vector<unsigned int>* >();
 
     string file_path = path;
     if(num_files!=0) file_path.append(to_string(i));
@@ -108,7 +121,7 @@ static inline VectorGraph* ReadFile (const string path,const int num_files) {
     string line;
     if (myfile.is_open()){
       while ( getline (myfile,line) ){
-        vector<size_t> *cur = new vector<size_t>(); //guess a size
+        vector<unsigned int> *cur = new vector<unsigned int>(); //guess a size
         cur->reserve(line.length());
         istringstream iss(line);
         do{
@@ -132,7 +145,7 @@ static inline VectorGraph* ReadFile (const string path,const int num_files) {
 
   //startClock();
   //Serial Merge: Could actually do a merge sort if I cared enough.
-  vector< vector<size_t>*  > *neighborhoods = new vector< vector<size_t>* >();
+  vector< vector<unsigned int>*  > *neighborhoods = new vector< vector<unsigned int>* >();
   neighborhoods->reserve(num_nodes);
   for(size_t i=0; i <= (size_t) num_files;++i){
     neighborhoods->insert(neighborhoods->end(),graph_in[i]->begin(),graph_in[i]->end());
@@ -145,11 +158,11 @@ static inline VectorGraph* ReadFile (const string path,const int num_files) {
 
   //startClock();
   //Build hash map
-  unordered_map<size_t,size_t> *external_ids = new unordered_map<size_t,size_t>();
+  unordered_map<unsigned int,unsigned int> *external_ids = new unordered_map<unsigned int,unsigned int>();
   external_ids->reserve(neighborhoods->size());
   //#pragma omp parallel for default(none) shared(neighborhoods,external_ids)
   for(size_t i = 0; i < neighborhoods->size(); ++i) {
-    vector<size_t> *hood = neighborhoods->at(i);
+    vector<unsigned int> *hood = neighborhoods->at(i);
     external_ids->insert(make_pair(hood->at(0),i));
     hood->erase(hood->begin());
   }
@@ -158,14 +171,12 @@ static inline VectorGraph* ReadFile (const string path,const int num_files) {
   //startClock();
   #pragma omp parallel for default(none) shared(neighborhoods,external_ids) schedule(static,150)
   for(size_t i = 0; i < neighborhoods->size(); ++i) {
-    vector<size_t> *hood = neighborhoods->at(i);
+    vector<unsigned int> *hood = neighborhoods->at(i);
     //cout << "Node: " << i << endl;
     size_t index = 0;
     for(size_t j = 0; j < hood->size(); ++j) {
-      if(external_ids->at(hood->at(j)) < i){
-        hood->at(index) = external_ids->at(hood->at(j));
-        index++;
-      }
+      hood->at(index) = external_ids->at(hood->at(j));
+      index++;
     }
     hood->resize(index);
     sort(hood->begin(),hood->end());
@@ -178,18 +189,15 @@ static inline VectorGraph* ReadFile (const string path,const int num_files) {
 
 static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   prepare_shuffling_dictionary16();
-  size_t sq = vg->num_nodes * vg->num_nodes;
-  cout << "SQ: " << sq << endl;
-  unsigned short *unions = new unsigned short[vg->num_nodes*1000];//(unsigned short *) malloc(751346540*sizeof(unsigned short));	
-  unsigned short *nbr1_uni = new unsigned short[vg->num_nodes*1000];//(unsigned short *) malloc(751346540*sizeof(unsigned short));	
 
   size_t *nodes = new size_t[vg->num_nodes+1];
   unsigned int *nbrlengths = new unsigned int[vg->num_nodes];
   unsigned short *edges = new unsigned short[vg->num_edges*5];
+  unsigned short *unions = new unsigned short[vg->num_nodes*1000];
 
   size_t *union_size = new size_t[vg->num_nodes+1]; 
   size_t num_nodes = vg->num_nodes;
-  const unordered_map<size_t,size_t> *external_ids = vg->external_ids;
+  const unordered_map<unsigned int,unsigned int> *external_ids = vg->external_ids;
 
   size_t bitsused = ceil(log2(num_nodes));
 
@@ -202,61 +210,77 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   //cout  << "Num nodes: " << vg->num_nodes << " Num edges: " << vg->num_edges << endl;
   size_t num_edges = 0;
   size_t index = 0;
+  size_t back_index_index = 0;
+  size_t back_dat_index = 0;
+  unordered_map<unsigned int,size_t> **back_index_map = new unordered_map<unsigned int,size_t>*[num_nodes];
+  size_t *back_index_dat = new size_t[vg->num_edges];
+  unsigned int *back_edges = new unsigned int[vg->num_edges*5000];
+
   size_t union_index = 0;
   for(size_t i = 0; i < vg->num_nodes; ++i){
-    vector<size_t> *hood = vg->neighborhoods->at(i);
+    vector<unsigned int> *hood = vg->neighborhoods->at(i);
     num_edges += hood->size();
     nbrlengths[i] = hood->size();
-    unsigned int *tmp_hood = new unsigned int[hood->size()];
+
     size_t hood_size = 0;
-    vector<size_t> *un = new vector<size_t>();
-    //un->reserve(vg->num_nodes);
-    bool clearable = false;
+
+    size_t equal_nbr = 0;
+    vector<unsigned int> *un = new vector<unsigned int>();
+    vector<unsigned int> *back_nbr = new vector<unsigned int>();
+    vector<unsigned int> *index_v = new vector<unsigned int>();
+
     for(size_t j = 0; j < hood->size(); ++j) {
       size_t nbr = hood->at(j);
-
       if(nbr < i){
-    	std::copy(vg->neighborhoods->at(nbr)->begin(), vg->neighborhoods->at(nbr)->end(), std::back_inserter(*un));
-	/*	 
-        if(j == 0){
-          un = vg->neighborhoods->at(j);
+        size_t k = 0;
+        while(k < vg->neighborhoods->at(nbr)->size() && vg->neighborhoods->at(nbr)->at(k) < nbr){
+          un->push_back(vg->neighborhoods->at(nbr)->at(k));
+          back_nbr->push_back(nbr);
+          index_v->push_back(k);
+          k++;
         }
-        else{
-          vector<size_t> *un_tmp = new vector<size_t>(); 
-          set_union(vg->neighborhoods->at(nbr)->begin(), vg->neighborhoods->at(nbr)->end(), un->begin(), un->end(), back_inserter(*un_tmp));
-          if(clearable){
-            un->clear();
-            delete un;
-          }
-          un = un_tmp;
-          clearable = true;
-        }
-	*/
-        tmp_hood[j] = hood->at(j);
         hood_size++;
+      } else if(nbr == i){
+        equal_nbr++;
       }
     }
     nodes[i] = index;
-    index = partition(tmp_hood,hood_size,edges,index,upper_prefix,lower_prefix);
+    index = partition(hood->data(),hood_size,edges,index,upper_prefix,lower_prefix);
 
-    std::sort(un->begin(),un->end());
-    un->erase(unique(un->begin(),un->end()),un->end());
+    //back_nodes[i] = back_index;
+    //back_index = partition(hood->data()+hood_size+equal_nbr,hood->size(),back_edges,back_index,upper_prefix,lower_prefix);
+
+    //cout << "s" << endl;
+    //cout << index_v->size() << " " << un->size() << endl;
+    std::sort(index_v->begin(),index_v->end(),CompareIndexVector(un));
     
-    //FIXME    
-    unsigned int *tmp_un = new unsigned int[un->size()];//(unsigned int *) malloc((un->size())*sizeof(unsigned int));	 
-    for(size_t j =0; j<un->size(); j++){
-      tmp_un[j] = (unsigned int) un->at(j);
-    } 
-    union_size[i] = union_index;
-    //cout << union_index << " " << un->size() << " " << sq << endl;
-    union_index = partition(tmp_un,un->size(),unions,union_index,upper_prefix,lower_prefix);
-    //cout << "done" << endl;
-    if(clearable){
-      un->clear();
-      delete un;
+    unsigned int *union_dat = new unsigned int[un->size()];
+
+    size_t u_index = 0;
+    unordered_map<unsigned int, size_t> *bm = new unordered_map<unsigned int,size_t>(un->size());
+    unsigned int prev = 0xffffffff;
+    for(size_t j =0; j<index_v->size();j++){
+      size_t cur_index = index_v->at(j);
+      if(prev != un->at(cur_index)){
+        union_dat[u_index++] = un->at(cur_index);
+        bm->insert(make_pair(un->at(cur_index),back_index_index));
+        back_index_dat[back_index_index++] = back_dat_index;
+      }
+      back_edges[back_dat_index++] = back_nbr->at(cur_index);
+      prev = un->at(cur_index);
     }
-    delete[] tmp_un;
-    delete[] tmp_hood;
+    back_index_map[i] = bm;
+    
+    union_size[i] = union_index;
+    union_index = partition(union_dat,u_index,unions,union_index,upper_prefix,lower_prefix);
+
+    un->clear();
+    delete un;
+    back_nbr->clear();
+    delete back_nbr;
+    index_v->clear();
+    delete index_v;
+    delete[] union_dat;
   }
  
   cout << "Union Index: " << union_index << endl;
@@ -275,12 +299,12 @@ CSRGraph* createCSRGraph(VectorGraph *vg){
   const size_t num_nodes = vg->num_nodes;
   const size_t num_edges = vg->num_edges;
   unsigned int *edges = new unsigned int[num_edges]; 
-  const unordered_map<size_t,size_t> *external_ids = vg->external_ids;
+  const unordered_map<unsigned int,unsigned int> *external_ids = vg->external_ids;
 
   size_t index = 0;
   for(size_t i = 0; i < vg->num_nodes; ++i) {
     nodes[i] = index;
-    vector<size_t> *hood = vg->neighborhoods->at(i);
+    vector<unsigned int> *hood = vg->neighborhoods->at(i);
     for(size_t j = 0; j < hood->size(); ++j) {
       size_t nbr = hood->at(j);
       if(nbr < i){
@@ -296,7 +320,7 @@ CSRGraph* createCSRGraph(VectorGraph *vg){
 }
 void createGraphLabFile(VectorGraph *vg){
   for(size_t i = 0; i < vg->num_nodes; ++i) {
-    vector<size_t> *hood = vg->neighborhoods->at(i);
+    vector<unsigned int> *hood = vg->neighborhoods->at(i);
     for(size_t j = 0; j < hood->size(); ++j) {
       size_t nbr = hood->at(j);
       if(nbr < i){

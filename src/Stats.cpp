@@ -50,27 +50,27 @@ void runStats(VectorGraph *vg){
   cout << "#x\tN(x)\tN2(x)\tN2^N\t^N" << endl;
 
   for(size_t i = 0; i < num_nodes; ++i) {
-    vector<size_t> *nx = vg->neighborhoods->at(i);
+    vector<unsigned int> *nx = vg->neighborhoods->at(i);
     if(nx->size() == 0){
       //cout << i << "\t" << nx->size() << "\t" << nx->size() << "\t" << nx->size() << "\t" << nx->size() << endl;
     }else{
-      vector<size_t> *n2x = vg->neighborhoods->at(nx->at(0));
-      vector<size_t> *n2i = vg->neighborhoods->at(nx->at(0));
+      vector<unsigned int> *n2x = vg->neighborhoods->at(nx->at(0));
+      vector<unsigned int> *n2i = vg->neighborhoods->at(nx->at(0));
       double ny_size = 0;
       double t_size = 0;
       for(size_t j=1; j < nx->size(); ++j){
     
-        vector<size_t> *nbr = vg->neighborhoods->at(nx->at(j));
+        vector<unsigned int> *nbr = vg->neighborhoods->at(nx->at(j));
         
         ny_size += nbr->size();
 
-        vector<size_t> *un = new vector<size_t>(); 
+        vector<unsigned int> *un = new vector<unsigned int>(); 
         set_union(nbr->begin(), nbr->end(), n2x->begin(), n2x->end(), back_inserter(*un));
 
-        vector<size_t> *in = new vector<size_t>(); 
+        vector<unsigned int> *in = new vector<unsigned int>(); 
         set_intersection(nbr->begin(), nbr->end(), n2i->begin(), n2i->end(), back_inserter(*in));
  
-        vector<size_t> *t = new vector<size_t>(); 
+        vector<unsigned int> *t = new vector<unsigned int>(); 
         set_intersection(nx->begin(), nx->end(), nbr->begin(), nbr->end(), back_inserter(*t));
         t_size += t->size();
         t->clear();
@@ -89,7 +89,7 @@ void runStats(VectorGraph *vg){
       avg_t += (t_size/nx->size());
       avg_i += t_size;
 
-      vector<size_t> *n2x_I_nx = new vector<size_t>(); 
+      vector<unsigned int> *n2x_I_nx = new vector<unsigned int>(); 
       set_intersection(nx->begin(), nx->end(), n2x->begin(), n2x->end(), back_inserter(*n2x_I_nx));
 
       avg_nx += nx->size();

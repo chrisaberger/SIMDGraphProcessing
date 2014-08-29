@@ -22,7 +22,7 @@ struct CompressedGraph {
   const unsigned int *nbr_lengths;
   const size_t *nodes;
   const unsigned short *edges;
-  const unordered_map<size_t,size_t> *external_ids;
+  const unordered_map<unsigned int,unsigned int> *external_ids;
   unsigned short *unions;
   size_t *union_size;
   CompressedGraph(  
@@ -34,7 +34,7 @@ struct CompressedGraph {
     const unsigned int *nbrs_lengths_in, 
     const size_t *nodes_in,
     const unsigned short *edges_in,
-    const unordered_map<size_t,size_t> *external_ids_in,
+    const unordered_map<unsigned int,unsigned int> *external_ids_in,
     unsigned short *unions_in,
     size_t *union_size_in): 
       upper_shift(upper_shift_in),
@@ -61,31 +61,63 @@ struct CompressedGraph {
     inline size_t neighborhoodEnd(const size_t node){
       return nodes[node+1];
     }
+    inline void setupInnerPartition2(size_t &i, size_t &prefix, size_t &end,bool &isBitSet){
+      const size_t header_length = 2;
+      const size_t start = i;
+      prefix = edges[i++];
+      const size_t len = edges[i++];
+      isBitSet = false;
+      end = start+header_length+len;
+    }
     inline void setupInnerPartition(size_t &i, size_t &prefix, size_t &end,bool &isBitSet){
       const size_t header_length = 2;
       const size_t start = i;
       prefix = edges[i++];
       const size_t len = edges[i++];
       isBitSet = len > WORDS_IN_BS;
-      if(isBitSet)
+      if(isBitSet){
+        cout << "BITSET:" << endl;
         end = start+header_length+WORDS_IN_BS;
+      }
       else
         end = start+header_length+len;
     }
     inline long countTriangles(){
       long count = 0;
+      unsigned short *r = new unsigned short[num_nodes];
       unsigned short *result = new unsigned short[num_nodes];
 
-      #pragma omp parallel for default(none) shared(result) schedule(static,150) reduction(+:count)   
+      //#pragma omp parallel for default(none) shared(r) schedule(static,150) reduction(+:count)   
       for(size_t i = 0; i < num_nodes; ++i){
-        //cout << i << endl;
+        //cout << "Node: " << i << endl;
         //count += foreachNbr(i,&CompressedGraph::intersect_neighborhoods,result);
-          const size_t start1 = neighborhoodStart(i);
-          const size_t end1 = neighborhoodEnd(i);
-          count += intersect_partitioned(result,edges+start1,unions+union_size[i],end1-start1,union_size[i+1]-union_size[i]);
+        const size_t start1 = neighborhoodStart(i);
+        const size_t end1 = neighborhoodEnd(i);
+        size_t result_end = intersect_partitioned(result,edges+start1,unions+union_size[i],end1-start1,union_size[i+1]-union_size[i], false);
+        //print_partition(result,result_end);
+        //cout << "Node prepped: " << result_end << endl;
+        /*
+        for(size_t j = 0; j < result_end; ++j){
+          size_t prefix, partition_end; bool isBitSet;
+          setupInnerPartition2(j,prefix,partition_end,isBitSet);
+         
+          //Traverse partition use prefix to get nbr id.
+          for(;j < partition_end;++j){
+            const size_t cur = (prefix << lower_shift) | result[j]; //neighbor node
+            //cout << cur << endl;
+            const size_t start2 = back_nodes[cur];
+            const size_t end2 = back_nodes[cur+1];
+            //print_partition(back_edges+start2,end2-start2);
+            long ncount = intersect_partitioned(r,edges+start1,back_edges+start2,end1-start1,end2-start2,false);
+            count += ncount;
+          }
+          j = partition_end-1;  
+        }
+         */
       }
       return count;
     }
+    /*
     inline long intersect_neighborhoods(const size_t nbr, const size_t n, unsigned short *r) {
       //cout << "Intersecting: " << n << " with " << nbr << endl;
 
@@ -97,10 +129,11 @@ struct CompressedGraph {
 
       // /cout << "Length: " << (end1-start1) << endl;
 
-      long result = intersect_partitioned(r,edges+start1,edges+start2,end1-start1,end2-start2);
+      long result = 0;//intersect_partitioned(r,edges+start1,edges+start2,end1-start1,end2-start2);
       //cout << "OUTPUT: " << result << endl;
       return result;
     }
+    */
     inline long foreachNbr(size_t node,long (CompressedGraph::*func)(const size_t,const size_t,unsigned short*), unsigned short *r){
       long count = 0;
       const size_t start1 = neighborhoodStart(node);

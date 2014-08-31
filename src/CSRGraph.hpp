@@ -157,8 +157,18 @@ struct CSRGraph {
     long output = intersectStandard(373,5660);
     cout << "OUTPUT: " << output << endl;
   }
-
-  inline long countTriangles() const{
+  inline long countTrianglesCSR() const{
+    long result = 0l;
+    //#pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
+    for(size_t i=0; i < num_nodes; i++){
+      //unsigned int *resultV = new unsigned int[10];
+      for(size_t j=nodes[i]; j<nodes[i+1]; ++j) {
+        result += intersectStandard(i,edges[j]);;
+      }
+    }
+    return result;
+  }
+  inline long countTrianglesV32() const{
     long result = 0l;
     //#pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
     for(size_t i=0; i < num_nodes; i++){

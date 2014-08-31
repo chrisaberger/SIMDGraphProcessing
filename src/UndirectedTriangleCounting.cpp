@@ -21,9 +21,14 @@ int main (int argc, char* argv[]) {
   stopClock("COMPRESSED CREATION");
   
   startClock();
-  long triangles = graph->countTriangles();
+  long triangles = graph->countTrianglesV16();
   cout << "Triangles: " << triangles << endl;
-  stopClock("COMPRESSED APPLICATION");
+  stopClock("V16");
+
+  startClock();
+   triangles = graph->countTrianglesN2X();
+  cout << "Triangles: " << triangles << endl;
+  stopClock("N2X");
   
   cout << endl;
 
@@ -32,9 +37,14 @@ int main (int argc, char* argv[]) {
   stopClock("CSR CREATION");
     
   startClock();
-  long triangles2 = graph2->countTriangles();
+  long triangles2 = graph2->countTrianglesCSR();
   cout << "Triangles: " << triangles2 << endl;
   stopClock("CSR APPLICATION");
+
+  startClock();
+   triangles2 = graph2->countTrianglesV32();
+  cout << "Triangles: " << triangles2 << endl;
+  stopClock("V32");
 
   return 0;
 }

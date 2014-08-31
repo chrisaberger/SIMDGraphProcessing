@@ -28,6 +28,9 @@ struct CompressedGraph {
   unordered_map<unsigned int,size_t> **back_index_map;
   size_t *back_index;
   unsigned int *back_edges;
+  size_t *node_back_index_pointer;
+  unsigned int *union_info_flat;
+  unsigned short *result_a;
   CompressedGraph(  
     const size_t upper_shift_in,
     const size_t lower_shift_in,
@@ -42,7 +45,9 @@ struct CompressedGraph {
     size_t *union_size_in,
     unordered_map<unsigned int,size_t> **back_index_map_in,
     size_t *back_index_in,
-    unsigned int *back_edges_in): 
+    unsigned int *back_edges_in,
+    size_t *node_back_index_pointer_in,
+    unsigned int *union_info_flat_in): 
       upper_shift(upper_shift_in),
       lower_shift(lower_shift_in),
       num_nodes(num_nodes_in), 
@@ -56,7 +61,11 @@ struct CompressedGraph {
       union_size(union_size_in),      
       back_index_map(back_index_map_in),
       back_index(back_index_in),
-      back_edges(back_edges_in){}
+      back_edges(back_edges_in),
+      node_back_index_pointer(node_back_index_pointer_in),
+      union_info_flat(union_info_flat_in){
+        result_a = new unsigned short[num_nodes];
+      }
     
     inline size_t getEndOfNeighborhood(const size_t node){
       size_t end = 0;
@@ -91,39 +100,55 @@ struct CompressedGraph {
       else
         end = start+header_length+len;
     }
-    inline long countTriangles(){
+    inline long countTrianglesV16(){
+      long count = 0;
+      #pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
+      for(size_t i = 0; i < num_nodes; ++i){
+        count += foreachNbr(i,&CompressedGraph::intersect_neighborhoods);
+      }
+      return count;
+    }
+    inline long countTrianglesN2X(){
       long count = 0;
       //unsigned short *r = new unsigned short[num_nodes];
-      unsigned short *result = new unsigned short[num_nodes];
 
       //#pragma omp parallel for default(none) shared(r) schedule(static,150) reduction(+:count)   
       for(size_t i = 0; i < num_nodes; ++i){
         const size_t start1 = neighborhoodStart(i);
         const size_t end1 = neighborhoodEnd(i);
-        size_t result_end = intersect_partitioned(result,edges+start1,unions+union_size[i],end1-start1,union_size[i+1]-union_size[i], false);
 
+        size_t union_back_index = node_back_index_pointer[i];
+        const size_t union_back_index_end = node_back_index_pointer[i+1];
+        //cout << "Node: " << union_back_index << " " << union_back_index_end << endl;
 
-        //cout << "Node prepped: " << result_end << endl;
-        for(size_t j = 0; j < result_end; j++){
-          unsigned int prefix = (result[j] << 16);
-          unsigned short size = result[j+1];
+        bool not_finished = union_back_index < union_back_index_end;
+        size_t j = start1;
+        while(j < end1 && not_finished){
+          unsigned int prefix = (edges[j] << 16);
+          unsigned short size = edges[j+1];
           j += 2;
           size_t inner_end = j+size;
-          while(j < inner_end){
-            unsigned int cur = prefix | result[j];
-            //cout << i << " " << cur << endl;
-            const size_t start_index = back_index_map[i]->at(cur);
-            long ncount = back_index[start_index+1]-back_index[start_index]; //intersect_partitioned(r,edges+start1,back_edges+start2,end1-start1,end2-start2,false);
-            count += ncount;
+          while(j < inner_end && not_finished){
+            unsigned int cur = prefix | edges[j];
+            unsigned int cur_match = union_info_flat[union_back_index];
+            //cout << "MATCH: " << i << " nbr: " << cur_match << " " << cur << endl;
+
+            while( (union_back_index+1) < union_back_index_end && cur_match < cur){
+              cur_match = union_info_flat[++union_back_index];
+            }
+            not_finished = union_back_index < union_back_index_end;
+            if(not_finished && cur_match == cur){
+              long ncount = back_index[union_back_index+1]-back_index[union_back_index]; //intersect_partitioned(r,edges+start1,back_edges+start2,end1-start1,end2-start2,false);
+              count += ncount;
+            } 
             ++j;
           }
-          j--;
-        } 
+          j = inner_end;
+        }
       }
       return count;
     }
-    /*
-    inline long intersect_neighborhoods(const size_t nbr, const size_t n, unsigned short *r) {
+    inline long intersect_neighborhoods(const size_t nbr, const size_t n) {
       //cout << "Intersecting: " << n << " with " << nbr << endl;
 
       const size_t start1 = neighborhoodStart(nbr);
@@ -134,12 +159,11 @@ struct CompressedGraph {
 
       // /cout << "Length: " << (end1-start1) << endl;
 
-      long result = 0;//intersect_partitioned(r,edges+start1,edges+start2,end1-start1,end2-start2);
+      long result = intersect_partitioned(result_a,edges+start1,edges+start2,end1-start1,end2-start2);
       //cout << "OUTPUT: " << result << endl;
       return result;
     }
-    */
-    inline long foreachNbr(size_t node,long (CompressedGraph::*func)(const size_t,const size_t,unsigned short*), unsigned short *r){
+    inline long foreachNbr(size_t node,long (CompressedGraph::*func)(const size_t,const size_t)){
       long count = 0;
       const size_t start1 = neighborhoodStart(node);
       const size_t end1 = neighborhoodEnd(node);
@@ -151,7 +175,7 @@ struct CompressedGraph {
           //Traverse partition use prefix to get nbr id.
           for(;j < partition_end;++j){
             const size_t cur = (prefix << lower_shift) | edges[j]; //neighbor node
-            long ncount = (this->*func)(cur,node,r);
+            long ncount = (this->*func)(cur,node);
             count += ncount;
           }
         }else{
@@ -162,7 +186,7 @@ struct CompressedGraph {
               unsigned short index = (jj + (ii << 4)); // jj + ii *16; I don't trust compilers.
               if(isSet(index,&edges[j])){
                 const size_t cur = (prefix << lower_shift) | index; //neighbor node
-                long ncount = (this->*func)(cur,node,r);
+                long ncount = (this->*func)(cur,node);
                 count += ncount;
               }
             }

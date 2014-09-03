@@ -82,16 +82,16 @@ struct VectorGraph {
 };
 struct CompareIndexVector : std::binary_function<size_t, size_t, bool>
 {
-  CompareIndexVector(const std::vector<unsigned int> *data)
+  CompareIndexVector(const unsigned int *data)
   : m_data(data)
   {}
 
   bool operator()(size_t Lhs, size_t Rhs)const
   {
-    return m_data->at(Lhs) < m_data->at(Rhs);
+    return m_data[Lhs] < m_data[Rhs];
   }
 
-  const std::vector<unsigned int>* m_data;
+  const unsigned int* m_data;
 };
 //this is a functor
 struct Comparator {
@@ -194,12 +194,9 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   size_t *nodes = new size_t[vg->num_nodes+1];
   unsigned short *edges = new unsigned short[vg->num_edges*5];
   unsigned int *nbrlengths = new unsigned int[vg->num_nodes];
-  unsigned short *unions = new unsigned short[vg->num_nodes*1000];
-  size_t *union_size = new size_t[vg->num_nodes+1]; 
-  unordered_map<unsigned int,size_t> **back_index_map = new unordered_map<unsigned int,size_t>*[num_nodes];
-  
+
   size_t *node_back_index_pointer = new size_t[vg->num_nodes+1];
-  unsigned int *union_info_flat = new unsigned int[vg->num_edges*100];
+  unsigned int *union_info_flat = new unsigned int[vg->num_edges*25];
   size_t *back_index_dat = new size_t[vg->num_edges*25];
   unsigned int *back_edges = new unsigned int[vg->num_edges*50];
 
@@ -214,35 +211,30 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
   size_t index = 0;
   size_t back_index_index = 0;
   size_t back_dat_index = 0;
-  size_t union_index = 0;
+
+  unsigned int *un = new unsigned int[num_nodes];
+  unsigned int *back_nbr = new unsigned int[num_nodes];
+  size_t *index_v = new size_t[num_nodes];
 
   cout << "upper: " << upper_prefix << " lower: " << lower_prefix << endl;
 
   for(size_t i = 0; i < vg->num_nodes; ++i){
+  
     vector<unsigned int> *hood = vg->neighborhoods->at(i);
     num_edges += hood->size();
     nbrlengths[i] = hood->size();
 
     size_t hood_size = 0;
-
-    vector<unsigned int> *un = new vector<unsigned int>();
-    vector<unsigned int> *back_nbr = new vector<unsigned int>();
-    vector<size_t> *index_v = new vector<size_t>();
-    //index_v->reserve(vg->num_edges);
-
-    //cout << "Finished allocations" << endl;
-
     size_t num_in_union = 0;
     for(size_t j = 0; j < hood->size(); ++j) {
       size_t nbr = hood->at(j);
-      /*if(i ==3782)
-        cout << "Neighbor: " << nbr << endl; */
       if(nbr < i){
         size_t k = 0;
         while(k < vg->neighborhoods->at(nbr)->size() && vg->neighborhoods->at(nbr)->at(k) < nbr){
-          un->push_back(vg->neighborhoods->at(nbr)->at(k));
-          back_nbr->push_back(nbr);
-          index_v->push_back(num_in_union++);
+          un[num_in_union] = vg->neighborhoods->at(nbr)->at(k);     
+          back_nbr[num_in_union] = nbr;
+          index_v[num_in_union] = num_in_union;
+          num_in_union++;
           k++;
         }
         hood_size++;
@@ -252,67 +244,52 @@ static inline CompressedGraph* createCompressedGraph (VectorGraph *vg) {
     nodes[i] = index;
     index = partition(hood->data(),hood_size,edges,index);
 
-    std::sort(index_v->begin(),index_v->end(),CompareIndexVector(un));
+    std::sort(index_v,index_v+num_in_union,CompareIndexVector(un));
 
-    unsigned int *union_dat = new unsigned int[un->size()];
-    unordered_map<unsigned int, size_t> *bm = new unordered_map<unsigned int,size_t>();
-    bm->reserve(un->size());
-
-    size_t u_index = 0;
-    unsigned int prev = 0xffffffff;
-      
+    unsigned int prev = 0xffffffff;      
     node_back_index_pointer[i] = back_index_index;
-    /*if(i ==3782){
-      cout << "Back index: " << back_index_index << endl;
-    } */
 
     //cout << "Finished sorting" << endl;
-    for(size_t j =0; j<index_v->size();j++){
-      size_t cur_index = index_v->at(j);
-
-      if(prev != un->at(cur_index)){
-        union_dat[u_index++] = un->at(cur_index);
-        union_info_flat[back_index_index] = un->at(cur_index);
-        /*
-        if( i == 148881){
-          cout <<  "Union: " << un->at(cur_index) << " " << back_dat_index << endl;
-        }*/
-        //bm->insert(make_pair(un->at(cur_index),back_index_index));
-        back_index_dat[back_index_index++] = back_dat_index;
-        
+    for(size_t j =0; j<num_in_union;j++){
+      size_t cur_index = index_v[j];
+      if(prev != un[cur_index]){
+        union_info_flat[back_index_index] = un[cur_index];
+        back_index_dat[back_index_index] = back_dat_index;
+        back_index_index++;
       }
-      back_edges[back_dat_index++] = back_nbr->at(cur_index);
-      prev = un->at(cur_index);
+      back_edges[back_dat_index] = back_nbr[cur_index];
+      back_dat_index++;
+      prev = un[cur_index];
     }
-    //cout << "Finished loop" << endl;
-
-    back_index_map[i] = bm;
-    
-    union_size[i] = union_index;
-    union_index = partition(union_dat,u_index,unions,union_index);
-
-    //cout << "Finished partitioning union" << endl;
-
-    un->clear();
-    delete un;
-    back_nbr->clear();
-    delete back_nbr;
-    index_v->clear();
-    delete index_v;
-    delete[] union_dat;
   }
-  node_back_index_pointer[vg->num_nodes] = back_index_index;
+  delete[] un;
+  delete[] back_nbr;
+  delete[] index_v;
 
-  cout << "Union Index: " << union_index << endl;
+  node_back_index_pointer[vg->num_nodes] = back_index_index;
   back_index_dat[back_index_index] = back_dat_index;
   nodes[vg->num_nodes] = index;
-  union_size[vg->num_nodes] = union_index;
   
-  cout << "COMPRESSED EDGE SIZE[BYTES]: " << index*2 << endl;
-  cout << "Back Edges: " << back_dat_index << " Back Index: " << back_index_index << " Union Index: " << union_index << endl;
-  //cout << "num sets: " << numSets << " numSetsCompressed: " << numSetsCompressed << endl;
+  unsigned short *final_edges = new unsigned short[index];
+  std::copy(edges,edges+index,final_edges);
+  delete[] edges;
 
-  return new CompressedGraph(upper_prefix,lower_prefix,num_nodes,num_edges,index,nbrlengths,nodes,edges,external_ids,unions,union_size,back_index_map,back_index_dat,back_edges,node_back_index_pointer,union_info_flat);
+  unsigned int *final_union_data = new unsigned int[back_index_index];
+  std::copy(union_info_flat,union_info_flat+back_index_index,final_union_data);
+  delete[] union_info_flat;
+
+  size_t *final_back_index = new size_t[back_index_index];
+  std::copy(back_index_dat,back_index_dat+back_index_index,final_back_index);
+  delete[] back_index_dat;
+
+  unsigned int *final_back_edge_data = new unsigned int[back_dat_index];
+  std::copy(back_edges,back_edges+back_dat_index,final_back_edge_data);
+  delete[] back_edges;
+
+  cout << "COMPRESSED EDGE SIZE[BYTES]: " << index*2 << endl;
+  cout << "Back Edges: " << back_dat_index << " Back Index: " << back_index_index << " Union Index: " << back_index_index << endl;
+
+  return new CompressedGraph(upper_prefix,lower_prefix,num_nodes,num_edges,index,nbrlengths,nodes,final_edges,external_ids,final_back_index,final_back_edge_data,node_back_index_pointer,final_union_data);
 }
 
 CSRGraph* createCSRGraph(VectorGraph *vg){

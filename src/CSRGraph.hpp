@@ -5,7 +5,32 @@
 #include <unordered_map>
 
 using namespace std;
-inline size_t intersect_vector(const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b, unsigned int *C) {
+
+static __m128i shuffle_mask32[16]; // precomputed dictionary
+int getBitV(int value, int position) {
+  return ( ( value & (1 << position) ) >> position);
+}
+void prepare_shuffling_dictionary32() {
+  for(int i = 0; i < 16; i++) {
+    int counter = 0;
+    char permutation[16];
+    memset(permutation, 0xFF, sizeof(permutation));
+    for(char b = 0; b < 4; b++) {
+      if(getBitV(i, b)) {
+        permutation[counter++] = 4*b;
+        permutation[counter++] = 4*b + 1;
+        permutation[counter++] = 4*b + 2;
+        permutation[counter++] = 4*b + 3;
+      }
+    }
+    __m128i mask = _mm_loadu_si128((const __m128i*)permutation);
+    shuffle_mask32[i] = mask;
+  }
+}
+ 
+
+
+inline size_t intersect_vector(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
   size_t count = 0;
   size_t i_a = 0, i_b = 0;
 
@@ -42,11 +67,11 @@ inline size_t intersect_vector(const unsigned int *A, const unsigned int *B, siz
     // convert the 128-bit mask to the 4-bit mask
     unsigned int mask = _mm_movemask_ps((__m128)cmp_mask);
     //]
-    /*
+    
     //[ copy out common elements
-    __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask[mask]);
+    __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask32[mask]);
     _mm_storeu_si128((__m128i*)&C[count], p);
-    */
+    
     count += _mm_popcnt_u32(mask); // a number of elements is a weight of the mask
     //]
   }
@@ -158,6 +183,7 @@ struct CSRGraph {
     cout << "OUTPUT: " << output << endl;
   }
   inline long countTrianglesCSR() const{
+    prepare_shuffling_dictionary32();
     long result = 0l;
     //#pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
     for(size_t i=0; i < num_nodes; i++){
@@ -171,10 +197,10 @@ struct CSRGraph {
   inline long countTrianglesV32() const{
     long result = 0l;
     //#pragma omp parallel for default(none) schedule(static,150) reduction(+:result)        
+    unsigned int *resultV = new unsigned int[num_nodes];
     for(size_t i=0; i < num_nodes; i++){
-      unsigned int *resultV = new unsigned int[10];
       for(size_t j=nodes[i]; j<nodes[i+1]; ++j) {
-        long ncount = intersect_vector(&edges[nodes[i]],&edges[nodes[edges[j]]],nodes[i+1]-nodes[i],nodes[edges[j]+1]-nodes[edges[j]],resultV);
+        long ncount = intersect_vector(resultV,&edges[nodes[i]],&edges[nodes[edges[j]]],nodes[i+1]-nodes[i],nodes[edges[j]+1]-nodes[edges[j]]);
         result += ncount;
       }
     }

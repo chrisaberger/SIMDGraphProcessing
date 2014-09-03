@@ -23,9 +23,6 @@ struct CompressedGraph {
   const size_t *nodes;
   const unsigned short *edges;
   const unordered_map<unsigned int,unsigned int> *external_ids;
-  unsigned short *unions;
-  size_t *union_size;
-  unordered_map<unsigned int,size_t> **back_index_map;
   size_t *back_index;
   unsigned int *back_edges;
   size_t *node_back_index_pointer;
@@ -41,9 +38,6 @@ struct CompressedGraph {
     const size_t *nodes_in,
     const unsigned short *edges_in,
     const unordered_map<unsigned int,unsigned int> *external_ids_in,
-    unsigned short *unions_in,
-    size_t *union_size_in,
-    unordered_map<unsigned int,size_t> **back_index_map_in,
     size_t *back_index_in,
     unsigned int *back_edges_in,
     size_t *node_back_index_pointer_in,
@@ -57,9 +51,6 @@ struct CompressedGraph {
       nodes(nodes_in), 
       edges(edges_in),
       external_ids(external_ids_in),
-      unions(unions_in),
-      union_size(union_size_in),      
-      back_index_map(back_index_map_in),
       back_index(back_index_in),
       back_edges(back_edges_in),
       node_back_index_pointer(node_back_index_pointer_in),
@@ -100,14 +91,7 @@ struct CompressedGraph {
       else
         end = start+header_length+len;
     }
-    inline long countTrianglesV16(){
-      long count = 0;
-      #pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
-      for(size_t i = 0; i < num_nodes; ++i){
-        count += foreachNbr(i,&CompressedGraph::intersect_neighborhoods);
-      }
-      return count;
-    }
+
     inline long countTrianglesN2X(){
       long count = 0;
       //unsigned short *r = new unsigned short[num_nodes];
@@ -148,53 +132,37 @@ struct CompressedGraph {
       }
       return count;
     }
+    inline long countTrianglesV16(){
+      prepare_shuffling_dictionary16();
+      long count = 0;
+      #pragma omp parallel for default(none) schedule(static,150) reduction(+:count)   
+      for(size_t i = 0; i < num_nodes; ++i){
+        const size_t start1 = neighborhoodStart(i);
+        const size_t end1 = neighborhoodEnd(i);
+        for(size_t j = start1; j < end1; ++j){
+          size_t prefix, partition_end; bool isBitSet;
+          setupInnerPartition(j,prefix,partition_end,isBitSet);
+         
+          //Traverse partition use prefix to get nbr id.
+          for(;j < partition_end;++j){
+            const size_t cur = (prefix << lower_shift) | edges[j]; //neighbor node
+            long ncount = intersect_neighborhoods(cur,i);
+            count += ncount;
+          }
+          j = partition_end-1;   
+        }
+      }
+      return count;
+    }
     inline long intersect_neighborhoods(const size_t nbr, const size_t n) {
-      //cout << "Intersecting: " << n << " with " << nbr << endl;
-
       const size_t start1 = neighborhoodStart(nbr);
       const size_t end1 = neighborhoodEnd(nbr);
 
       const size_t start2 = neighborhoodStart(n);
       const size_t end2 = neighborhoodEnd(n);
 
-      // /cout << "Length: " << (end1-start1) << endl;
-
       long result = intersect_partitioned(result_a,edges+start1,edges+start2,end1-start1,end2-start2);
-      //cout << "OUTPUT: " << result << endl;
       return result;
-    }
-    inline long foreachNbr(size_t node,long (CompressedGraph::*func)(const size_t,const size_t)){
-      long count = 0;
-      const size_t start1 = neighborhoodStart(node);
-      const size_t end1 = neighborhoodEnd(node);
-      for(size_t j = start1; j < end1; ++j){
-        size_t prefix, partition_end; bool isBitSet;
-        setupInnerPartition(j,prefix,partition_end,isBitSet);
-       
-        if(!isBitSet){
-          //Traverse partition use prefix to get nbr id.
-          for(;j < partition_end;++j){
-            const size_t cur = (prefix << lower_shift) | edges[j]; //neighbor node
-            long ncount = (this->*func)(cur,node);
-            count += ncount;
-          }
-        }else{
-          //4096 shorts in every BS
-          for(size_t ii=0;(ii < WORDS_IN_BS);++ii){
-            //Go through each bit
-            for(size_t jj = 0;(jj < 16);++jj){
-              unsigned short index = (jj + (ii << 4)); // jj + ii *16; I don't trust compilers.
-              if(isSet(index,&edges[j])){
-                const size_t cur = (prefix << lower_shift) | index; //neighbor node
-                long ncount = (this->*func)(cur,node);
-                count += ncount;
-              }
-            }
-          } //end outer for
-        }//end else */
-        j = partition_end-1;   
-      }
-      return count;
     }
     inline double pagerank(){
       float *pr = new float[num_nodes];

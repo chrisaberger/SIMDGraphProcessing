@@ -55,16 +55,11 @@ inline long intersect_bitsets(unsigned short *C,const unsigned short *in_array1,
   size_t i = 0;
 
   while((i+15) < smallLength){
-    //cout <<" here1" << endl;
     __m256i a1 = _mm256_loadu_si256((const __m256i*)&in_array1[i]);
-    //cout << "0.5" << endl;
     __m256i a2 = _mm256_loadu_si256((const __m256i*)&in_array2[i]);
     
-    //cout << "0" << endl;
     __m256i r = _mm256_castps_si256(
         _mm256_and_ps(_mm256_castsi256_ps(a1), _mm256_castsi256_ps(a2)));
-
-    //cout << "1" << endl;
 
     __m128i t = _mm256_extractf128_si256(r,0);
     unsigned long l = _mm_extract_epi64(t,0);
@@ -109,18 +104,23 @@ inline size_t simd_intersect_vector16(unsigned short *C, const unsigned short *A
   while(i_a < st_a && i_b < st_b) {
     __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
     __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);    
+
+    /*
+    uint16_t *t = (uint16_t*) &v_a;
+    cout << "Data: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << " " << t[4] << " " << t[5] << " " << t[6] << " " << t[7] << endl;
+    t = (uint16_t*) &v_b;
+    cout << "Data: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << " " << t[4] << " " << t[5] << " " << t[6] << " " << t[7] << endl;    
+    */
     unsigned short a_max = _mm_extract_epi16(v_a, SHORTS_PER_REG-1);
     unsigned short b_max = _mm_extract_epi16(v_b, SHORTS_PER_REG-1);
     
     __m128i res_v = _mm_cmpestrm(v_b, SHORTS_PER_REG, v_a, SHORTS_PER_REG,
             _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
     unsigned int r = _mm_extract_epi32(res_v, 0);
-    //cout << "Mask: " << hex << val[7] << " " << val[6] << " " << val[5] << " " << val[4] << " " << val[3] << " " << val[2] << " " << val[1] << " " << val[0] << " "  << dec << endl;
 
-    /*
     __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask16[r]);
     _mm_storeu_si128((__m128i*)&C[count], p);
-    */
+    
     count += _mm_popcnt_u32(r);
     
     i_a += (a_max <= b_max) * SHORTS_PER_REG;
@@ -165,38 +165,11 @@ inline size_t intersect_partitioned(unsigned short *C,const unsigned short *A, c
     } else {
       unsigned short partition_size = 0;
       //If we are not in the range of the limit we don't need to worry about it.
-      if(A[i_a+1] <= WORDS_IN_BS && B[i_b+1] <= WORDS_IN_BS){
-        C[counter++] = A[i_a]; // write partition prefix
-        //cout << "1Counter: " << counter << endl;
-        partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
-        C[counter++] = partition_size; // write partition size
-        i_a += A[i_a + 1] + 2;
-        i_b += B[i_b + 1] + 2;      
-      }else if(A[i_a+1] > WORDS_IN_BS && B[i_b+1] > WORDS_IN_BS){
-        C[counter++] = A[i_a]; // write partition prefix
-        //cout << "2Counter: " << counter << endl;
-        partition_size = intersect_bitsets(&C[counter+1],&A[i_a+2],&B[i_b+2]);
-        C[counter++] = partition_size; // write partition size
-
-        i_a += WORDS_IN_BS + 2;
-        i_b += WORDS_IN_BS + 2;   
-      } else if(A[i_a+1] > WORDS_IN_BS && B[i_b+1] <= WORDS_IN_BS){
-        C[counter++] = A[i_a]; // write partition prefix
-        //cout << "3Counter: " << counter << endl;
-        partition_size += simd_intersect_bitset_and_set(&C[counter+1],&A[i_a + 2], &B[i_b + 2], B[i_b + 1]);
-        C[counter++] = partition_size; // write partition size
-
-        i_a += WORDS_IN_BS + 2;
-        i_b += B[i_b + 1] + 2;      
-      } else{
-        C[counter++] = A[i_a]; // write partition prefix
-        //cout << "4Counter: " << counter << endl;
-        partition_size += simd_intersect_bitset_and_set(&C[counter+1],&B[i_b + 2], &A[i_a + 2], A[i_a + 1]);
-        C[counter++] = partition_size; // write partition size
-
-        i_b += WORDS_IN_BS + 2;   
-        i_a += A[i_a + 1] + 2;
-      }
+      C[counter++] = A[i_a]; // write partition prefix
+      partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
+      C[counter++] = partition_size; // write partition size
+      i_a += A[i_a + 1] + 2;
+      i_b += B[i_b + 1] + 2;      
 
       count += partition_size;
       counter += partition_size;
@@ -242,35 +215,20 @@ inline size_t partition(unsigned int *A, size_t s_a, unsigned short *R, size_t i
     unsigned short chigh = (A[p] & 0xFFFF0000) >> 16; // upper dword
     unsigned short clow = A[p] & 0x0FFFF;   // lower dword
     if(chigh == high && p != 0) { // add element to the current partition
-      if(partition_length == WORDS_IN_BS){
-        createBitSet(&R[counter-WORDS_IN_BS],WORDS_IN_BS);
-      }
       partition_length++;
-      if(partition_length > WORDS_IN_BS){
-        addToBitSet(clow,&R[counter-WORDS_IN_BS]);
-      } else{
-        R[counter++] = clow;
-      }
+      R[counter++] = clow;
     }else{ // start new partition
       R[counter++] = chigh; // partition prefix
       R[counter++] = 0;     // reserve place for partition size
       R[counter++] = clow;  // write the first element
       R[partition_size_position] = partition_length;
-      numSets++;
-      if(partition_length > WORDS_IN_BS){
-        numSetsCompressed++;
-      }
-      //cout << "setting: " << partition_size_position << " to: " << partition_length << endl;
+
       partition_length = 1; // reset counters
       partition_size_position = counter - 2;
       high = chigh;
     }
   }
-  if(partition_length > WORDS_IN_BS){
-    numSetsCompressed++;
-  }
   R[partition_size_position] = partition_length;
-  //print_partition(R,s_a);
   return counter;
 }
 #endif

@@ -5,27 +5,24 @@
 using namespace std;
 
 namespace my_app{
-  inline bool myNodeSelection(int node){
+  inline bool myNodeSelection(unsigned int node){
     return true;
   }
-  inline bool myEdgeSelection(int node, int nbr){
+  inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
     return nbr < node;
   }
 
-  short *result;
-  size_t num_triangles = 0;
-  inline void triangle_counting(int n, int nbr, Matrix *m){
+  unsigned short *result;
+  long num_triangles = 0;
+  inline long triangle_counting(unsigned int n, unsigned int nbr, Matrix *m){
     size_t n_start = m->indicies[n];
     size_t n_end = m->indicies[n+1];
 
     size_t nbr_start = m->indicies[nbr];
     size_t nbr_end = m->indicies[nbr+1];
-
-    size_t ncount = 0;
-    ncount = integerarray::intersect(result,m->data+n_start,m->data+nbr_start,n_end-n_start,nbr_end-nbr_start,m->t);
-    
-    num_triangles += ncount;
-  } 
+    long ncount = integerarray::intersect(result+n*(m->num_columns/2),m->data+n_start,m->data+nbr_start,n_end-n_start,nbr_end-nbr_start,m->t);
+    return ncount;
+  }
 }
 
 int main (int argc, char* argv[]) { 
@@ -38,23 +35,21 @@ int main (int argc, char* argv[]) {
   cout << "Number of threads: " << atoi(argv[3]) << endl;
   omp_set_num_threads(atoi(argv[3]));        
 
+  common::startClock();
   VectorGraph *vg = ReadFile(argv[1],atoi(argv[2]));
+  common::stopClock("INPUT");
   cout << endl;
 
   common::type my_type = common::ARRAY16; 
   Matrix *graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,my_type);
-  my_app::result = new short[vg->num_edges];
+  my_app::result = new unsigned short[vg->num_nodes*(vg->num_nodes/2)];
   common::startClock();
   //For each column
-  graph->foreach_column(
-    //for each row
-    &Matrix::for_row,
-      //apply triangle counting
-      &my_app::triangle_counting
-  );
+  my_app::num_triangles = graph->foreach_column(&Matrix::for_row,&my_app::triangle_counting);
   common::stopClock("V16: Triangle Counting");
   cout << "Count: " << my_app::num_triangles << endl;
 
+  /*
   my_app::num_triangles = 0;
   my_type = common::ARRAY32; 
   graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,my_type);
@@ -68,8 +63,8 @@ int main (int argc, char* argv[]) {
       &my_app::triangle_counting
   );
   common::stopClock("V32: Triangle Counting");
-
   cout << "Count: " << my_app::num_triangles << endl;
+  */
 
   return 0;
 }

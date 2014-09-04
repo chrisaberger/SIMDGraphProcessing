@@ -16,13 +16,13 @@ class Matrix{
   	common::type t;
 
   	size_t *indicies; //formerly nodes
-  	short *data; //formerly edges
-    Matrix(VectorGraph *vg,bool (*function1)(int),bool (*function2)(int,int),common::type t);
+  	unsigned short *data; //formerly edges
+    Matrix(VectorGraph *vg,bool (*function1)(unsigned int),bool (*function2)(unsigned int,unsigned int),common::type t);
     void print_matrix();
     template<typename T> 
-    void foreach_column(void (Matrix::*function)(int,T (*f)(int,int,Matrix*)), T (*f)(int,int,Matrix*));
+    T foreach_column(T (Matrix::*function)(unsigned int,T (*f)(unsigned int,unsigned int,Matrix*)), T (*f)(unsigned int,unsigned int,Matrix*));
     template<typename T> 
-    void for_row(int c,T (*function)(int,int,Matrix*));
+    T for_row(unsigned int c,T (*function)(unsigned int,unsigned int,Matrix*));
 };
 
 #endif

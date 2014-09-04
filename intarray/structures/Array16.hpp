@@ -5,6 +5,9 @@ using namespace std;
 
 class Matrix;
 
+#define VECTORIZE 1
+#define WRITE_VECTOR 1
+
 namespace Array16 {
 	#define SHORTS_PER_REG 8
 
@@ -31,9 +34,9 @@ namespace Array16 {
 	  }
 	}
 
-	inline size_t preprocess(short *R,size_t index, int *A, size_t s_a){
+	inline size_t preprocess(unsigned short *R, size_t index, unsigned int *A, size_t s_a){
 		prepare_shuffling_dictionary16();
-	  short high = 0;
+	  unsigned short high = 0;
 	  size_t partition_length = 0;
 	  size_t partition_size_position = index+1;
 	  size_t counter = index;
@@ -62,10 +65,9 @@ namespace Array16 {
 	  size_t count = 0;
 	  size_t i_a = 0, i_b = 0;
 
+    #if VECTORIZE == 1
 	  size_t st_a = (s_a / SHORTS_PER_REG) * SHORTS_PER_REG;
-	  size_t st_b = (s_b / SHORTS_PER_REG) * SHORTS_PER_REG;
-	  //scout << "Sizes:: " << st_a << " " << st_b << endl;
-	 
+	  size_t st_b = (s_b / SHORTS_PER_REG) * SHORTS_PER_REG;	 
 	  while(i_a < st_a && i_b < st_b) {
 	    __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
 	    __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);    
@@ -83,14 +85,17 @@ namespace Array16 {
 	            _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
 	    unsigned int r = _mm_extract_epi32(res_v, 0);
 
+      #if WRITE_VECTOR == 1
 	    __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask16[r]);
 	    _mm_storeu_si128((__m128i*)&C[count], p);
-	    
+	   #endif
+
 	    count += _mm_popcnt_u32(r);
 	    
 	    i_a += (a_max <= b_max) * SHORTS_PER_REG;
 	    i_b += (a_max >= b_max) * SHORTS_PER_REG;
 	  }
+    #endif
 	  // intersect the tail using scalar intersection
 	  //...
 
@@ -102,7 +107,9 @@ namespace Array16 {
 	      notFinished = i_b < s_b;
 	    }
 	    if(notFinished && A[i_a] == B[i_b]){
+        #if WRITE_VECTOR == 1
 	      C[count] = A[i_a];
+        #endif
 	      ++count;
 	    }
 	    ++i_a;
@@ -111,7 +118,7 @@ namespace Array16 {
 	  //cout <<  "end here" << endl;
 	  return count;
 	}
-	inline size_t intersect( short *C,const  short *A, const  short *B, const size_t s_a, const size_t s_b) {
+	inline size_t intersect(unsigned short *C,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
 	  size_t i_a = 0, i_b = 0;
 	  size_t counter = 0;
 	  size_t count = 0;
@@ -130,10 +137,14 @@ namespace Array16 {
 	    } else {
 	      unsigned short partition_size = 0;
 	      //If we are not in the range of the limit we don't need to worry about it.
-	      C[counter++] = A[i_a]; // write partition prefix
-	      partition_size = simd_intersect_vector16((unsigned short*)&C[counter+1],(unsigned short*)&A[i_a + 2],(unsigned short*)&B[i_b + 2],A[i_a + 1], B[i_b + 1]);
-	      C[counter++] = partition_size; // write partition size
-	      i_a += A[i_a + 1] + 2;
+	      #if WRITE_VECTOR == 1
+        C[counter++] = A[i_a]; // write partition prefix
+	      #endif
+        partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2],&B[i_b + 2],A[i_a + 1], B[i_b + 1]);
+	      #if WRITE_VECTOR == 1
+        C[counter++] = partition_size; // write partition size
+	      #endif
+        i_a += A[i_a + 1] + 2;
 	      i_b += B[i_b + 1] + 2;      
 
 	      count += partition_size;
@@ -144,7 +155,9 @@ namespace Array16 {
 	  return count;
 	}
     //This forward reference is kind of akward but needed for Matrix traversals.
-  inline void foreach(void (*function)(int,int,Matrix*),int col,Matrix *m, short *data, size_t length){
+  template<typename T> 
+  inline T foreach(T (*function)(unsigned int,unsigned int,Matrix*),unsigned int col,Matrix *m, unsigned short *data, size_t length){
+    T result = (T) 0;
     for(size_t j = 0; j < length; ++j){
       const size_t header_length = 2;
       const size_t start = j;
@@ -154,22 +167,23 @@ namespace Array16 {
 
       //Traverse partition use prefix to get nbr id.
       for(;j < partition_end;++j){
-        int cur = (prefix << 16) | (unsigned short) data[j]; //neighbor node
-        function(col,cur,m);
+        unsigned int cur = (prefix << 16) | data[j]; //neighbor node
+        result += function(col,cur,m);
       }
       j = partition_end-1;   
     }
+    return result;
   }
-  void print_data(short *A, size_t s_a){
+  void print_data(unsigned short *A, size_t s_a){
     for(size_t i = 0; i < s_a; i++){
-      int prefix = (A[i] << 16);
+      unsigned int prefix = (A[i] << 16);
       unsigned short size = A[i+1];
       cout << "size: " << size << endl;
       i += 2;
 
       size_t inner_end = i+size;
       while(i < inner_end){
-        int tmp = prefix | (unsigned short)A[i];
+        unsigned int tmp = prefix | A[i];
         cout << "Data: " << tmp << endl;
         ++i;
       }
@@ -178,8 +192,8 @@ namespace Array16 {
   }
 
 	template<typename T> 
-	T reduce(short *data, size_t length,T (*function)(T,T), T zero){
-		int *actual_data = (int*) data;
+	T reduce(unsigned short *data, size_t length,T (*function)(T,T), T zero){
+		unsigned int *actual_data = (unsigned int*) data;
 		T result = zero;
 		for(size_t i = 0; i < length; i++){
 			result = function(result,actual_data[i]);

@@ -10,13 +10,13 @@ using namespace std;
 
 class IntegerArray{
 	private:
-		short *data;
+		unsigned short *data;
 		size_t length;
 		size_t physical_size;
 		common::type t;
 	 
 	public:
-	  IntegerArray(int *data, size_t length, common::type t);
+	  IntegerArray(unsigned int *data, size_t length, common::type t);
 	  void print_data();
 	  template<typename T>
 	  T reduce(T (*function)(T,T), T zero);

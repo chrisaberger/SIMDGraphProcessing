@@ -1,11 +1,11 @@
 #include "Matrix.hpp"
 
-Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(int), bool (*edgeFilter)(int,int), common::type t_in){
+Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in){
   t = t_in;
   num_columns = vg->num_nodes;
   indicies = new size_t[num_columns+1];
 
-  short *tmp_data = new short[vg->num_edges*3]; 
+  unsigned short *tmp_data = new unsigned short[vg->num_edges*3]; 
 
 	size_t new_cardinality = 0;
   size_t index = 0;
@@ -13,7 +13,7 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(int), bool (*edgeFilter)(int,
   	indicies[i] = index;
   	if(nodeFilter(i)){
 	    vector<unsigned int> *hood = vg->neighborhoods->at(i);
-	    int *filtered_hood = new int[hood->size()];
+	    unsigned int *filtered_hood = new unsigned int[hood->size()];
 	    size_t filter_index = 0;
 	    for(size_t j = 0; j < hood->size(); ++j) {
 	    	if(nodeFilter(hood->at(j)) && edgeFilter(i,hood->at(j))){
@@ -26,26 +26,28 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(int), bool (*edgeFilter)(int,
       delete[] filtered_hood;
   	}
   }
-  data = new short[index];
+  data = new unsigned short[index];
   std::copy(tmp_data,tmp_data+index,data);
   cardinality = new_cardinality;
   indicies[num_columns] = index;
 }
 
 template<typename T> 
-void Matrix::foreach_column(void (Matrix::*rowfunction)(int,T (*f)(int,int,Matrix*)), T (*f)(int,int,Matrix*)) {
-	for(size_t i = 0; i < num_columns; i++){
-		(this->*rowfunction)(i,f);
+T Matrix::foreach_column(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,unsigned int,Matrix*)), T (*f)(unsigned int,unsigned int,Matrix*)) {
+	T reducer = (T) 0;
+  #pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
+  for(size_t i = 0; i < num_columns; i++){
+		reducer += (this->*rowfunction)(i,f);
 	}
+  return reducer;
 }
 
 template<typename T> 
-void Matrix::for_row(int col,T (*function)(int,int,Matrix*)){
+T Matrix::for_row(unsigned int col,T (*function)(unsigned int,unsigned int,Matrix*)){
 	size_t start = indicies[col];
 	size_t end = indicies[col+1];
-	integerarray::foreach(function,col,this,data+start,end-start,t); //function(data(i))
+	return integerarray::foreach(function,col,this,data+start,end-start,t); //function(data(i))
 }
-
 void Matrix::print_matrix(){
 	for(size_t i = 0; i < num_columns; i++){
 		cout << "COLUMN: " << i << endl;

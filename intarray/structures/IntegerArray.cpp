@@ -8,7 +8,7 @@
 class Matrix;
 
 namespace integerarray{
-  inline size_t preprocess(short *data, size_t index, int *data_in, size_t length_in, common::type t){
+  inline size_t preprocess(unsigned short *data, size_t index, unsigned int *data_in, size_t length_in, common::type t){
     switch(t){
       case common::ARRAY32:
         index = Array32::preprocess(data,index,data_in,length_in);
@@ -24,25 +24,28 @@ namespace integerarray{
     return index;
   }
 
-  inline void foreach(void (*function)(int,int,Matrix*),int col,Matrix *m, short *data,size_t length,common::type t){
+  template<typename T> 
+  inline T foreach(T (*function)(unsigned int,unsigned int,Matrix*),unsigned int col,Matrix *m, unsigned short *data,size_t length,common::type t){
     switch(t){
       case common::ARRAY32:
-        Array32::foreach(function,col,m,data,length);
+        return Array32::foreach(function,col,m,data,length);
         break;
       case common::ARRAY16:
-        Array16::foreach(function,col,m,data,length);
+        return Array16::foreach(function,col,m,data,length);
         break;
       case common::BITSET:
+        return (T) 0;
         break;
       default:
+        return (T) 0;
         break;
     }
   }
-  inline size_t intersect(short *R, short *A, short *B, size_t s_a, size_t s_b, common::type t){
+  inline size_t intersect(unsigned short *R, unsigned short *A, unsigned short *B, size_t s_a, size_t s_b, common::type t){
     size_t count = 0;
     switch(t){
       case common::ARRAY32:
-        count = Array32::intersect((int*)R,(int*)A,(int*)B,s_a/2,s_b/2);
+        count = Array32::intersect((unsigned int*)R,(unsigned int*)A,(unsigned int*)B,s_a/2,s_b/2);
         break;
       case common::ARRAY16:
         count = Array16::intersect(R,A,B,s_a,s_b);
@@ -55,7 +58,7 @@ namespace integerarray{
     return count;
   }
   template<typename T> 
-  inline T reduce(common::type t,short *data, size_t length,T (*function)(T,T), T zero){
+  inline T reduce(common::type t,unsigned short *data, size_t length,T (*function)(T,T), T zero){
     T result;
 
     switch(t){
@@ -72,7 +75,7 @@ namespace integerarray{
 
     return result;
   }
-  inline void print_data(common::type t, short *data, size_t length){
+  inline void print_data(common::type t, unsigned short *data, size_t length){
     switch(t){
       case common::ARRAY32:
         Array32::print_data(data,length);
@@ -91,10 +94,10 @@ namespace integerarray{
 /*
   For the actual object.
 */
-IntegerArray::IntegerArray(int *data_in, size_t length_in, common::type t_in){
+IntegerArray::IntegerArray(unsigned int *data_in, size_t length_in, common::type t_in){
   t = t_in;
   length = length_in;
-  data = new short[length_in*3];
+  data = new unsigned short[length_in*3];
   physical_size = integerarray::preprocess(data,0,data_in,length_in,t_in);
 }
 template<typename T> 

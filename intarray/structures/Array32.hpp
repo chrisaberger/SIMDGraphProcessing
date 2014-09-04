@@ -1,5 +1,7 @@
 #include "Common.hpp"
 
+#define VECTORIZE 1
+
 using namespace std;
 
 class Matrix;
@@ -26,14 +28,14 @@ namespace Array32 {
       shuffle_mask32[i] = mask;
     }
   }
-  inline size_t intersect(int *C, const int *A, const int *B, size_t s_a, size_t s_b) {
+  inline size_t intersect(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
 
     // trim lengths to be a multiple of 4
+    #ifdef VECTORIZE
     size_t st_a = (s_a / 4) * 4;
     size_t st_b = (s_b / 4) * 4;
-
     while(i_a < st_a && i_b < st_b) {
       //[ load segments of four 32-bit elements
       __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
@@ -71,6 +73,7 @@ namespace Array32 {
       count += _mm_popcnt_u32(mask); // a number of elements is a weight of the mask
       //]
     }
+    #endif
 
     // intersect the tail using scalar intersection
     bool notFinished = i_a < s_a  && i_b < s_b;
@@ -89,30 +92,33 @@ namespace Array32 {
     return count;
   }
   
-  inline void foreach(void (*function)(int,int,Matrix*),int col,Matrix *m,short *data, size_t length){
-    int *actual_data = (int*) data;
+  template<typename T> 
+  inline T foreach(T (*function)(unsigned int,unsigned int,Matrix*),unsigned int col,Matrix *m,unsigned short *data, size_t length){
+    T result = (T) 0;
+    unsigned int *actual_data = (unsigned int*) data;
     for(size_t i = 0; i < (length/2); i++){
-      function(col,actual_data[i],m);
+      result += function(col,actual_data[i],m);
     }
+    return result;
   }
 
-  inline void print_data(short *data, size_t length){
-    int *actual_data = (int*) data;
+  inline void print_data(unsigned short *data,size_t length){
+    unsigned int *actual_data = (unsigned int*) data;
     cout << "LEN: " << length << endl;
     for(size_t i = 0; i < (length/2); i++){
       cout << "Index: " << i << " Data: " << actual_data[i] << endl;
     }
   }
-  inline size_t preprocess(short *r, size_t index, int *data, size_t length){
+  inline size_t preprocess(unsigned short *r, size_t index, unsigned int *data, size_t length){
     prepare_shuffling_dictionary32();
-    std::copy(data,data+length,(int*)(r+index));
+    std::copy(data,data+length,(unsigned int*)(r+index));
     return index+length*2;
 	}
 
 
 	template<typename T> 
-	T reduce(short *data, size_t length,T (*function)(T,T), T zero){
-		int *actual_data = (int*) data;
+	T reduce(unsigned short *data, size_t length,T (*function)(T,T), T zero){
+		unsigned int *actual_data = (unsigned int*) data;
 		T result = zero;
     #pragma omp parallel for schedule(static,150) reduction(+:result)   
 		for(size_t i = 0; i < length; i++){

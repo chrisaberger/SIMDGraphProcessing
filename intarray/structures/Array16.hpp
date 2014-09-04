@@ -3,6 +3,8 @@
 
 using namespace std;
 
+class Matrix;
+
 namespace Array16 {
 	#define SHORTS_PER_REG 8
 
@@ -141,12 +143,39 @@ namespace Array16 {
 	  }
 	  return count;
 	}
-	inline void print_data(short *data, size_t length){
-		int *actual_data = (int*) data;
-		for(size_t i = 0; i < length; i++){
-			cout << "Index: " << i << " Data: " << actual_data[i] << endl;
-		}
-	}
+    //This forward reference is kind of akward but needed for Matrix traversals.
+  inline void foreach(void (*function)(int,int,Matrix*),int col,Matrix *m, short *data, size_t length){
+    for(size_t j = 0; j < length; ++j){
+      const size_t header_length = 2;
+      const size_t start = j;
+      const size_t prefix = data[j++];
+      const size_t len = data[j++];
+      const size_t partition_end = start+header_length+len;
+
+      //Traverse partition use prefix to get nbr id.
+      for(;j < partition_end;++j){
+        int cur = (prefix << 16) | (unsigned short) data[j]; //neighbor node
+        function(col,cur,m);
+      }
+      j = partition_end-1;   
+    }
+  }
+  void print_data(short *A, size_t s_a){
+    for(size_t i = 0; i < s_a; i++){
+      int prefix = (A[i] << 16);
+      unsigned short size = A[i+1];
+      cout << "size: " << size << endl;
+      i += 2;
+
+      size_t inner_end = i+size;
+      while(i < inner_end){
+        int tmp = prefix | (unsigned short)A[i];
+        cout << "Data: " << tmp << endl;
+        ++i;
+      }
+      i--;
+    }
+  }
 
 	template<typename T> 
 	T reduce(short *data, size_t length,T (*function)(T,T), T zero){

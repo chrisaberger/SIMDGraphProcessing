@@ -30,7 +30,7 @@ namespace integerarray{
         Array32::foreach(function,col,m,data,length);
         break;
       case common::ARRAY16:
-        //index = Array16::preprocess(data,index,data_in,length_in);
+        Array16::foreach(function,col,m,data,length);
         break;
       case common::BITSET:
         break;

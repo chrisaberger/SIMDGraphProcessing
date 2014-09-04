@@ -58,7 +58,7 @@ namespace Array16 {
 	  return counter;
 	}
 
-	inline size_t simd_intersect_vector16(short *C, const short *A, const short *B, const size_t s_a, const size_t s_b) {
+	inline size_t simd_intersect_vector16(unsigned short *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
 	  size_t count = 0;
 	  size_t i_a = 0, i_b = 0;
 
@@ -131,7 +131,7 @@ namespace Array16 {
 	      unsigned short partition_size = 0;
 	      //If we are not in the range of the limit we don't need to worry about it.
 	      C[counter++] = A[i_a]; // write partition prefix
-	      partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2], &B[i_b + 2],A[i_a + 1], B[i_b + 1]);
+	      partition_size = simd_intersect_vector16((unsigned short*)&C[counter+1],(unsigned short*)&A[i_a + 2],(unsigned short*)&B[i_b + 2],A[i_a + 1], B[i_b + 1]);
 	      C[counter++] = partition_size; // write partition size
 	      i_a += A[i_a + 1] + 2;
 	      i_b += B[i_b + 1] + 2;      

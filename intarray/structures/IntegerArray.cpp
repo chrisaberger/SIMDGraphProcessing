@@ -78,7 +78,7 @@ namespace integerarray{
         Array32::print_data(data,length);
         break;
       case common::ARRAY16:
-        //Array16::
+        Array16::print_data(data,length);
         break;
       case common::BITSET:
         break;

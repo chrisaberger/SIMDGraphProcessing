@@ -21,7 +21,10 @@ namespace my_app{
     size_t nbr_start = m->indicies[nbr];
     size_t nbr_end = m->indicies[nbr+1];
 
-    num_triangles += integerarray::intersect(result,m->data+n_start,m->data+nbr_start,n_end-n_start,nbr_end-nbr_start,m->t);
+    size_t ncount = 0;
+    ncount = integerarray::intersect(result,m->data+n_start,m->data+nbr_start,n_end-n_start,nbr_end-nbr_start,m->t);
+    
+    num_triangles += ncount;
   } 
 }
 
@@ -49,7 +52,22 @@ int main (int argc, char* argv[]) {
       //apply triangle counting
       &my_app::triangle_counting
   );
-  common::stopClock("Triangle Counting");
+  common::stopClock("V16: Triangle Counting");
+  cout << "Count: " << my_app::num_triangles << endl;
+
+  my_app::num_triangles = 0;
+  my_type = common::ARRAY32; 
+  graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,my_type);
+
+  common::startClock();
+  //For each column
+  graph->foreach_column(
+    //for each row
+    &Matrix::for_row,
+      //apply triangle counting
+      &my_app::triangle_counting
+  );
+  common::stopClock("V32: Triangle Counting");
 
   cout << "Count: " << my_app::num_triangles << endl;
 

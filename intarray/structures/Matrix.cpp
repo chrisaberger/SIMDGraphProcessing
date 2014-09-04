@@ -21,8 +21,9 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(int), bool (*edgeFilter)(int,
 	    		filtered_hood[filter_index++] = hood->at(j);
 	    	}
 	    }
+      //size_t start_index = index;
 			index = integerarray::preprocess(tmp_data,index,filtered_hood,filter_index, t);
-	    delete[] filtered_hood;
+      delete[] filtered_hood;
   	}
   }
   data = new short[index];

@@ -3,12 +3,10 @@
 
 using namespace std;
 
-class Matrix;
-
 #define VECTORIZE 1
 #define WRITE_VECTOR 1
 
-namespace Array16 {
+namespace array16 {
 	#define SHORTS_PER_REG 8
 
 	static __m128i shuffle_mask16[256]; // precomputed dictionary
@@ -156,7 +154,7 @@ namespace Array16 {
 	}
     //This forward reference is kind of akward but needed for Matrix traversals.
   template<typename T> 
-  inline T foreach(T (*function)(unsigned int,unsigned int,Matrix*),unsigned int col,Matrix *m, unsigned short *data, size_t length){
+  inline T foreach(T (*function)(unsigned int,unsigned int),unsigned int col,unsigned short *data, size_t length){
     T result = (T) 0;
     for(size_t j = 0; j < length; ++j){
       const size_t header_length = 2;
@@ -168,7 +166,7 @@ namespace Array16 {
       //Traverse partition use prefix to get nbr id.
       for(;j < partition_end;++j){
         unsigned int cur = (prefix << 16) | data[j]; //neighbor node
-        result += function(col,cur,m);
+        result += function(col,cur);
       }
       j = partition_end-1;   
     }

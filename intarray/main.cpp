@@ -10,6 +10,6 @@ int main (int argc, char* argv[]) {
     data[i] = -2+i*2;
   }
   unsigned short *result = new unsigned short[30];
-  size_t index = Array16::preprocess(result,0,data,10);
-  Array16::print_data(result,index);
+  size_t index = array16::preprocess(result,0,data,10);
+  array16::print_data(result,index);
 }

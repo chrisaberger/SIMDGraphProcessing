@@ -4,6 +4,7 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFil
   t = t_in;
   num_columns = vg->num_nodes;
   indicies = new size_t[num_columns+1];
+  row_lengths = new unsigned int[num_columns];
 
   unsigned short *tmp_data = new unsigned short[vg->num_edges*3]; 
 
@@ -22,6 +23,7 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFil
 	    	}
 	    }
       //size_t start_index = index;
+      row_lengths[i] = filter_index;
 			index = integerarray::preprocess(tmp_data,index,filtered_hood,filter_index, t);
       delete[] filtered_hood;
   	}
@@ -33,7 +35,7 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFil
 }
 
 template<typename T> 
-T Matrix::foreach_column(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,unsigned int,Matrix*)), T (*f)(unsigned int,unsigned int,Matrix*)) {
+T Matrix::foreach_column(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,unsigned int)), T (*f)(unsigned int,unsigned int)) {
 	T reducer = (T) 0;
   #pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
   for(size_t i = 0; i < num_columns; i++){
@@ -43,16 +45,32 @@ T Matrix::foreach_column(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned i
 }
 
 template<typename T> 
-T Matrix::for_row(unsigned int col,T (*function)(unsigned int,unsigned int,Matrix*)){
+T Matrix::for_row(unsigned int col,T (*function)(unsigned int,unsigned int)){
 	size_t start = indicies[col];
 	size_t end = indicies[col+1];
-	return integerarray::foreach(function,col,this,data+start,end-start,t); //function(data(i))
+  unsigned int length = row_lengths[col];
+	return integerarray::foreach(function,col,data+start,end-start,length,t); //function(data(i))
 }
+inline size_t Matrix::row_intersect(unsigned short *R, unsigned int i, unsigned int j){
+  size_t i_start = indicies[i];
+  size_t i_end = indicies[i+1];
+
+  size_t j_start = indicies[j];
+  size_t j_end = indicies[j+1];
+
+  unsigned int i_size = row_lengths[i];
+  unsigned int j_size = row_lengths[j];
+
+  long ncount = integerarray::intersect(R+i*(num_columns/2),data+i_start,data+j_start,i_end-i_start,j_end-j_start,i_size,j_size,t);
+  return ncount;
+}
+
 void Matrix::print_matrix(){
 	for(size_t i = 0; i < num_columns; i++){
 		cout << "COLUMN: " << i << endl;
 		size_t start = indicies[i];
 		size_t end = indicies[i+1];
-		integerarray::print_data(t,data+start,end-start);
+    unsigned int size = row_lengths[i];
+		integerarray::print_data(t,data+start,end-start,size);
 	}
 }

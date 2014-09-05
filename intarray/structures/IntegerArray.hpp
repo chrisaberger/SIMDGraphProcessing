@@ -2,12 +2,11 @@
 #define INTEGERARRAY_H
 
 #include <omp.h>
-#include "Array16.hpp"
-#include "Array32.hpp"
+#include "Hybrid.hpp"
 #include "Common.hpp"
 
 using namespace std;
-
+/*
 class IntegerArray{
 	private:
 		unsigned short *data;
@@ -21,5 +20,6 @@ class IntegerArray{
 	  template<typename T>
 	  T reduce(T (*function)(T,T), T zero);
 };
+*/
 
 #endif

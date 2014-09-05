@@ -1,12 +1,11 @@
 #include "Common.hpp"
 
 #define VECTORIZE 1
+#define WRITE_VECTOR 1
 
 using namespace std;
 
-class Matrix;
-
-namespace Array32 {
+namespace array32 {
   static __m128i shuffle_mask32[16]; // precomputed dictionary
   static int getBitV(int value, int position) {
     return ( ( value & (1 << position) ) >> position);
@@ -67,9 +66,11 @@ namespace Array32 {
       //]
       
       //[ copy out common elements
+      #if WRITE_VECTOR == 1
       __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask32[mask]);
       _mm_storeu_si128((__m128i*)&C[count], p);
-      
+      #endif
+
       count += _mm_popcnt_u32(mask); // a number of elements is a weight of the mask
       //]
     }
@@ -83,7 +84,11 @@ namespace Array32 {
         notFinished = i_b < s_b;
       }
       if(notFinished && A[i_a] == B[i_b]){
-       ++count;
+        #if WRITE_VECTOR == 1
+        C[count] = A[i_a];
+        #endif
+
+        ++count;
       }
       ++i_a;
       notFinished = notFinished && i_a < s_a;
@@ -93,11 +98,11 @@ namespace Array32 {
   }
   
   template<typename T> 
-  inline T foreach(T (*function)(unsigned int,unsigned int,Matrix*),unsigned int col,Matrix *m,unsigned short *data, size_t length){
+  inline T foreach(T (*function)(unsigned int,unsigned int),unsigned int col,unsigned short *data, size_t length){
     T result = (T) 0;
     unsigned int *actual_data = (unsigned int*) data;
     for(size_t i = 0; i < (length/2); i++){
-      result += function(col,actual_data[i],m);
+      result += function(col,actual_data[i]);
     }
     return result;
   }
@@ -106,7 +111,7 @@ namespace Array32 {
     unsigned int *actual_data = (unsigned int*) data;
     cout << "LEN: " << length << endl;
     for(size_t i = 0; i < (length/2); i++){
-      cout << "Index: " << i << " Data: " << actual_data[i] << endl;
+      cout << " Data: " << actual_data[i] << endl;
     }
   }
   inline size_t preprocess(unsigned short *r, size_t index, unsigned int *data, size_t length){

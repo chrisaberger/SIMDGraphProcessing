@@ -1,8 +1,5 @@
 #include "Common.hpp"
 
-#define VECTORIZE 1
-#define WRITE_VECTOR 1
-
 using namespace std;
 
 namespace array32 {

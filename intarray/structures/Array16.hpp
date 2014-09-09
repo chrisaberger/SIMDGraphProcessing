@@ -3,12 +3,7 @@
 
 using namespace std;
 
-#define VECTORIZE 1
-#define WRITE_VECTOR 1
-
 namespace array16 {
-	#define SHORTS_PER_REG 8
-
 	static __m128i shuffle_mask16[256]; // precomputed dictionary
   
   static inline int getBitSD(unsigned int value, unsigned int position) {

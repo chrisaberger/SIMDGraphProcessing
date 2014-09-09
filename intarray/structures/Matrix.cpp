@@ -64,7 +64,19 @@ inline size_t Matrix::row_intersect(unsigned short *R, unsigned int i, unsigned 
   long ncount = integerarray::intersect(R+i*(num_columns/2),data+i_start,data+j_start,i_end-i_start,j_end-j_start,i_size,j_size,t);
   return ncount;
 }
+void Matrix::print_columns(unsigned int i, unsigned int j){
+  cout << "COLUMN: " << i << endl;
+  size_t start = indicies[i];
+  size_t end = indicies[i+1];
+  unsigned int size = row_lengths[i];
+  integerarray::print_data(t,data+start,end-start,size);
 
+  cout << "COLUMN: " << j << endl;
+  start = indicies[j];
+  end = indicies[j+1];
+  size = row_lengths[j];
+  integerarray::print_data(t,data+start,end-start,size);
+}
 void Matrix::print_matrix(){
 	for(size_t i = 0; i < num_columns; i++){
 		cout << "COLUMN: " << i << endl;

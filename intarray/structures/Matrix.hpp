@@ -20,6 +20,7 @@ class Matrix{
   	unsigned short *data; //formerly edges
     Matrix(VectorGraph *vg,bool (*function1)(unsigned int),bool (*function2)(unsigned int,unsigned int),common::type t);
     void print_matrix();
+    void print_columns(unsigned int i, unsigned int j);
     template<typename T> 
     T foreach_column(T (Matrix::*function)(unsigned int,T (*f)(unsigned int,unsigned int)), T (*f)(unsigned int,unsigned int));
     template<typename T> 

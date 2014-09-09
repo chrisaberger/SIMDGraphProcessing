@@ -19,9 +19,9 @@ namespace my_app{
   }
   //Our functor that gets applied to every edge (or set element in the matrix)
   inline long triangle_counting(unsigned int n, unsigned int nbr){
-    //cout << "n: " << n << " nbr: " << nbr << endl;
+    cout << "n: " << n << " nbr: " << nbr << endl;
     long count = graph->row_intersect(result,n,nbr);
-    //cout << count << endl;
+    cout << count << endl;
     return count;
   }
 }
@@ -45,12 +45,9 @@ int main (int argc, char* argv[]) {
 
   my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,my_app::my_type);
   my_app::result = new unsigned short[vg->num_nodes*(vg->num_nodes/2)];
-  //For each column
-  //my_app::graph->print_matrix();
-  
-  common::startClock();
-  my_app::num_triangles = my_app::graph->foreach_column(&Matrix::for_row,&my_app::triangle_counting);
-  common::stopClock("TRIANGLE COUNTING");
+
+  my_app::graph->print_columns(74482,21);
+  my_app::num_triangles = my_app::graph->row_intersect(my_app::result,74482,21);
   cout << "Count: " << my_app::num_triangles << endl;
 
   return 0;

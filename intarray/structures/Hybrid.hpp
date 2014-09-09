@@ -32,7 +32,7 @@ namespace hybrid {
 	#define SHORTS_PER_REG 8
 
   inline common::type select_type(size_t s_a){
-    if(s_a > 1){
+    if(s_a > 8){
       return common::ARRAY16;
     }else{
       return common::ARRAY32;

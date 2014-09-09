@@ -43,7 +43,7 @@ int main (int argc, char* argv[]) {
   cout << endl;
 
 
-  my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::HYBRID);
+  my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::ARRAY16);
   my_app::result = new unsigned short[vg->num_nodes];
   
   common::startClock();

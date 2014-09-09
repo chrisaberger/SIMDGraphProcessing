@@ -32,7 +32,7 @@ namespace hybrid {
 	#define SHORTS_PER_REG 8
 
   inline common::type select_type(size_t s_a){
-    if(s_a > 16){
+    if(s_a > 1){
       return common::ARRAY16;
     }else{
       return common::ARRAY32;
@@ -61,26 +61,33 @@ namespace hybrid {
     size_t b_i = 0;
     size_t count = 0;
 
+    unsigned int *C_32 = (unsigned int*) C;
+    C_32 = C_32; //to get rid of compiler warning
     unsigned int *A_32 = (unsigned int*) A;
+
     size_t a_size = s_a/2;
     bool not_finished = a_i < a_size && b_i < s_b;
 
     while(not_finished){
-      unsigned int prefix = (B[b_i++] << 16);
-      unsigned short b_size = B[b_i++];
+      unsigned int prefix = (B[b_i] << 16);
+      unsigned short b_size = B[b_i+1];
       unsigned int cur_match = A_32[a_i];
-      size_t inner_end = b_i+b_size;
-
+      size_t inner_end = b_i+b_size+2;
+      //cout << endl;
+      //cout << "Bi: " << b_i << " Bsize: " << b_size << " InnerEnd: " << inner_end << endl;
 
       if(prefix < (cur_match & 0xFFFF0000)){
         //cout << "1" << endl;
         b_i = inner_end;
         not_finished = b_i < s_b;
       } else if(prefix > cur_match){
+        //cout << prefix << " " << cur_match << endl;
         //cout << "2" << endl;
-        not_finished = ++a_i < a_size;
+        a_i++;
+        not_finished = a_i < a_size;
       } else{
         //cout << "3" << endl;
+        b_i += 2;
         while(not_finished){
           #if VECTORIZE == 1
 
@@ -110,7 +117,11 @@ namespace hybrid {
 
             #if WRITE_VECTOR == 1
             __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask16[r]);
-            _mm_storeu_si128((__m128i*)&C[count], p);
+            uint16_t *t = (uint16_t*) &p;
+            for(size_t wi=0;wi<SHORTS_PER_REG;wi++){
+              C_32[count++] = prefix | (unsigned int)t[wi]; 
+            }
+            //_mm_storeu_si128((__m128i*)&C[count], p);
            #endif
 
             count += _mm_popcnt_u32(r);
@@ -130,7 +141,7 @@ namespace hybrid {
           if(cur_match == cur){
             //place data
             #if WRITE_VECTOR == 1
-            C[count] = cur;
+            C_32[count] = cur;
             #endif
             cur_match = A_32[++a_i];
             count++;

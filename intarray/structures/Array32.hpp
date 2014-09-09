@@ -29,7 +29,7 @@ namespace array32 {
     size_t i_a = 0, i_b = 0;
 
     // trim lengths to be a multiple of 4
-    #ifdef VECTORIZE
+    #if VECTORIZE == 1
     size_t st_a = (s_a / 4) * 4;
     size_t st_b = (s_b / 4) * 4;
     while(i_a < st_a && i_b < st_b) {

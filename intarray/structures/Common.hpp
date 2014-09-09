@@ -19,7 +19,7 @@
 #include <fstream>
 
 #define VECTORIZE 1
-#define WRITE_VECTOR 1
+#define WRITE_VECTOR 0
 #define SHORTS_PER_REG 8
 
 using namespace std;

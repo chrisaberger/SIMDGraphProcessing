@@ -29,6 +29,7 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFil
   	}
   }
   data = new unsigned short[index];
+  cout << "Data Length (Bytes): " << index/2 << endl;
   std::copy(tmp_data,tmp_data+index,data);
   cardinality = new_cardinality;
   indicies[num_columns] = index;
@@ -61,7 +62,7 @@ inline size_t Matrix::row_intersect(unsigned short *R, unsigned int i, unsigned 
   unsigned int i_size = row_lengths[i];
   unsigned int j_size = row_lengths[j];
 
-  long ncount = integerarray::intersect(R+i*(num_columns/2),data+i_start,data+j_start,i_end-i_start,j_end-j_start,i_size,j_size,t);
+  long ncount = integerarray::intersect(R,data+i_start,data+j_start,i_end-i_start,j_end-j_start,i_size,j_size,t);
   return ncount;
 }
 void Matrix::print_columns(unsigned int i, unsigned int j){

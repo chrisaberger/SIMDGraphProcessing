@@ -24,7 +24,6 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFil
 	    }
       //size_t start_index = index;
       row_lengths[i] = filter_index;
-      cout << "Node: " << i << endl;
 			index = integerarray::preprocess(tmp_data,index,filtered_hood,filter_index, t);
       delete[] filtered_hood;
   	}
@@ -32,9 +31,6 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFil
   data = new unsigned short[index];
   cout << "Data Length (Bytes): " << index/2 << endl;
   std::copy(tmp_data,tmp_data+index,data);
-  for(size_t i=0; i<index;i++){
-    cout << "Index: " << index << " Data: " << data[i] << endl;
-  }
   cardinality = new_cardinality;
   indicies[num_columns] = index;
 }
@@ -54,8 +50,6 @@ T Matrix::for_row(unsigned int col,T (*function)(unsigned int,unsigned int)){
 	size_t start = indicies[col];
 	size_t end = indicies[col+1];
   unsigned int length = row_lengths[col];
-  cout << endl;
-  cout << "Column: " << col << " Start: " << start << " End: " << end << endl;
 	return integerarray::foreach(function,col,data+start,end-start,length,t); //function(data(i))
 }
 inline size_t Matrix::row_intersect(unsigned short *R, unsigned int i, unsigned int j){

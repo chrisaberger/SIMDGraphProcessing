@@ -43,21 +43,21 @@ int main (int argc, char* argv[]) {
   cout << endl;
 
 
-  my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,my_app::my_type);
+  my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::BITSET);
   my_app::result = new unsigned short[vg->num_nodes];
   
   common::startClock();
   my_app::num_triangles = my_app::graph->foreach_column(&Matrix::for_row,&my_app::triangle_counting);
-  common::stopClock("ARRAY 16 TRIANGLE COUNTING");
+  common::stopClock("BITSET TRIANGLE COUNTING");
   cout << "Count: " << my_app::num_triangles << endl;
 
-  /*
   my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::ARRAY16);
   common::startClock();
   my_app::num_triangles = my_app::graph->foreach_column(&Matrix::for_row,&my_app::triangle_counting);
   common::stopClock("ARRAY 16 TRIANGLE COUNTING");
   cout << "Count: " << my_app::num_triangles << endl;
   
+  /*  
   my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::ARRAY32);
   common::startClock();
   my_app::num_triangles = my_app::graph->foreach_column(&Matrix::for_row,&my_app::triangle_counting);

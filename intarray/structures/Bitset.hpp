@@ -19,7 +19,6 @@ namespace bitset {
 	inline size_t preprocess(unsigned short *R, size_t index, unsigned int *A, size_t s_a){
 		unsigned int max = A[s_a-1];
 		size_t num_words = word_index(max);
-		cout << "Max Word Index: " << num_words << endl;
 		if(s_a != 0){
 			num_words++;
 		}
@@ -27,7 +26,6 @@ namespace bitset {
 	  size_t i = 0;
 	  while(i<s_a){
 	    unsigned int cur = A[i];
-	    cout << "Input Cur: " << cur << endl;
 	    size_t word = word_index(cur);
 	    unsigned short set_value = 1 << (cur % BITS_PER_WORD);
 	    bool same_word = true;
@@ -35,15 +33,12 @@ namespace bitset {
 	    while(i<s_a && same_word){
 	      if(word_index(A[i])==word){
 	        cur = A[i];
-	       	cout << "Input Cur: " << cur << endl;
 	        set_value |= (1 << (cur%BITS_PER_WORD));
 	        ++i;
 	      } else same_word = false;
 	    }
-	    cout << "Setting word: " << word << " Value: " << set_value << endl;
 	    R[index+word] = set_value; 
 	  }
-	  cout << "Length: " << index+num_words << endl;
 	  return index + num_words;
 	}
 	inline size_t intersect(unsigned short *C, unsigned short *A, unsigned short *B, const size_t s_a, const size_t s_b) {
@@ -61,7 +56,8 @@ namespace bitset {
 	  //8 ints
 	  //4 longs
 	  size_t i = 0;
-
+	  
+    #if VECTORIZE == 1
 	  while((i+7) < small_length){
 	    __m128i a1 = _mm_loadu_si128((const __m128i*)&A[i]);
 	    __m128i a2 = _mm_loadu_si128((const __m128i*)&B[i]);
@@ -79,6 +75,8 @@ namespace bitset {
 
 	    i += 8;
 	  }
+	  #endif
+
 	  for(; i < small_length; i++){
 	  	unsigned short result = small[i] & large[i];
 
@@ -93,15 +91,11 @@ namespace bitset {
 	template<typename T> 
   inline T foreach(T (*function)(unsigned int,unsigned int),unsigned int col,unsigned short *data, size_t length){
     T result = (T) 0;
-    cout << "Column: " << col << endl;
     for(size_t i = 0; i < length; i++){
-    	cout << i << " len: " << length << endl; 
     	unsigned short cur_word = data[i];
-    	cout << "Cur word: " << cur_word << endl;
     	for(size_t j = 0; j < BITS_PER_WORD; j++){
     		if((cur_word >> j) % 2){
     			unsigned int cur = BITS_PER_WORD*i + j;
-    			cout << "Cur: " << cur << endl;
     			result += function(col,cur);
     		}
     	}

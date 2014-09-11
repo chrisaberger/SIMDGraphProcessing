@@ -5,11 +5,14 @@
 using namespace std;
 
 int main (int argc, char* argv[]) { 
-  unsigned int *data = new unsigned int[10];
-  for(size_t i=0; i < 10; i++){
-    data[i] = -2+i*2;
+  unsigned int *data = new unsigned int[65536];
+  for(size_t i=0; i < 65536; i++){
+    data[i] = i;
   }
-  unsigned short *result = new unsigned short[30];
-  size_t index = array16::preprocess(result,0,data,10);
-  array16::print_data(result,index);
+  unsigned short *result = new unsigned short[65536];
+  unsigned short *output = new unsigned short[65536];
+  size_t index = bitset::preprocess(result,0,data,65536);
+  cout << "index: " << index << endl;
+  bitset::print_data(result,index);
+  cout << "Count: " << bitset::intersect(output,result,result,index,index) << endl;
 }

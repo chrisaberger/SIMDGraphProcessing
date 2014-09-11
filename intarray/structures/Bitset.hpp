@@ -3,114 +3,119 @@
 
 using namespace std;
 
-namespace Bitset {
-	inline size_t preprocess(unsigned short *R, size_t index, unsigned int *A, size_t s_a){
-		prepare_shuffling_dictionary16();
-	  unsigned short high = 0;
-	  size_t partition_length = 0;
-	  size_t partition_size_position = index+1;
-	  size_t counter = index;
-	  for(size_t p = 0; p < s_a; p++) {
-	    unsigned short chigh = (A[p] & 0xFFFF0000) >> 16; // upper dword
-	    unsigned short clow = A[p] & 0x0FFFF;   // lower dword
-	    if(chigh == high && p != 0) { // add element to the current partition
-	      partition_length++;
-	      R[counter++] = clow;
-	    }else{ // start new partition
-	      R[counter++] = chigh; // partition prefix
-	      R[counter++] = 0;     // reserve place for partition size
-	      R[counter++] = clow;  // write the first element
-	      R[partition_size_position] = partition_length;
+#define BITS_PER_WORD 16
+#define ADDRESS_BITS_PER_WORD 4
 
-	      partition_length = 1; // reset counters
-	      partition_size_position = counter - 2;
-	      high = chigh;
-	    }
-	  }
-	  R[partition_size_position] = partition_length;
-	  return counter;
+namespace bitset {
+	inline size_t word_index(unsigned int bit_index){
+  	return bit_index >> ADDRESS_BITS_PER_WORD;
 	}
-	inline size_t intersect(unsigned short *C,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
-	  size_t i_a = 0, i_b = 0;
-	  size_t counter = 0;
-	  size_t count = 0;
-	  bool notFinished = i_a < s_a && i_b < s_b;
+	inline int get_bit(unsigned int value, unsigned int position) {
+    return ( ( value & (1 << position) ) >> position);
+	}
+	inline bool is_set(unsigned int index, const unsigned short *in_array){
+  	return (in_array[word_index(index)] & (1 << (index%16)));
+	}
+	inline size_t preprocess(unsigned short *R, size_t index, unsigned int *A, size_t s_a){
+		unsigned int max = A[s_a-1];
+		size_t num_words = word_index(max);
+		cout << "Max Word Index: " << num_words << endl;
+		if(s_a != 0){
+			num_words++;
+		}
 
-	  //cout << lim << endl;
-	  while(notFinished) {
-	    //size_t limLower = limLowerHolder;
-	    //cout << "looping" << endl;
-	    if(A[i_a] < B[i_b]) {
-	      i_a += A[i_a + 1] + 2;
-	      notFinished = i_a < s_a;
-	    } else if(B[i_b] < A[i_a]) {
-	      i_b += B[i_b + 1] + 2;
-	      notFinished = i_b < s_b;
-	    } else {
-	      unsigned short partition_size = 0;
-	      //If we are not in the range of the limit we don't need to worry about it.
-	      #if WRITE_VECTOR == 1
-        C[counter++] = A[i_a]; // write partition prefix
-	      #endif
-        partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2],&B[i_b + 2],A[i_a + 1], B[i_b + 1]);
-	      #if WRITE_VECTOR == 1
-        C[counter++] = partition_size; // write partition size
-	      #endif
-        i_a += A[i_a + 1] + 2;
-	      i_b += B[i_b + 1] + 2;      
-
-	      count += partition_size;
-	      counter += partition_size;
-	      notFinished = i_a < s_a && i_b < s_b;
+	  size_t i = 0;
+	  while(i<s_a){
+	    unsigned int cur = A[i];
+	    cout << "Input Cur: " << cur << endl;
+	    size_t word = word_index(cur);
+	    unsigned short set_value = 1 << (cur % BITS_PER_WORD);
+	    bool same_word = true;
+	    ++i;
+	    while(i<s_a && same_word){
+	      if(word_index(A[i])==word){
+	        cur = A[i];
+	       	cout << "Input Cur: " << cur << endl;
+	        set_value |= (1 << (cur%BITS_PER_WORD));
+	        ++i;
+	      } else same_word = false;
 	    }
+	    cout << "Setting word: " << word << " Value: " << set_value << endl;
+	    R[index+word] = set_value; 
+	  }
+	  cout << "Length: " << index+num_words << endl;
+	  return index + num_words;
+	}
+	inline size_t intersect(unsigned short *C, unsigned short *A, unsigned short *B, const size_t s_a, const size_t s_b) {
+	  long count = 0l;
+	  unsigned short *small = A;
+	  size_t small_length = s_a;
+	  unsigned short *large = B;
+	  if(s_a > s_b){
+	  	large = A;
+	  	small = B;
+	  	small_length = s_b;
+	  }
+
+	  //16 unsigned shorts
+	  //8 ints
+	  //4 longs
+	  size_t i = 0;
+
+	  while((i+7) < small_length){
+	    __m128i a1 = _mm_loadu_si128((const __m128i*)&A[i]);
+	    __m128i a2 = _mm_loadu_si128((const __m128i*)&B[i]);
+	    
+	    __m128i r = _mm_and_si128(a1, a2);
+      
+      #if WRITE_VECTOR == 1
+	    _mm_storeu_si128((__m128i*)&C[i], r);
+	   	#endif
+	    
+	    unsigned long l = _mm_extract_epi64(r,0);
+	    count += _mm_popcnt_u64(l);
+	    l = _mm_extract_epi64(r,1);
+	    count += _mm_popcnt_u64(l);
+
+	    i += 8;
+	  }
+	  for(; i < small_length; i++){
+	  	unsigned short result = small[i] & large[i];
+
+	  	#if WRITE_VECTOR == 1
+	  	C[i] = result;
+	   	#endif
+	  	
+	  	count += _mm_popcnt_u32(result);
 	  }
 	  return count;
 	}
-    //This forward reference is kind of akward but needed for Matrix traversals.
-  template<typename T> 
+	template<typename T> 
   inline T foreach(T (*function)(unsigned int,unsigned int),unsigned int col,unsigned short *data, size_t length){
     T result = (T) 0;
-    for(size_t j = 0; j < length; ++j){
-      const size_t header_length = 2;
-      const size_t start = j;
-      const size_t prefix = data[j++];
-      const size_t len = data[j++];
-      const size_t partition_end = start+header_length+len;
-
-      //Traverse partition use prefix to get nbr id.
-      for(;j < partition_end;++j){
-        unsigned int cur = (prefix << 16) | data[j]; //neighbor node
-        result += function(col,cur);
-      }
-      j = partition_end-1;   
+    cout << "Column: " << col << endl;
+    for(size_t i = 0; i < length; i++){
+    	cout << i << " len: " << length << endl; 
+    	unsigned short cur_word = data[i];
+    	cout << "Cur word: " << cur_word << endl;
+    	for(size_t j = 0; j < BITS_PER_WORD; j++){
+    		if((cur_word >> j) % 2){
+    			unsigned int cur = BITS_PER_WORD*i + j;
+    			cout << "Cur: " << cur << endl;
+    			result += function(col,cur);
+    		}
+    	}
     }
     return result;
   }
   void print_data(unsigned short *A, size_t s_a){
+  	cout << "Size: " << s_a << endl;
     for(size_t i = 0; i < s_a; i++){
-      unsigned int prefix = (A[i] << 16);
-      unsigned short size = A[i+1];
-      cout << "size: " << size << endl;
-      i += 2;
-
-      size_t inner_end = i+size;
-      while(i < inner_end){
-        unsigned int tmp = prefix | A[i];
-        cout << "Data: " << tmp << endl;
-        ++i;
-      }
-      i--;
+    	unsigned short cur_word = A[i];
+    	for(size_t j = 0; j < BITS_PER_WORD; j++){
+    		if((cur_word >> j) % 2)
+    			cout << "Data: " << BITS_PER_WORD*i + j << endl;
+    	}
     }
   }
-
-	template<typename T> 
-	T reduce(unsigned short *data, size_t length,T (*function)(T,T), T zero){
-		unsigned int *actual_data = (unsigned int*) data;
-		T result = zero;
-		for(size_t i = 0; i < length; i++){
-			result = function(result,actual_data[i]);
-		}	
-		return result;
-	}
-
 } 

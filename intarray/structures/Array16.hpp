@@ -89,10 +89,9 @@ namespace array16 {
 	    i_b += (a_max >= b_max) * SHORTS_PER_REG;
 	  }
     #endif
+
 	  // intersect the tail using scalar intersection
 	  //...
-
-	  //cout << "here" << endl;
 	  bool notFinished = i_a < s_a  && i_b < s_b;
 	  while(notFinished){
 	    while(notFinished && B[i_b] < A[i_a]){
@@ -108,7 +107,6 @@ namespace array16 {
 	    ++i_a;
 	    notFinished = notFinished && i_a < s_a;
 	  }
-	  //cout <<  "end here" << endl;
 	  return count;
 	}
 	inline size_t intersect(unsigned short *C,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
@@ -147,7 +145,6 @@ namespace array16 {
 	  }
 	  return count;
 	}
-    //This forward reference is kind of akward but needed for Matrix traversals.
   template<typename T> 
   inline T foreach(T (*function)(unsigned int,unsigned int),unsigned int col,unsigned short *data, size_t length){
     T result = (T) 0;

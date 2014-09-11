@@ -17,6 +17,7 @@ namespace integerarray{
         index = array16::preprocess(data,index,data_in,length_in);
         break;
       case common::BITSET:
+        index = bitset::preprocess(data,index,data_in,length_in);
         break;
       case common::HYBRID:
         index = hybrid::preprocess(data,index,data_in,length_in);
@@ -37,7 +38,7 @@ namespace integerarray{
         return array16::foreach(function,col,data,length);
         break;
       case common::BITSET:
-        return (T) 0;
+        return bitset::foreach(function,col,data,length);
         break;
       case common::HYBRID:
         return hybrid::foreach(function,col,data,length,size);
@@ -57,6 +58,7 @@ namespace integerarray{
         count = array16::intersect(R,A,B,s_a,s_b);
         break;
       case common::BITSET:
+        count = bitset::intersect(R,A,B,s_a,s_b);
         break;
       case common::HYBRID:
         count = hybrid::intersect(R,A,B,s_a,s_b,size_a,size_b);
@@ -92,6 +94,7 @@ namespace integerarray{
         array16::print_data(data,length);
         break;
       case common::BITSET:
+        bitset::print_data(data,length);
         break;
       case common::HYBRID:
         hybrid::print_data(data,length,size);

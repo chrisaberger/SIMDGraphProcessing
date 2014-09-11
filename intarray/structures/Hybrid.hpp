@@ -56,7 +56,46 @@ namespace hybrid {
     }
     return index;
 	}
+  //untested
+  inline size_t intersect_a16_bs(unsigned short *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+    size_t count = 0;
+    for(size_t i = 0; i < s_a; i++){
+      unsigned int prefix = (A[i] << 16);
+      unsigned short size = A[i+1];
+      i += 2;
 
+      size_t inner_end = i+size;
+      while(i < inner_end){
+        unsigned int cur = prefix | A[i];
+        if(bitset::is_set(cur,B)){
+          #if WRITE_VECTOR == 1
+          C[count*2] = cur;
+          #endif
+          count++;
+        }
+        ++i;
+      }
+      i--;
+    }
+    return count;
+  }
+  //untested
+  inline size_t intersect_a32_bs(unsigned short *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+    size_t count = 0;
+    unsigned int *A_32 = (unsigned int*) A;
+    size_t a_size = s_a/2;
+
+    for(size_t i = 0; i < a_size; i++){
+      unsigned int cur = A_32[i];
+      if(bitset::is_set(cur,B)){
+        #if WRITE_VECTOR == 1
+        C[count*2] = cur;
+        #endif
+        count++;
+      }
+    }
+    return count;
+  }
 	inline size_t intersect_a32_a16(unsigned short *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     size_t a_i = 0;
     size_t b_i = 0;
@@ -120,7 +159,7 @@ namespace hybrid {
             __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask16[r]);
             uint16_t *t = (uint16_t*) &p;
             for(size_t wi=0;wi<SHORTS_PER_REG;wi++){
-              C_32[count++] = prefix | (unsigned int)t[wi]; 
+              C_32[count+wi] = prefix | (unsigned int)t[wi]; 
             }
             //_mm_storeu_si128((__m128i*)&C[count], p);
            #endif

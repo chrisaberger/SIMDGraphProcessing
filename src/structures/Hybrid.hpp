@@ -49,7 +49,7 @@ namespace hybrid {
     }
     return count;
   }
-	inline size_t intersect_a32_a16(unsigned short *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+  inline size_t intersect_a32_a16(unsigned short *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     //cout << "32 & 16" << endl;
     size_t a_i = 0;
     size_t b_i = 0;
@@ -139,5 +139,5 @@ namespace hybrid {
       }
     }
     return count;
-	}
+  }
 } 

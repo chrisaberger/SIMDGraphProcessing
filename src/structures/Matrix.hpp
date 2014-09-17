@@ -17,10 +17,11 @@ class Matrix{
 
   	size_t *indicies; //formerly nodes
     unsigned int *row_lengths;
+    unsigned char *row_types;
   	unsigned short *data; //formerly edges
     Matrix(VectorGraph *vg,bool (*function1)(unsigned int),bool (*function2)(unsigned int,unsigned int),common::type t);
-    common::type get_row_type(unsigned int r);
-    common::type get_hybrid_row_type(unsigned int r);
+    common::type get_row_type(unsigned int r, unsigned int *row);
+    common::type get_hybrid_row_type(unsigned int r, unsigned int *row);
     void print_matrix();
     void print_rows(unsigned int i, unsigned int j);
     template<typename T> 

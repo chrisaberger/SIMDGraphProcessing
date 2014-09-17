@@ -7,6 +7,7 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFil
   num_rows = vg->num_nodes;
   indicies = new size_t[num_rows+1];
   row_lengths = new unsigned int[num_rows];
+  row_types = new unsigned char[num_rows];
 
   unsigned short *tmp_data = new unsigned short[vg->num_edges*3]; 
 
@@ -26,7 +27,8 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFil
 	    }
       //size_t start_index = index;
       row_lengths[i] = filter_index;
-      const common::type row_type = get_row_type(i);
+      const common::type row_type = get_row_type(i,filtered_hood); //depends on above array being set
+      row_types[i] = row_type;
       index = integerarray::preprocess(tmp_data,index,filtered_hood,filter_index,row_type);
       delete[] filtered_hood;
   	}
@@ -38,10 +40,10 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFil
   indicies[num_rows] = index;
 }
 
-inline common::type Matrix::get_row_type(unsigned int r){
+inline common::type Matrix::get_row_type(unsigned int r, unsigned int *row_data){
   #if HYBRID_LAYOUT == 1
   if(t == common::HYBRID){
-    return get_hybrid_row_type(r);
+    return get_hybrid_row_type(r,row_data);
   } else{
     return t;
   }
@@ -50,7 +52,7 @@ inline common::type Matrix::get_row_type(unsigned int r){
   #endif
 }
 
-inline common::type Matrix::get_hybrid_row_type(unsigned int r){
+inline common::type Matrix::get_hybrid_row_type(unsigned int r, unsigned int *row_data){
   size_t row_size = row_lengths[r];
   double sparsity = (double)row_size/num_rows;
   //cout << sparsity << endl;
@@ -79,7 +81,7 @@ template<typename T>
 T Matrix::for_row(unsigned int col,T (*function)(unsigned int,unsigned int)){
 	size_t start = indicies[col];
 	size_t end = indicies[col+1];
-  const common::type row_type = get_row_type(col);
+  const common::type row_type = (common::type) row_types[col];
 	return integerarray::foreach(function,col,data+start,end-start,row_type); //function(data(i))
 }
 inline size_t Matrix::row_intersect(unsigned short *R, unsigned int i, unsigned int j){
@@ -91,8 +93,8 @@ inline size_t Matrix::row_intersect(unsigned short *R, unsigned int i, unsigned 
 
   long ncount;
   #if HYBRID_LAYOUT == 1
-  const common::type t1 = get_row_type(i);
-  const common::type t2 = get_row_type(j);
+  const common::type t1 = (common::type) row_types[i];
+  const common::type t2 = (common::type) row_types[j];
   if(t1 == t2){
     ncount = integerarray::intersect(R,data+i_start,data+j_start,i_end-i_start,j_end-j_start,t1);
   } else{
@@ -108,14 +110,14 @@ void Matrix::print_rows(unsigned int i, unsigned int j){
   cout << "ROW: " << i << endl;
   size_t start = indicies[i];
   size_t end = indicies[i+1];
-  common::type row_type = get_row_type(i);
+  common::type row_type = (common::type) row_types[i];
   integerarray::print_data(data+start,end-start,row_type);
 
   cout << "ROW: " << j << endl;
   start = indicies[j];
   end = indicies[j+1];
   cout << "start: " << start << " end: " << end << endl;
-  row_type = get_row_type(j);
+  row_type = (common::type) row_types[j];
   integerarray::print_data(data+start,end-start,row_type);
 }
 void Matrix::print_matrix(){
@@ -123,7 +125,7 @@ void Matrix::print_matrix(){
 		cout << "ROW: " << i << endl;
 		size_t start = indicies[i];
 		size_t end = indicies[i+1];
-    const common::type row_type = get_row_type(i);
+    const common::type row_type = (common::type) row_types[i];
 		integerarray::print_data(data+start,end-start,row_type);
 	}
 }

@@ -58,11 +58,11 @@ namespace common{
     } 
   }  
 
-  enum type {
-    BITSET,
-    ARRAY16,
-    ARRAY32,
-    HYBRID
+  enum type: unsigned char {
+    BITSET = 0,
+    ARRAY16 = 1,
+    ARRAY32 = 2,
+    HYBRID = 3
   };
   
 };

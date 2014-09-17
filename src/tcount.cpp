@@ -21,14 +21,6 @@ namespace my_app{
   //Our functor that gets applied to every edge (or set element in the matrix)
   inline long triangle_counting(unsigned int n, unsigned int nbr){
     //cout << "n: " << n << " nbr: " << nbr << endl;
-    num_int++;
-
-    /*
-    if( (graph->row_lengths[nbr] != 0 && (graph->row_lengths[n]/graph->row_lengths[nbr]) > 10) ||
-     (graph->row_lengths[n] != 0 && (graph->row_lengths[nbr]/graph->row_lengths[n]) > 10) ) {
-      huge_diff++;
-    }
-    */
     long count = graph->row_intersect(result,n,nbr);
     //cout << "count: " << count << endl;
     return count;
@@ -59,7 +51,7 @@ int main (int argc, char* argv[]) {
   common::stopClock("BITSET TRIANGLE COUNTING");
   cout << "Count: " << my_app::num_triangles << endl;
   */
-
+  
   my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::ARRAY16);
   common::startClock();
   my_app::num_triangles = my_app::graph->foreach_row(&Matrix::for_row,&my_app::triangle_counting);
@@ -67,18 +59,18 @@ int main (int argc, char* argv[]) {
   cout << "Count: " << my_app::num_triangles << endl;
   
   cout << "Huge Diff: " << my_app::huge_diff << " Int: " << my_app::num_int << endl;
-  /*
+  
   my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::ARRAY32);
   common::startClock();
   my_app::num_triangles = my_app::graph->foreach_row(&Matrix::for_row,&my_app::triangle_counting);
   common::stopClock("ARRAY 32 TRIANGLE COUNTING");
   cout << "Count: " << my_app::num_triangles << endl;
-
+  
   my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::HYBRID);
   common::startClock();
   my_app::num_triangles = my_app::graph->foreach_row(&Matrix::for_row,&my_app::triangle_counting);
   common::stopClock("HYBRID TRIANGLE COUNTING");
   cout << "Count: " << my_app::num_triangles << endl;
-  */
+  
   return 0;
 }

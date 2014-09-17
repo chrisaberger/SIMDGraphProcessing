@@ -58,24 +58,6 @@ namespace array16 {
 	  size_t i_a = 0, i_b = 0;
 
     #if VECTORIZE == 1
-   	/*
-    if(i_a < s_a  && i_b < s_b){
-    	if(A[i_a] == 0 && B[i_b] == 0){
-    		#if WRITE_VECTOR == 1
-	      C[count] = A[i_a];
-        #endif
-        i_a++;
-        i_b++;
-	      ++count;
-    	} else if(A[i_a] == 0){
-    		i_a++;
-    	} else if(B[i_b] == 0){
-    		i_b++;
-    	}
-    } else{
-    	return 0;
-    }
-    */
 	  size_t st_a = (s_a / SHORTS_PER_REG) * SHORTS_PER_REG;
 	  size_t st_b = (s_b / SHORTS_PER_REG) * SHORTS_PER_REG;
  

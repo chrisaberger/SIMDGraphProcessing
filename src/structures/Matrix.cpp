@@ -54,12 +54,16 @@ inline common::type Matrix::get_row_type(unsigned int r, unsigned int *row_data)
 
 inline common::type Matrix::get_hybrid_row_type(unsigned int r, unsigned int *row_data){
   size_t row_size = row_lengths[r];
-  double sparsity = (double)row_size/num_rows;
+  double sparsity = (double) row_size/num_rows;
+  //unsigned int num_bins = ((row_data[row_size-1] >> 16) - (row_data[0] >> 16) + 1) ;
   //cout << sparsity << endl;
   if( sparsity > (double) 1/32 ){
     //cout << "BITSET" << endl;
     return common::BITSET;
-  } else if(sparsity > (double) 1/(10*pow(10.0,4.0))){
+  } 
+  //size/num_bins = average # per bin, > 8 say yes
+  else if(row_size != 0 && 
+    (row_size/((row_data[row_size-1] >> 16) - (row_data[0] >> 16) + 1)) > 8){
     //cout << "ARRAY16" << endl;
     return common::ARRAY16;
   } else{
@@ -82,7 +86,7 @@ T Matrix::for_row(unsigned int col,T (*function)(unsigned int,unsigned int)){
 	size_t start = indicies[col];
 	size_t end = indicies[col+1];
   const common::type row_type = (common::type) row_types[col];
-	return integerarray::foreach(function,col,data+start,end-start,row_type); //function(data(i))
+	return integerarray::foreach(function,col,data+start,end-start,row_type);
 }
 inline size_t Matrix::row_intersect(unsigned short *R, unsigned int i, unsigned int j){
   size_t i_start = indicies[i];

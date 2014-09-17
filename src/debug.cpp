@@ -46,8 +46,8 @@ int main (int argc, char* argv[]) {
   my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,my_app::my_type);
   my_app::result = new unsigned short[vg->num_nodes*(vg->num_nodes/2)];
 
-  unsigned int n1 = 9;
-  unsigned int n2 = 4;
+  unsigned int n1 = 211654;
+  unsigned int n2 = 211034;
 
   my_app::graph->print_rows(n1,n2);
   my_app::num_triangles = my_app::graph->row_intersect(my_app::result,n1,n2);

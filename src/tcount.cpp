@@ -51,15 +51,12 @@ int main (int argc, char* argv[]) {
   common::stopClock("BITSET TRIANGLE COUNTING");
   cout << "Count: " << my_app::num_triangles << endl;
   */
-  
   my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::ARRAY16);
   common::startClock();
   my_app::num_triangles = my_app::graph->foreach_row(&Matrix::for_row,&my_app::triangle_counting);
   common::stopClock("ARRAY 16 TRIANGLE COUNTING");
   cout << "Count: " << my_app::num_triangles << endl;
-  
-  cout << "Huge Diff: " << my_app::huge_diff << " Int: " << my_app::num_int << endl;
-  
+
   my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::ARRAY32);
   common::startClock();
   my_app::num_triangles = my_app::graph->foreach_row(&Matrix::for_row,&my_app::triangle_counting);
@@ -71,6 +68,6 @@ int main (int argc, char* argv[]) {
   my_app::num_triangles = my_app::graph->foreach_row(&Matrix::for_row,&my_app::triangle_counting);
   common::stopClock("HYBRID TRIANGLE COUNTING");
   cout << "Count: " << my_app::num_triangles << endl;
-  
+
   return 0;
 }

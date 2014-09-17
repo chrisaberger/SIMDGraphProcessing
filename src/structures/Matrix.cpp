@@ -25,7 +25,6 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFil
 	    		filtered_hood[filter_index++] = hood->at(j);
 	    	}
 	    }
-      //size_t start_index = index;
       row_lengths[i] = filter_index;
       const common::type row_type = get_row_type(i,filtered_hood); //depends on above array being set
       row_types[i] = row_type;

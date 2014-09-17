@@ -19,9 +19,6 @@ namespace integerarray{
       case common::BITSET:
         index = bitset::preprocess(data,index,data_in,length_in);
         break;
-      case common::HYBRID:
-        index = hybrid::preprocess(data,index,data_in,length_in);
-        break;
       default:
         break;
     }
@@ -29,7 +26,7 @@ namespace integerarray{
   }
 
   template<typename T> 
-  inline T foreach(T (*function)(unsigned int,unsigned int),unsigned int col,unsigned short *data,size_t length,size_t size,common::type t){
+  inline T foreach(T (*function)(unsigned int,unsigned int),unsigned int col,unsigned short *data,size_t length,common::type t){
     switch(t){
       case common::ARRAY32:
         return array32::foreach(function,col,data,length);
@@ -40,15 +37,12 @@ namespace integerarray{
       case common::BITSET:
         return bitset::foreach(function,col,data,length);
         break;
-      case common::HYBRID:
-        return hybrid::foreach(function,col,data,length,size);
-        break;
       default:
         return (T) 0;
         break;
     }
   }
-  inline size_t intersect(unsigned short *R, unsigned short *A, unsigned short *B, size_t s_a, size_t s_b, unsigned int size_a, unsigned int size_b, common::type t){
+  inline size_t intersect(unsigned short *R, unsigned short *A, unsigned short *B, size_t s_a, size_t s_b, common::type t){
     size_t count = 0;
     switch(t){
       case common::ARRAY32:
@@ -60,32 +54,41 @@ namespace integerarray{
       case common::BITSET:
         count = bitset::intersect(R,A,B,s_a,s_b);
         break;
-      case common::HYBRID:
-        count = hybrid::intersect(R,A,B,s_a,s_b,size_a,size_b);
-        break;
       default:
         break;
     }
     return count;
   }
-  template<typename T> 
-  inline T reduce(common::type t,unsigned short *data, size_t length,T (*function)(T,T), T zero){
-    T result;
-    switch(t){
-      case common::ARRAY32:
-        result = array32::reduce(data,length,function,zero);
-        break;
-      case common::ARRAY16:
-        break;
-      case common::BITSET:
-        break;
-      default:
-        break;
+  inline size_t intersect(unsigned short *R, unsigned short *A, unsigned short *B, size_t s_a, size_t s_b, common::type t1, common::type t2){
+    size_t count = 0;
+    if(t1 == common::ARRAY32){
+      if(t2 == common::ARRAY16){
+        //cout << "a32 a16" << endl;
+        count = hybrid::intersect_a32_a16(R,A,B,s_a,s_b);
+      } else if(t2 == common::BITSET){
+        //cout << "a32 bs" << endl;
+        count = hybrid::intersect_a32_bs(R,A,B,s_a,s_b);
+      } 
+    } else if(t1 == common::ARRAY16){
+      if(t2 == common::ARRAY32){
+        //cout << "a32 a16" << endl;
+        count = hybrid::intersect_a32_a16(R,B,A,s_b,s_a);
+      } else if(t2 == common::BITSET){
+        //cout << "a16 bs" << endl;
+        count = hybrid::intersect_a16_bs(R,A,B,s_a,s_b);
+      } 
+    } else if(t1 == common::BITSET){
+      if(t2 == common::ARRAY32){
+        //cout << "bs a32" << endl;
+        count = hybrid::intersect_a32_bs(R,B,A,s_b,s_a);
+      } else if(t2 == common::ARRAY16){
+        //cout << "bs a16" << endl;
+        count = hybrid::intersect_a16_bs(R,B,A,s_b,s_a);
+      }
     }
-
-    return result;
+    return count;
   }
-  inline void print_data(common::type t, unsigned short *data, size_t length, unsigned int size){
+  inline void print_data(unsigned short *data, size_t length, common::type t){
     switch(t){
       case common::ARRAY32:
         array32::print_data(data,length);
@@ -96,30 +99,8 @@ namespace integerarray{
       case common::BITSET:
         bitset::print_data(data,length);
         break;
-      case common::HYBRID:
-        hybrid::print_data(data,length,size);
-        break;
       default:
         break;
     }
   }
 }
-
-/*
-  For the actual object.
-*/
-  /*
-IntegerArray::IntegerArray(unsigned int *data_in, size_t length_in, common::type t_in){
-  t = t_in;
-  length = length_in;
-  data = new unsigned short[length_in*3];
-  physical_size = integerarray::preprocess(data,0,data_in,length_in,t_in);
-}
-template<typename T> 
-T IntegerArray::reduce(T (*function)(T,T), T zero){
-  return integerarray::reduce(t,data,length,function,zero);
-}
-void IntegerArray::print_data(){
-  return integerarray::print_data(t,data,length);
-}
-*/

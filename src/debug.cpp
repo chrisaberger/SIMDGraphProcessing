@@ -46,8 +46,11 @@ int main (int argc, char* argv[]) {
   my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,my_app::my_type);
   my_app::result = new unsigned short[vg->num_nodes*(vg->num_nodes/2)];
 
-  my_app::graph->print_columns(70266,68872);
-  my_app::num_triangles = my_app::graph->row_intersect(my_app::result,70266,68872);
+  unsigned int n1 = 9;
+  unsigned int n2 = 4;
+
+  my_app::graph->print_rows(n1,n2);
+  my_app::num_triangles = my_app::graph->row_intersect(my_app::result,n1,n2);
   cout << "Count: " << my_app::num_triangles << endl;
 
   return 0;

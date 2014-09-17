@@ -28,7 +28,6 @@ namespace array16 {
 	}
 
 	inline size_t preprocess(unsigned short *R, size_t index, unsigned int *A, size_t s_a){
-		prepare_shuffling_dictionary16();
 	  unsigned short high = 0;
 	  size_t partition_length = 0;
 	  size_t partition_size_position = index+1;
@@ -59,21 +58,36 @@ namespace array16 {
 	  size_t i_a = 0, i_b = 0;
 
     #if VECTORIZE == 1
+   	/*
+    if(i_a < s_a  && i_b < s_b){
+    	if(A[i_a] == 0 && B[i_b] == 0){
+    		#if WRITE_VECTOR == 1
+	      C[count] = A[i_a];
+        #endif
+        i_a++;
+        i_b++;
+	      ++count;
+    	} else if(A[i_a] == 0){
+    		i_a++;
+    	} else if(B[i_b] == 0){
+    		i_b++;
+    	}
+    } else{
+    	return 0;
+    }
+    */
 	  size_t st_a = (s_a / SHORTS_PER_REG) * SHORTS_PER_REG;
-	  size_t st_b = (s_b / SHORTS_PER_REG) * SHORTS_PER_REG;	 
+	  size_t st_b = (s_b / SHORTS_PER_REG) * SHORTS_PER_REG;
+ 
 	  while(i_a < st_a && i_b < st_b) {
 	    __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
 	    __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);    
 
-	    /*
-	    uint16_t *t = (uint16_t*) &v_a;
-	    cout << "Data: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << " " << t[4] << " " << t[5] << " " << t[6] << " " << t[7] << endl;
-	    t = (uint16_t*) &v_b;
-	    cout << "Data: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << " " << t[4] << " " << t[5] << " " << t[6] << " " << t[7] << endl;    
-	    */
 	    unsigned short a_max = _mm_extract_epi16(v_a, SHORTS_PER_REG-1);
 	    unsigned short b_max = _mm_extract_epi16(v_b, SHORTS_PER_REG-1);
 	    
+	   // __m128i res_v = _mm_cmpistrm(v_b, v_a,
+	   //         _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
 	    __m128i res_v = _mm_cmpestrm(v_b, SHORTS_PER_REG, v_a, SHORTS_PER_REG,
 	            _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
 	    unsigned int r = _mm_extract_epi32(res_v, 0);
@@ -165,6 +179,7 @@ namespace array16 {
     return result;
   }
   void print_data(unsigned short *A, size_t s_a){
+  	cout << "LEN: " << s_a << endl;
     for(size_t i = 0; i < s_a; i++){
       unsigned int prefix = (A[i] << 16);
       unsigned short size = A[i+1];

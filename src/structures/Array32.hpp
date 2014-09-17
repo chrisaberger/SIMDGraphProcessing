@@ -3,27 +3,26 @@
 using namespace std;
 
 namespace array32 {
-  static __m128i shuffle_mask32[16]; // precomputed dictionary
-  static int getBitV(int value, int position) {
-    return ( ( value & (1 << position) ) >> position);
-  }
-  static void prepare_shuffling_dictionary32() {
-    for(int i = 0; i < 16; i++) {
-      int counter = 0;
-      char permutation[16];
-      memset(permutation, 0xFF, sizeof(permutation));
-      for(char b = 0; b < 4; b++) {
-        if(getBitV(i, b)) {
-          permutation[counter++] = 4*b;
-          permutation[counter++] = 4*b + 1;
-          permutation[counter++] = 4*b + 2;
-          permutation[counter++] = 4*b + 3;
-        }
-      }
-      __m128i mask = _mm_loadu_si128((const __m128i*)permutation);
-      shuffle_mask32[i] = mask;
-    }
-  }
+  // precomputed dictionary
+  static __m128i shuffle_mask32[16] = {        
+    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0),
+    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0),
+    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,7,6,5,4),
+    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0),
+    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,11,10,9,8),
+    _mm_set_epi8(15,14,13,12,11,10,9,8,11,10,9,8,3,2,1,0),
+    _mm_set_epi8(15,14,13,12,11,10,9,8,11,10,9,8,7,6,5,4),
+    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0),
+    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,15,14,13,12),
+    _mm_set_epi8(15,14,13,12,11,10,9,8,15,14,13,12,3,2,1,0),
+    _mm_set_epi8(15,14,13,12,11,10,9,8,15,14,13,12,7,6,5,4),
+    _mm_set_epi8(15,14,13,12,15,14,13,12,7,6,5,4,3,2,1,0),
+    _mm_set_epi8(15,14,13,12,11,10,9,8,15,14,13,12,11,10,9,8),
+    _mm_set_epi8(15,14,13,12,15,14,13,12,11,10,9,8,3,2,1,0),
+    _mm_set_epi8(15,14,13,12,15,14,13,12,11,10,9,8,7,6,5,4),
+    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0),
+    }; 
+
   inline size_t intersect(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
@@ -112,7 +111,6 @@ namespace array32 {
     }
   }
   inline size_t preprocess(unsigned short *r, size_t index, unsigned int *data, size_t length){
-    prepare_shuffling_dictionary32();
     std::copy(data,data+length,(unsigned int*)(r+index));
     return index+length*2;
 	}

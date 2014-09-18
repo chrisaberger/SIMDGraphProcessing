@@ -5,7 +5,7 @@
 using namespace std;
 
 int main (int argc, char* argv[]) { 
-	size_t mysize = 16;
+	size_t mysize = 18;
   unsigned int *data = new unsigned int[mysize];
   for(size_t i=0; i < mysize; i++){
   	cout << "i: " << i << " Data: " << i*65536 << endl;

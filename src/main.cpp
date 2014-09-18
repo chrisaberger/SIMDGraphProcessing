@@ -5,14 +5,16 @@
 using namespace std;
 
 int main (int argc, char* argv[]) { 
-  unsigned int *data = new unsigned int[65536];
-  for(size_t i=0; i < 65536; i++){
-    data[i] = i;
+	size_t mysize = 16;
+  unsigned int *data = new unsigned int[mysize];
+  for(size_t i=0; i < mysize; i++){
+  	cout << "i: " << i << " Data: " << i*65536 << endl;
+    data[i] = i*65536;
   }
-  unsigned short *result = new unsigned short[65536];
-  unsigned short *output = new unsigned short[65536];
-  size_t index = bitset::preprocess(result,0,data,65536);
-  cout << "index: " << index << endl;
-  bitset::print_data(result,index);
-  cout << "Count: " << bitset::intersect(output,result,result,index,index) << endl;
+  unsigned int *result = new unsigned int[mysize*100];
+  size_t length = deltacompa32::encode_array(data,mysize,result);
+
+  cout << endl << "Length: " << length << endl;
+
+  deltacompa32::decode_array(result,length,mysize);
 }

@@ -1,7 +1,6 @@
 #include "Common.hpp"
 #include <x86intrin.h>
 #include "Array16.hpp"
-#include "Array32.hpp"
 #include "Bitset.hpp"
 #include "DeltaCompA32.hpp"
 

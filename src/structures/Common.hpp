@@ -22,6 +22,7 @@
 #define VECTORIZE 1
 #define WRITE_VECTOR 0
 #define SHORTS_PER_REG 8
+#define INTS_PER_REG 4
 
 using namespace std;
 

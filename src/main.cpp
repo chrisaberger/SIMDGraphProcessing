@@ -12,7 +12,7 @@ int main (int argc, char* argv[]) {
     data[i] = i*65536;
   }
   unsigned int *result = new unsigned int[mysize*100];
-  size_t length = deltacompa32::encode_array(data,mysize,result);
+  size_t length = deltacompa32::encode_array(0,data,mysize,result);
 
   cout << endl << "Length: " << length << endl;
 

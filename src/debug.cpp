@@ -8,7 +8,7 @@ namespace my_app{
   Matrix *graph;
   common::type my_type = common::HYBRID;
 
-  unsigned short *result;
+  uint8_t *result;
   long num_triangles = 0;
   
   inline bool myNodeSelection(unsigned int node){
@@ -44,7 +44,7 @@ int main (int argc, char* argv[]) {
 
 
   my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,my_app::my_type);
-  my_app::result = new unsigned short[vg->num_nodes*(vg->num_nodes/2)];
+  my_app::result = new uint8_t[vg->num_nodes*(vg->num_nodes/2)];
 
   unsigned int n1 = 211654;
   unsigned int n2 = 211034;

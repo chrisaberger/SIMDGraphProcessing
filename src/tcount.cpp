@@ -6,7 +6,7 @@ using namespace std;
 
 namespace my_app{
   Matrix *graph;
-  unsigned short *result;
+  uint8_t *result;
   long num_triangles = 0;
   
   size_t huge_diff = 0;
@@ -42,12 +42,14 @@ int main (int argc, char* argv[]) {
   //common::stopClock("INPUT");
   cout << endl;
 
-  my_app::result = new unsigned short[vg->num_nodes];
+  my_app::result = new uint8_t[vg->num_nodes];
+
+  my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::DELTACOMPA32);  
+  //my_app::graph->print_matrix();  
 
   /*
-  my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::BITSET);
   common::startClock();
-  my_app::num_triangles = my_app::graph->foreach_row(&Matrix::for_row,&my_app::triangle_counting);
+  //my_app::num_triangles = my_app::graph->foreach_row(&Matrix::for_row,&my_app::triangle_counting);
   common::stopClock("BITSET TRIANGLE COUNTING");
   cout << "Count: " << my_app::num_triangles << endl;
   */
@@ -55,19 +57,20 @@ int main (int argc, char* argv[]) {
   common::startClock();
   my_app::num_triangles = my_app::graph->foreach_row(&Matrix::for_row,&my_app::triangle_counting);
   common::stopClock("ARRAY 16 TRIANGLE COUNTING");
-  cout << "Count: " << my_app::num_triangles << endl;
+  cout << "Count: " << my_app::num_triangles << endl << endl;
 
   my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::ARRAY32);
+  //my_app::graph->print_matrix();
   common::startClock();
   my_app::num_triangles = my_app::graph->foreach_row(&Matrix::for_row,&my_app::triangle_counting);
   common::stopClock("ARRAY 32 TRIANGLE COUNTING");
-  cout << "Count: " << my_app::num_triangles << endl;
+  cout << "Count: " << my_app::num_triangles << endl << endl;
   
   my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::HYBRID);
   common::startClock();
   my_app::num_triangles = my_app::graph->foreach_row(&Matrix::for_row,&my_app::triangle_counting);
   common::stopClock("HYBRID TRIANGLE COUNTING");
-  cout << "Count: " << my_app::num_triangles << endl;
-
+  cout << "Count: " << my_app::num_triangles << endl << endl;
+  
   return 0;
 }

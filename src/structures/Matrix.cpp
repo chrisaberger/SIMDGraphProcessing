@@ -9,7 +9,7 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFil
   row_lengths = new unsigned int[num_rows];
   row_types = new unsigned char[num_rows];
 
-  unsigned short *tmp_data = new unsigned short[vg->num_edges*3]; 
+  uint8_t *tmp_data = new uint8_t[vg->num_edges*3]; 
 
 	size_t new_cardinality = 0;
   size_t index = 0;
@@ -32,8 +32,8 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFil
       delete[] filtered_hood;
   	}
   }
-  data = new unsigned short[index];
-  cout << "Data Length (Bytes): " << index/2 << endl;
+  data = new uint8_t[index];
+  cout << "Data Length (Bytes): " << index << endl;
   std::copy(tmp_data,tmp_data+index,data);
   cardinality = new_cardinality;
   indicies[num_rows] = index;
@@ -73,7 +73,7 @@ inline common::type Matrix::get_hybrid_row_type(unsigned int r, unsigned int *ro
 template<typename T> 
 T Matrix::foreach_row(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,unsigned int)), T (*f)(unsigned int,unsigned int)) {
 	T reducer = (T) 0;
-  #pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
+  //#pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
   for(size_t i = 0; i < num_rows; i++){
 		reducer += (this->*rowfunction)(i,f);
 	}
@@ -87,7 +87,7 @@ T Matrix::for_row(unsigned int col,T (*function)(unsigned int,unsigned int)){
   const common::type row_type = (common::type) row_types[col];
 	return integerarray::foreach(function,col,data+start,end-start,row_type);
 }
-inline size_t Matrix::row_intersect(unsigned short *R, unsigned int i, unsigned int j){
+inline size_t Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j){
   size_t i_start = indicies[i];
   size_t i_end = indicies[i+1];
 
@@ -113,22 +113,25 @@ void Matrix::print_rows(unsigned int i, unsigned int j){
   cout << "ROW: " << i << endl;
   size_t start = indicies[i];
   size_t end = indicies[i+1];
+  size_t card = row_lengths[i];
   common::type row_type = (common::type) row_types[i];
-  integerarray::print_data(data+start,end-start,row_type);
+  integerarray::print_data(data+start,end-start,card,row_type);
 
   cout << "ROW: " << j << endl;
   start = indicies[j];
   end = indicies[j+1];
+  card = row_lengths[j];
   cout << "start: " << start << " end: " << end << endl;
   row_type = (common::type) row_types[j];
-  integerarray::print_data(data+start,end-start,row_type);
+  integerarray::print_data(data+start,end-start,card,row_type);
 }
 void Matrix::print_matrix(){
 	for(size_t i = 0; i < num_rows; i++){
 		cout << "ROW: " << i << endl;
 		size_t start = indicies[i];
 		size_t end = indicies[i+1];
+    size_t card = row_lengths[i];
     const common::type row_type = (common::type) row_types[i];
-		integerarray::print_data(data+start,end-start,row_type);
+		integerarray::print_data(data+start,end-start,card,row_type);
 	}
 }

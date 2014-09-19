@@ -27,11 +27,11 @@ namespace array16 {
 	  }
 	}
 
-	inline size_t preprocess(unsigned short *R, size_t index, unsigned int *A, size_t s_a){
+	inline size_t preprocess(unsigned short *R, unsigned int *A, size_t s_a){
 	  unsigned short high = 0;
 	  size_t partition_length = 0;
-	  size_t partition_size_position = index+1;
-	  size_t counter = index;
+	  size_t partition_size_position = 1;
+	  size_t counter = 0;
 	  for(size_t p = 0; p < s_a; p++) {
 	    unsigned short chigh = (A[p] & 0xFFFF0000) >> 16; // upper dword
 	    unsigned short clow = A[p] & 0x0FFFF;   // lower dword
@@ -50,7 +50,7 @@ namespace array16 {
 	    }
 	  }
 	  R[partition_size_position] = partition_length;
-	  return counter;
+	  return counter*2;
 	}
 
 	inline size_t simd_intersect_vector16(unsigned short *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
@@ -177,15 +177,4 @@ namespace array16 {
       i--;
     }
   }
-
-	template<typename T> 
-	T reduce(unsigned short *data, size_t length,T (*function)(T,T), T zero){
-		unsigned int *actual_data = (unsigned int*) data;
-		T result = zero;
-		for(size_t i = 0; i < length; i++){
-			result = function(result,actual_data[i]);
-		}	
-		return result;
-	}
-
 } 

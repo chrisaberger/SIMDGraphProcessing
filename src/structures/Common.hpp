@@ -63,7 +63,8 @@ namespace common{
     BITSET = 0,
     ARRAY16 = 1,
     ARRAY32 = 2,
-    HYBRID = 3
+    HYBRID = 3,
+    DELTACOMPA32 = 4
   };
   
 };

@@ -16,7 +16,7 @@ namespace bitset {
 	inline bool is_set(unsigned int index, const unsigned short *in_array){
   	return (in_array[word_index(index)] & (1 << (index%16)));
 	}
-	inline size_t preprocess(unsigned short *R, size_t index, unsigned int *A, size_t s_a){
+	inline size_t preprocess(unsigned short *R, unsigned int *A, size_t s_a){
 		unsigned int max = A[s_a-1];
 		size_t num_words = word_index(max);
 		if(s_a != 0){
@@ -37,9 +37,9 @@ namespace bitset {
 	        ++i;
 	      } else same_word = false;
 	    }
-	    R[index+word] = set_value; 
+	    R[word] = set_value; 
 	  }
-	  return index + num_words;
+	  return 2*num_words;
 	}
 	inline size_t intersect(unsigned short *C, unsigned short *A, unsigned short *B, const size_t s_a, const size_t s_b) {
 	  long count = 0l;

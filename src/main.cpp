@@ -5,6 +5,7 @@
 using namespace std;
 
 int main (int argc, char* argv[]) { 
+  /*
 	size_t mysize = 18;
   unsigned int *data = new unsigned int[mysize];
   for(size_t i=0; i < mysize; i++){
@@ -12,9 +13,10 @@ int main (int argc, char* argv[]) {
     data[i] = i*65536;
   }
   unsigned int *result = new unsigned int[mysize*100];
-  size_t length = deltacompa32::encode_array(0,data,mysize,result);
+  size_t length = deltacompa32::encode_array(result,0,data,mysize);
 
   cout << endl << "Length: " << length << endl;
 
   deltacompa32::decode_array(result,length,mysize);
+  */
 }

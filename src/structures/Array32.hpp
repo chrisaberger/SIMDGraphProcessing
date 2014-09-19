@@ -89,41 +89,26 @@ namespace array32 {
       ++i_a;
       notFinished = notFinished && i_a < s_a;
     }
-
     return count;
   }
   
   template<typename T> 
-  inline T foreach(T (*function)(unsigned int,unsigned int),unsigned int col,unsigned short *data, size_t length){
+  inline T foreach(T (*function)(unsigned int,unsigned int),unsigned int col,unsigned int *data, size_t length){
     T result = (T) 0;
-    unsigned int *actual_data = (unsigned int*) data;
-    for(size_t i = 0; i < (length/2); i++){
-      result += function(col,actual_data[i]);
+    for(size_t i = 0; i < length; i++){
+      result += function(col,data[i]);
     }
     return result;
   }
 
-  inline void print_data(unsigned short *data,size_t length){
-    unsigned int *actual_data = (unsigned int*) data;
-    cout << "LEN: " << length << endl;
-    for(size_t i = 0; i < (length/2); i++){
-      cout << " Data: " << actual_data[i] << endl;
+  inline void print_data(unsigned int *data,size_t length){
+    //cout << "LEN: " << length << endl;
+    for(size_t i = 0; i < length; i++){
+      cout << " Data: " << data[i] << endl;
     }
   }
-  inline size_t preprocess(unsigned short *r, size_t index, unsigned int *data, size_t length){
-    std::copy(data,data+length,(unsigned int*)(r+index));
-    return index+length*2;
-	}
-
-
-	template<typename T> 
-	T reduce(unsigned short *data, size_t length,T (*function)(T,T), T zero){
-		unsigned int *actual_data = (unsigned int*) data;
-		T result = zero;
-    #pragma omp parallel for schedule(static,150) reduction(+:result)   
-		for(size_t i = 0; i < length; i++){
-			result = function(result,actual_data[i]);
-		}	
-		return result;
+  inline size_t preprocess(unsigned int *r, unsigned int *data, size_t length){
+    std::copy(data,data+length,r);
+    return length*4;
 	}
 } 

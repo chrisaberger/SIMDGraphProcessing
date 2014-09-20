@@ -1,12 +1,6 @@
-#include "Common.hpp"
-#include <x86intrin.h>
-#include <math.h>
+#include "common.hpp"
 
-using namespace std;
-
-#define DELTA 0
-
-namespace deltacompa32 {
+namespace a32bitpacked {
   inline size_t encode_array(uint8_t *result_in, unsigned int *data_in, size_t length){
     if(length > 0){
       size_t data_i = 0;

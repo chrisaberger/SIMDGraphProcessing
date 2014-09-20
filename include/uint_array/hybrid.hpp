@@ -1,16 +1,17 @@
-#include "Common.hpp"
-#include <x86intrin.h>
-#include "Array16.hpp"
-#include "Array32.hpp"
-#include "Bitset.hpp"
-#include "DeltaCompA32.hpp"
-
-using namespace std;
+#include "bitset.hpp"
+#include "array32.hpp"
+#include "array16.hpp"
+#include "a32bitpacked.hpp"
 
 namespace hybrid {
   //untested
   inline size_t intersect_a16_bs(unsigned int *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     //cout << "16 & BS" << endl;
+    #if WRITE_VECTOR == 0
+    (void)C;
+    (void)s_b;
+    #endif
+
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       unsigned int prefix = (A[i] << 16);
@@ -34,6 +35,11 @@ namespace hybrid {
   }
   //untested
   inline size_t intersect_a32_bs(unsigned int *C, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+    #if WRITE_VECTOR == 0
+    (void)C;
+    (void)s_b;
+    #endif
+    
     //cout << "32 & BS" << endl;
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
@@ -48,10 +54,13 @@ namespace hybrid {
     return count;
   }
   inline size_t intersect_a32_a16(unsigned int *C, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+    #if WRITE_VECTOR == 0
+    (void)C;
+    #endif
+
     size_t a_i = 0;
     size_t b_i = 0;
     size_t count = 0;
-
 
     bool not_finished = a_i < s_a && b_i < s_b;
     while(not_finished){
@@ -83,8 +92,8 @@ namespace hybrid {
           __m128i v_a_1_32 = _mm_loadu_si128((__m128i*)&A[a_i]);
           __m128i v_a_2_32 = _mm_loadu_si128((__m128i*)&A[a_i+(SHORTS_PER_REG/2)]);
 
-          __m128i v_a_1 = _mm_shuffle_epi8(v_a_1_32,_mm_set_epi8(0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x0D,0x0C,0x09,0x08,0x05,0x04,0x01,0x0));
-          __m128i v_a_2 = _mm_shuffle_epi8(v_a_2_32,_mm_set_epi8(0x0D,0x0C,0x09,0x08,0x05,0x04,0x01,0x0,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80));
+          __m128i v_a_1 = _mm_shuffle_epi8(v_a_1_32,_mm_set_epi8(uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x0D),uint8_t(0x0C),uint8_t(0x09),uint8_t(0x08),uint8_t(0x05),uint8_t(0x04),uint8_t(0x01),uint8_t(0x0)));
+          __m128i v_a_2 = _mm_shuffle_epi8(v_a_2_32,_mm_set_epi8(uint8_t(0x0D),uint8_t(0x0C),uint8_t(0x09),uint8_t(0x08),uint8_t(0x05),uint8_t(0x04),uint8_t(0x01),uint8_t(0x0),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80)));
           
           __m128i v_a = _mm_or_si128(v_a_1,v_a_2);
             

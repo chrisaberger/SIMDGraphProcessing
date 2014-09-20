@@ -1,32 +1,26 @@
-#include "Common.hpp"
-#include <x86intrin.h>
+#include "common.hpp"
 
-using namespace std;
-
-namespace array16 {
-	static __m128i shuffle_mask16[256]; // precomputed dictionary
-  
+namespace array16 {  
+  static __m128i shuffle_mask16[256]; // precomputed dictionary
   static inline int getBitSD(unsigned int value, unsigned int position) {
     return ( ( value & (1 << position) ) >> position);
   }
-
-	static inline void prepare_shuffling_dictionary16() {
-	  //Number of bits that can possibly be set are the lower 8
-	  for(unsigned int i = 0; i < 256; i++) { // 2^8 possibilities we need to store masks for
-	    unsigned int counter = 0;
-	    unsigned char permutation[16];
-	    memset(permutation, 0xFF, sizeof(permutation));
-	    for(unsigned char b = 0; b < 8; b++) { //Check each possible bit that can be set 1-by-1
-	      if(getBitSD(i, b)) {
-	        permutation[counter++] = 2*b; //tell us byte offset to get from comparison vector
-	        permutation[counter++] = 2*b + 1; //tess us byte offset to get from comparison vector
-	      }
-	    }
-	    __m128i mask = _mm_loadu_si128((const __m128i*)permutation);
-	    shuffle_mask16[i] = mask;
-	  }
-	}
-
+  static inline void prepare_shuffling_dictionary16() {
+    //Number of bits that can possibly be set are the lower 8
+    for(unsigned int i = 0; i < 256; i++) { // 2^8 possibilities we need to store masks for
+      unsigned int counter = 0;
+      unsigned char permutation[16];
+      memset(permutation, 0xFF, sizeof(permutation));
+      for(unsigned char b = 0; b < 8; b++) { //Check each possible bit that can be set 1-by-1
+        if(getBitSD(i, b)) {
+          permutation[counter++] = 2*b; //tell us byte offset to get from comparison vector
+          permutation[counter++] = 2*b + 1; //tess us byte offset to get from comparison vector
+        }
+      }
+      __m128i mask = _mm_loadu_si128((const __m128i*)permutation);
+      shuffle_mask16[i] = mask;
+    }
+  }
 	inline size_t preprocess(unsigned short *R, unsigned int *A, size_t s_a){
 	  unsigned short high = 0;
 	  size_t partition_length = 0;
@@ -54,7 +48,11 @@ namespace array16 {
 	}
 
 	inline size_t simd_intersect_vector16(unsigned short *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
-	  size_t count = 0;
+	  #if WRITE_VECTOR == 0
+    (void)C;
+    #endif
+    
+    size_t count = 0;
 	  size_t i_a = 0, i_b = 0;
 
     #if VECTORIZE == 1
@@ -160,7 +158,7 @@ namespace array16 {
     }
     return result;
   }
-  void print_data(unsigned short *A, size_t s_a){
+  inline void print_data(unsigned short *A, size_t s_a){
   	cout << "LEN: " << s_a << endl;
     for(size_t i = 0; i < s_a; i++){
       unsigned int prefix = (A[i] << 16);

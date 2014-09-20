@@ -1,13 +1,6 @@
-#include "IntegerArray.hpp"
-/*
-  Most of the implementation is here.  This is designed with matrices in mind.
-  I use a namespace so I avoid storing or creating multiple objects when 
-  using matrices.
-*/
+#include "hybrid.hpp"
 
-class Matrix;
-
-namespace integerarray{
+namespace uint_array{
   inline size_t preprocess(uint8_t *data, size_t index, unsigned int *data_in, size_t length_in, common::type t){
     switch(t){
       case common::ARRAY32:
@@ -19,8 +12,8 @@ namespace integerarray{
       case common::BITSET:
         index += bitset::preprocess((unsigned short*)(data+index),data_in,length_in);
         break;
-      case common::DELTACOMPA32:
-        index += deltacompa32::encode_array((data+index),data_in,length_in);
+      case common::A32BITPACKED:
+        index += a32bitpacked::encode_array((data+index),data_in,length_in);
         break;
       default:
         break;
@@ -103,8 +96,8 @@ namespace integerarray{
       case common::BITSET:
         bitset::print_data((unsigned short*)data,length/2);
         break;
-      case common::DELTACOMPA32:
-        deltacompa32::decode_array(data,length,cardinality);
+      case common::A32BITPACKED:
+        a32bitpacked::decode_array(data,length,cardinality);
         break;
       default:
         break;

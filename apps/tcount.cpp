@@ -1,8 +1,5 @@
 // class templates
-#include "structures/Matrix.cpp"
-#include "structures/Common.hpp"
-
-using namespace std;
+#include "Matrix.hpp"
 
 namespace my_app{
   Matrix *graph;
@@ -13,6 +10,7 @@ namespace my_app{
   size_t num_int = 0;
 
   inline bool myNodeSelection(unsigned int node){
+    (void)node;
     return true;
   }
   inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
@@ -44,7 +42,7 @@ int main (int argc, char* argv[]) {
 
   my_app::result = new uint8_t[vg->num_nodes];
 
-  my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::DELTACOMPA32);  
+  my_app::graph = new Matrix(vg,&my_app::myNodeSelection,&my_app::myEdgeSelection,common::A32BITPACKED);  
   //my_app::graph->print_matrix();  
   /*
   common::startClock();

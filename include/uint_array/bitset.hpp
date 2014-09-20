@@ -1,7 +1,4 @@
-#include "Common.hpp"
-#include <x86intrin.h>
-
-using namespace std;
+#include "common.hpp"
 
 #define BITS_PER_WORD 16
 #define ADDRESS_BITS_PER_WORD 4
@@ -42,6 +39,10 @@ namespace bitset {
 	  return 2*num_words;
 	}
 	inline size_t intersect(unsigned short *C, unsigned short *A, unsigned short *B, const size_t s_a, const size_t s_b) {
+    #if WRITE_VECTOR == 0
+    (void)C;
+    #endif
+
 	  long count = 0l;
 	  unsigned short *small = A;
 	  size_t small_length = s_a;
@@ -102,7 +103,7 @@ namespace bitset {
     }
     return result;
   }
-  void print_data(unsigned short *A, size_t s_a){
+  inline void print_data(unsigned short *A, size_t s_a){
   	cout << "Size: " << s_a << endl;
     for(size_t i = 0; i < s_a; i++){
     	unsigned short cur_word = A[i];

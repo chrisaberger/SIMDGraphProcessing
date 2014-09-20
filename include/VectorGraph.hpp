@@ -1,25 +1,8 @@
 #ifndef VECTORGRAPH_H
 #define VECTORGRAPH_H
 
-#include <unordered_map>
-#include <ctime>
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <stdio.h>  
-#include <iostream>
-#include <vector>
-#include <iterator>
-#include <algorithm>  // for std::find
-#include <iostream>   // for std::cout
-#include <cstring>
-#include <sys/mman.h>
-#include <fcntl.h>    /* For O_RDWR */
-#include <unistd.h>   /* For open(), creat() */
-#include <fstream>
+#include "common.hpp"
 #include <sstream>
-#include <omp.h>
-
-using namespace std;
 
 struct VectorGraph {
   size_t num_nodes;

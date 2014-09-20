@@ -1,9 +1,6 @@
-#include "Common.hpp"
-
-using namespace std;
+#include "common.hpp"
 
 namespace array32 {
-  // precomputed dictionary
   static __m128i shuffle_mask32[16] = {        
     _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0),
     _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0),
@@ -22,7 +19,6 @@ namespace array32 {
     _mm_set_epi8(15,14,13,12,15,14,13,12,11,10,9,8,7,6,5,4),
     _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0),
   }; 
-
   inline size_t intersect(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
@@ -89,6 +85,11 @@ namespace array32 {
       ++i_a;
       notFinished = notFinished && i_a < s_a;
     }
+
+    #if WRITE_VECTOR == 0
+    C = C;
+    #endif
+    
     return count;
   }
   

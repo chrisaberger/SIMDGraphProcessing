@@ -1,6 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <x86intrin.h>
 #include <omp.h>
 #include <unordered_map>
 #include <ctime>
@@ -17,9 +18,11 @@
 #include <fcntl.h>    /* For O_RDWR */
 #include <unistd.h>   /* For open(), creat() */
 #include <fstream>
+#include <math.h>
 
+#define DELTA 0
 #define HYBRID_LAYOUT 1
-#define VECTORIZE 0
+#define VECTORIZE 1
 #define WRITE_VECTOR 0
 #define SHORTS_PER_REG 8
 #define INTS_PER_REG 4
@@ -27,22 +30,22 @@
 using namespace std;
 
 namespace common{
-  double t1;
-  double t2;
-  struct timeval tim;  
+  static double t1;
+  static double t2;
+  static struct timeval tim;  
 
-  void startClock (){
+  static void startClock (){
     gettimeofday(&tim, NULL);  
     t1=tim.tv_sec+(tim.tv_usec/1000000.0); 
   }
 
-  void stopClock(string in){
+  static void stopClock(string in){
     gettimeofday(&tim, NULL);  
     t2=tim.tv_sec+(tim.tv_usec/1000000.0); 
     std::cout << "Time["+in+"]: " << t2-t1 << " s" << std::endl;
   }
 
-  void allocateStack(){
+  static void allocateStack(){
     const rlim_t kStackSize = 64L * 1024L * 1024L;   // min stack size = 64 Mb
     struct rlimit rl;
     int result;
@@ -64,8 +67,8 @@ namespace common{
     ARRAY16 = 1,
     ARRAY32 = 2,
     HYBRID = 3,
-    DELTACOMPA32 = 4
+    A32BITPACKED = 4
   };
   
-};
+}
 #endif

@@ -13,7 +13,7 @@ namespace uint_array{
         index += bitset::preprocess((unsigned short*)(data+index),data_in,length_in);
         break;
       case common::A32BITPACKED:
-        index += a32bitpacked::encode_array((data+index),data_in,length_in);
+        index += a32bitpacked::preprocess((data+index),data_in,length_in);
         break;
       default:
         break;
@@ -97,7 +97,7 @@ namespace uint_array{
         bitset::print_data((unsigned short*)data,length/2);
         break;
       case common::A32BITPACKED:
-        a32bitpacked::decode_array(data,length,cardinality);
+        a32bitpacked::print_data(data,length,cardinality);
         break;
       default:
         break;

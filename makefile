@@ -35,9 +35,8 @@ UNAME := $(shell uname)
 
 OBJECTS= $(OBJDIR)/Matrix.o
 
-tcount:  apps/tcount.cpp
-	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/tcount apps/tcount.cpp  $(OBJECTS) -Iinclude
-
+.DEFAULT:  apps/$@.cpp
+	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/$@ apps/$@.cpp  $(OBJECTS) -Iinclude
 
 clean: 
 	rm -rf $(OBJDIR) $(EXEDIR)

@@ -20,7 +20,7 @@ namespace integerarray{
         index += bitset::preprocess((unsigned short*)(data+index),data_in,length_in);
         break;
       case common::DELTACOMPA32:
-        //index += deltacompa32::encode_array(data,data_in,length_in);
+        index += deltacompa32::encode_array((data+index),data_in,length_in);
         break;
       default:
         break;
@@ -104,7 +104,7 @@ namespace integerarray{
         bitset::print_data((unsigned short*)data,length/2);
         break;
       case common::DELTACOMPA32:
-        //deltacompa32::decode_array((unsigned int*)data,length/2,cardinality);
+        deltacompa32::decode_array(data,length,cardinality);
         break;
       default:
         break;

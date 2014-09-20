@@ -74,11 +74,11 @@ namespace hybrid {
       } else{
         //cout << "3" << endl;
         b_i += 2;
+        size_t i_b = 0;
 
         #if VECTORIZE == 1
         bool a_continue = (a_i+SHORTS_PER_REG) < s_a && (A[a_i+SHORTS_PER_REG-1] & 0xFFFF0000) == prefix;
         size_t st_b = (b_inner_size / SHORTS_PER_REG) * SHORTS_PER_REG;
-        size_t i_b = 0;
         while(a_continue && i_b < st_b) {
           __m128i v_a_1_32 = _mm_loadu_si128((__m128i*)&A[a_i]);
           __m128i v_a_2_32 = _mm_loadu_si128((__m128i*)&A[a_i+(SHORTS_PER_REG/2)]);

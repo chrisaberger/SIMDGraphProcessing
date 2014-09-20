@@ -7,59 +7,83 @@ using namespace std;
 #define DELTA 0
 
 namespace deltacompa32 {
-  inline size_t encode_array(unsigned short *result_in, size_t index, unsigned int *data_in, size_t length){
+  inline size_t encode_array(uint8_t *result_in, unsigned int *data_in, size_t length){
     if(length > 0){
-      size_t bit_i = 0;
       size_t data_i = 0;
-      size_t num_packed = 0;
-      unsigned int *result = (unsigned int*)(result_in+index);
+      size_t result_i = 0;
 
       #if DELTA == 1
-        unsigned int *simd_data = data_in;
+        unsigned int *data = new unsigned int[length];
         size_t max = 0;
-        size_t num_simd_packed = 0; 
-        size_t result_i = 2;
-
-        //place first element->serves as intial delta for subtraction.
-        result[1] = data_in[0];
-        num_simd_packed = (unsigned int)((length-1)/INTS_PER_REG) * INTS_PER_REG * (length >= 8);
         
+        #if VECTORIZE == 1
+        size_t num_simd_packed = (length/INTS_PER_REG)*INTS_PER_REG*(length > INTS_PER_REG*3);
         if(num_simd_packed > 0){
+          //place first 4 elements->serves as intial delta for subtraction.
           __m128i prev_data_register = _mm_set1_epi32(data_in[0]); //set delta
-          simd_data = new unsigned int[num_simd_packed+1];
-          for(size_t i = 1; i < num_simd_packed; i+=INTS_PER_REG){
+          
+          unsigned int cur = data[0];
+          unsigned int bytes_needed = (((unsigned int)log2(cur)+1)/7)+1; //1 bit is reserved for continue
+          size_t bytes_set = 0;
+          result_i++;
+          while(bytes_set < bytes_needed){
+            uint8_t continue_bit = 0x00;
+            if(bytes_set+1 < bytes_needed){
+              continue_bit = 0x01;
+            }
+            result_in[result_i++] = ((cur & 0xFFFFFF80) << 1) | continue_bit;
+            bytes_set++; 
+          }
+
+          for(size_t i = INTS_PER_REG; i < num_simd_packed; i+=INTS_PER_REG){
             __m128i data_register = _mm_loadu_si128((__m128i*)&data_in[i]);
             __m128i dt = _mm_sub_epi32(data_register,prev_data_register);
             //Find max difference (will tell the # of bits to represent value needed)
             uint32_t *ot = (uint32_t*) &dt;
-            for(size_t j =0; j<4; j++){
+            for(size_t j = 0; j < INTS_PER_REG; j++){
               if(ot[j] > max){
                 max = ot[j];
               }
             }
             //Store the deltas
-            _mm_storeu_si128((__m128i*)&simd_data[i],dt);
+            _mm_storeu_si128((__m128i*)&data[i],dt);
             prev_data_register = data_register;
+          }
+        }
+        #endif
+
+        unsigned int prev = 0;
+        if(num_simd_packed != 0){
+          prev = data_in[num_simd_packed-1];
+        }
+        for(size_t i = num_simd_packed; i < length; i++){
+          unsigned int cur = data_in[i] - prev;
+          data[i] = cur;
+          if(cur > max){
+            max = cur;
           }
         }
 
         const unsigned int bits_used = (unsigned int)log2(max)+1;
-        result[0] = bits_used;
+        result_in[0] = bits_used;
       #else
-        size_t result_i = 1;
-        unsigned int *simd_data = data_in;
+        unsigned int *data = data_in;
         const unsigned int bits_used = (unsigned int)log2(data_in[length-1])+1;
-        size_t num_simd_packed = (unsigned int)(length /INTS_PER_REG) * INTS_PER_REG;
-
-        result[0] = bits_used;
+        #if VECTORIZE == 1
+        size_t num_simd_packed = (unsigned int)(length /INTS_PER_REG)*INTS_PER_REG*(length > INTS_PER_REG*3);
+        #endif
+        result_in[0] = bits_used;
       #endif 
 
       #if VECTORIZE == 1
+      size_t num_packed = 0;
+      size_t bit_i = 0;
+
       __m128i data_register;
       __m128i packed_register = _mm_set1_epi32(0);
       while(num_packed < num_simd_packed){
         while(bit_i+bits_used <= 32 && data_i < num_simd_packed){
-          data_register = _mm_loadu_si128((__m128i*)&simd_data[data_i]);
+          data_register = _mm_loadu_si128((__m128i*)&data[data_i]);
 
           __m128i cur = _mm_slli_epi32(data_register,bit_i);
           packed_register = _mm_or_si128(cur,packed_register);
@@ -68,7 +92,7 @@ namespace deltacompa32 {
           bit_i += bits_used;
         }
         if(bit_i < 32 && data_i < num_simd_packed){
-          data_register = _mm_loadu_si128((__m128i*)&simd_data[data_i]);
+          data_register = _mm_loadu_si128((__m128i*)&data[data_i]);
 
           __m128i cur = _mm_slli_epi32(data_register,bit_i);
           packed_register = _mm_or_si128(cur,packed_register);
@@ -76,7 +100,7 @@ namespace deltacompa32 {
           //uint32_t *t = (uint32_t*) &result;
           //cout << "STORING Values[" << result_i << "]: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << endl;
        
-          _mm_storeu_si128((__m128i*)&result[result_i],packed_register);
+          _mm_storeu_si128((__m128i*)&result_in[result_i],packed_register);
           num_packed = data_i;
 
           packed_register = _mm_set1_epi32(0);
@@ -88,34 +112,43 @@ namespace deltacompa32 {
           //uint32_t *t = (uint32_t*) &result;
           //cout << "STORING Values[" << result_i << "]: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << endl;
        
-          _mm_storeu_si128((__m128i*)&result[result_i], packed_register);
+          _mm_storeu_si128((__m128i*)&result_in[result_i], packed_register);
           num_packed = data_i;
           packed_register = _mm_set1_epi32(0);
           bit_i = 0;
         }
-        result_i += INTS_PER_REG;
+        result_i += INTS_PER_REG*4;
       }
-      #endif
-
-      #if DELTA == 1
-      if(num_simd_packed >= 0){
-        delete[] simd_data;
-      }
-      data_i++;  //compesate for difference as delta placed first element for delta.
       #endif
       
       //Implement Variant
       while(data_i < length){
-        result[result_i++] = data_in[data_i++];
+        unsigned int cur = data[data_i++];
+        unsigned int bytes_needed = (((unsigned int)log2(cur)+1)/7)+1; //1 bit is reserved for continue
+        size_t bytes_set = 0;
+        while(bytes_set < bytes_needed){
+          uint8_t continue_bit = 0x00;
+          if(bytes_set+1 < bytes_needed){
+            continue_bit = 0x01;
+          }
+          result_in[result_i++] = ((cur & 0xFFFFFF80) << 1) | continue_bit;
+          bytes_set++; 
+        }
       }
-      return result_i*2 + index;
+
+      #if DELTA == 1
+      delete[] data;
+      #endif
+
+      return result_i;
     } else{
-      return index;
+      return 0;
     }
   }
-  inline void decode_array(unsigned int *data, const size_t length, const size_t cardinality){
+  inline void decode_array(uint8_t *data, const size_t length, const size_t cardinality){
+    /*
     size_t bit_i = 0;
-    size_t num_simd_packed = (cardinality /INTS_PER_REG) * INTS_PER_REG * (cardinality >= 8);
+    size_t num_simd_packed = (cardinality /INTS_PER_REG) * INTS_PER_REG * (cardinality >= INTS_PER_REG*2);
     unsigned int bits_used = data[0];
     size_t data_incrementer = 0;
 
@@ -204,5 +237,6 @@ namespace deltacompa32 {
       cout << " Data: " << data[data_i] << endl;
       data_i++; num_decoded++;
     }
+    */
   }
 } 

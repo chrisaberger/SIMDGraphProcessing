@@ -1,47 +1,5 @@
-#ifndef VECTORGRAPH_H
-#define VECTORGRAPH_H
+#include "MutableGraph.hpp"
 
-#include "common.hpp"
-#include <sstream>
-
-struct VectorGraph {
-  size_t num_nodes;
-  size_t num_edges;
-  unordered_map<unsigned int,unsigned int> *external_ids;
-  vector< vector<unsigned int>*  > *neighborhoods;
-
-  VectorGraph(  size_t num_nodes_in, 
-      size_t num_edges_in,
-      unordered_map<unsigned int,unsigned int> *external_ids_in,
-      vector< vector<unsigned int>*  > *neighborhoods_in): 
-    num_nodes(num_nodes_in), 
-    num_edges(num_edges_in),
-    external_ids(external_ids_in), 
-    neighborhoods(neighborhoods_in){}
-  ~VectorGraph(){
-    delete external_ids;
-    for(size_t i = 0; i < num_nodes; ++i) {
-      vector<unsigned int> *hood = neighborhoods->at(i);
-      hood->clear();
-      delete hood;
-    }
-    neighborhoods->erase(neighborhoods->begin(),neighborhoods->end());
-    delete neighborhoods;
-  }
-};
-struct CompareIndexVector : std::binary_function<size_t, size_t, bool>
-{
-  CompareIndexVector(const unsigned int *data)
-  : m_data(data)
-  {}
-
-  bool operator()(size_t Lhs, size_t Rhs)const
-  {
-    return m_data[Lhs] < m_data[Rhs];
-  }
-
-  const unsigned int* m_data;
-};
 //this is a functor
 struct Comparator {
   bool operator()(vector<unsigned int> *i,vector<unsigned int> *j) const { 
@@ -49,7 +7,7 @@ struct Comparator {
   }
 };
 
-static inline VectorGraph* ReadFile (const string path,const int num_files) {
+MutableGraph::MutableGraph(const string path,const int num_files) {
 
   vector< vector<unsigned int>* >* *graph_in = new vector< vector<unsigned int>* >*[num_files];
 
@@ -131,8 +89,4 @@ static inline VectorGraph* ReadFile (const string path,const int num_files) {
     sort(hood->begin(),hood->end());
   } 
   //stopClock("Reassigning ids");
-
-  return new VectorGraph(num_nodes,num_edges,external_ids,neighborhoods);
 }
-
-#endif

@@ -1,5 +1,6 @@
 // class templates
 #include "Matrix.hpp"
+#include "MutableGraph.hpp"
 
 namespace application{
   Matrix *graph;
@@ -36,13 +37,14 @@ int main (int argc, char* argv[]) {
   omp_set_num_threads(atoi(argv[3]));        
 
   //common::startClock();
-  VectorGraph *vg = ReadFile(argv[1],atoi(argv[2]));
+  MutableGraph *vg = new MutableGraph(argv[1],atoi(argv[2]));
   //common::stopClock("INPUT");
   cout << endl;
 
   application::result = new uint8_t[vg->num_nodes];
 
-  application::graph = new Matrix(vg,&application::myNodeSelection,&application::myEdgeSelection,common::A32BITPACKED);  
+  application::graph = new Matrix(vg->neighborhoods,vg->num_nodes,vg->num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,common::A32BITPACKED);  
   //application::graph->print_matrix();  
   /*
   common::startClock();
@@ -51,20 +53,23 @@ int main (int argc, char* argv[]) {
   cout << "Count: " << application::num_triangles << endl;
   */
 
-  application::graph = new Matrix(vg,&application::myNodeSelection,&application::myEdgeSelection,common::ARRAY16);
+  application::graph = new Matrix(vg->neighborhoods,vg->num_nodes,vg->num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY16);
   common::startClock();
   application::num_triangles = application::graph->foreach_row(&Matrix::for_row,&application::edge_apply);
   common::stopClock("ARRAY 16 TRIANGLE COUNTING");
   cout << "Count: " << application::num_triangles << endl << endl;
 
-  application::graph = new Matrix(vg,&application::myNodeSelection,&application::myEdgeSelection,common::ARRAY32);
+  application::graph = new Matrix(vg->neighborhoods,vg->num_nodes,vg->num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY32);
   //application::graph->print_matrix();
   common::startClock();
   application::num_triangles = application::graph->foreach_row(&Matrix::for_row,&application::edge_apply);
   common::stopClock("ARRAY 32 TRIANGLE COUNTING");
   cout << "Count: " << application::num_triangles << endl << endl;
   
-  application::graph = new Matrix(vg,&application::myNodeSelection,&application::myEdgeSelection,common::HYBRID);
+  application::graph = new Matrix(vg->neighborhoods,vg->num_nodes,vg->num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,common::HYBRID);
   common::startClock();
   application::num_triangles = application::graph->foreach_row(&Matrix::for_row,&application::edge_apply);
   common::stopClock("HYBRID TRIANGLE COUNTING");

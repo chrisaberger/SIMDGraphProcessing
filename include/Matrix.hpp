@@ -2,7 +2,6 @@
 #define MATRIX_H
 
 #include "uint_array/uint_array.hpp"
-#include "VectorGraph.hpp"
 
 class Matrix{
 	public:
@@ -15,7 +14,7 @@ class Matrix{
     unsigned char *row_types;
   	uint8_t *data; //formerly edges
 
-    Matrix(VectorGraph *vg,bool (*function1)(unsigned int),bool (*function2)(unsigned int,unsigned int),common::type t);
+    Matrix(vector< vector<unsigned int>*  > *g, size_t num_rows, size_t cardinality, bool (*function1)(unsigned int),bool (*function2)(unsigned int,unsigned int),common::type t);
     ~Matrix(){
       delete[] indicies;
       delete[] row_lengths;

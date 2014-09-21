@@ -19,7 +19,7 @@ else
 endif #debug
 endif #intel
 
-all: Matrix.o
+all: Matrix.o MutableGraph.o UnsignedIntegerArray.o
 
 HEADERS= $(shell ls include/*hpp)
 OBJDIR=build
@@ -28,12 +28,18 @@ EXEDIR=bin
 $(shell mkdir -p $(OBJDIR))
 $(shell mkdir -p $(EXEDIR))
 
+MutableGraph.o: include/MutableGraph.hpp src/MutableGraph.cpp
+	$(CXX) $(CXXFLAGS) -c src/MutableGraph.cpp -Iinclude -o $(OBJDIR)/$@
+
+UnsignedIntegerArray.o: include/UnsignedIntegerArray.hpp src/UnsignedIntegerArray.cpp
+	$(CXX) $(CXXFLAGS) -c src/UnsignedIntegerArray.cpp -Iinclude -o $(OBJDIR)/$@
+
 Matrix.o: include/Matrix.hpp src/Matrix.cpp
 	$(CXX) $(CXXFLAGS) -c src/Matrix.cpp -Iinclude -o $(OBJDIR)/$@
 
 UNAME := $(shell uname)
 
-OBJECTS= $(OBJDIR)/Matrix.o
+OBJECTS= $(OBJDIR)/Matrix.o $(OBJDIR)/MutableGraph.o $(OBJDIR)/UnsignedIntegerArray.o
 
 .DEFAULT:  apps/$@.cpp
 	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/$@ apps/$@.cpp  $(OBJECTS) -Iinclude

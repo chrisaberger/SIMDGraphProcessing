@@ -1,6 +1,6 @@
 #include "Matrix.hpp"
 
-Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in):
+Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t num_rows, size_t cardinality, bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in):
   num_rows(0),  //number of nodes
   cardinality(0),  //number of edges
   t(common::ARRAY32),
@@ -12,19 +12,18 @@ Matrix::Matrix(VectorGraph *vg, bool (*nodeFilter)(unsigned int), bool (*edgeFil
   array16::prepare_shuffling_dictionary16();
   
   t = t_in;
-  num_rows = vg->num_nodes;
   indicies = new size_t[num_rows+1];
   row_lengths = new unsigned int[num_rows];
   row_types = new unsigned char[num_rows];
 
-  uint8_t *tmp_data = new uint8_t[vg->num_edges*3]; 
+  uint8_t *tmp_data = new uint8_t[cardinality*3]; 
 
   size_t new_cardinality = 0;
   size_t index = 0;
-  for(size_t i = 0; i < vg->num_nodes; ++i) {
+  for(size_t i = 0; i < num_rows; ++i) {
     indicies[i] = index;
     if(nodeFilter(i)){
-      vector<unsigned int> *hood = vg->neighborhoods->at(i);
+      vector<unsigned int> *hood = g->at(i);
       unsigned int *filtered_hood = new unsigned int[hood->size()];
       size_t filter_index = 0;
       for(size_t j = 0; j < hood->size(); ++j) {

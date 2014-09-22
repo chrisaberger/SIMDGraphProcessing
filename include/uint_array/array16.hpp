@@ -159,17 +159,17 @@ namespace array16 {
     return result;
   }
   inline void print_data(unsigned short *A, size_t s_a){
-  	cout << "LEN: " << s_a << endl;
+  	//cout << "LEN: " << s_a << endl;
     for(size_t i = 0; i < s_a; i++){
       unsigned int prefix = (A[i] << 16);
       unsigned short size = A[i+1];
-      cout << "size: " << size << endl;
+      //cout << "size: " << size << endl;
       i += 2;
 
       size_t inner_end = i+size;
       while(i < inner_end){
         unsigned int tmp = prefix | A[i];
-        cout << "Data: " << tmp << endl;
+        cout << " Data: " << tmp << endl;
         ++i;
       }
       i--;

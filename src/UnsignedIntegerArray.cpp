@@ -3,7 +3,7 @@
 
 UnsignedIntegerArray::UnsignedIntegerArray(unsigned int *data_in, size_t length_in, common::type t_in){
   t = t_in;
-  uint8_t *tmp_data = new uint8_t[length_in*10];
+  uint8_t *tmp_data = new uint8_t[length_in*10*4];
   switch(t){
     case common::ARRAY32:
       length = array32::preprocess((unsigned int*)(tmp_data),data_in,length_in);
@@ -16,7 +16,6 @@ UnsignedIntegerArray::UnsignedIntegerArray(unsigned int *data_in, size_t length_
       break;
     case common::A32BITPACKED:
       length = a32bitpacked::preprocess((tmp_data),data_in,length_in);
-      cout << "dd: " << (uint)tmp_data[0] << endl;
       break;
     default:
       break;

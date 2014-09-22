@@ -4,10 +4,10 @@
 #include <fstream>
 
 //sparsity = length/max
-void create_synthetic_array(unsigned int *data, size_t length, double sparsity){
+void create_synthetic_array(unsigned int *data, size_t length, unsigned int max){
   if(length > 0){
-    data[0] = length/sparsity;
-    unsigned int max = data[0];
+    srand ( time(NULL) );
+    data[0] = max;
     for(size_t data_i = 1; data_i < length; data_i++){
       data[data_i] = rand() % max;
     }
@@ -16,19 +16,20 @@ void create_synthetic_array(unsigned int *data, size_t length, double sparsity){
 }
 
 int main (int argc, char* argv[]) { 
-  size_t a_size = 10;
+  size_t a_size = 6000;
   unsigned int *data = new unsigned int[a_size];
-  double sparsity = 0.001; 
-  create_synthetic_array(data,a_size,sparsity);
-  
+  unsigned int max_size = 0xffffffffffffffff; 
+  create_synthetic_array(data,a_size,max_size);
 
+  ofstream myfile;
+  myfile.open("reference.txt");
   for(size_t i = 0; i < a_size; i++){
-    cout << "Data: " << data[i] << endl;
+    myfile << " Data: " << data[i] << endl;
   }
 
   UnsignedIntegerArray *my_data = new UnsignedIntegerArray(data,a_size,common::A32BITPACKED);
-  cout << "A32BITPACKED BYTES: " << my_data->length << endl;
-  cout << endl;
+  //cout <<  endl << "A32BITPACKED BYTES: " << my_data->length << endl << endl;
+
   my_data->print_data();
 
   return 0;

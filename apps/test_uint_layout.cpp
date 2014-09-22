@@ -18,7 +18,7 @@ void create_synthetic_array(unsigned int *data, size_t length, unsigned int max)
 int main (int argc, char* argv[]) { 
   size_t a_size = 6000;
   unsigned int *data = new unsigned int[a_size];
-  unsigned int max_size = 0xffffffffffffffff; 
+  unsigned int max_size = 0xffffffff; 
   create_synthetic_array(data,a_size,max_size);
 
   ofstream myfile;

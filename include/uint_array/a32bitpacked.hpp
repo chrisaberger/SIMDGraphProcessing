@@ -15,7 +15,7 @@ namespace a32bitpacked {
         }
         result[result_i++] = ((uint8_t)(cur << 1)) | continue_bit;
         cur = cur >> 7;
-        //cout << "placing: " << (uint)result[result_i-1] << endl;
+        //cout << "result[" << result_i-1 << "]: "  << (uint)result[result_i-1] << endl;
         bytes_set++; 
       }
       //cout << endl;
@@ -39,6 +39,7 @@ namespace a32bitpacked {
   }
   inline unsigned int produce_deltas(unsigned int *data_in, size_t length, unsigned int *data, size_t num_simd_packed){    
     size_t max = 0;
+    unsigned int prev = 0;
 
     #if VECTORIZE == 1
     if(num_simd_packed > 0){
@@ -63,15 +64,10 @@ namespace a32bitpacked {
           }
         }
         //Store the deltas
-
       }
-    }
-    #endif
-
-    unsigned int prev = 0;
-    if(num_simd_packed != 0){
       prev = data_in[num_simd_packed-1];
     }
+    #endif
 
     for(size_t i = num_simd_packed; i < length; i++){
       unsigned int cur = data_in[i] - prev;
@@ -202,17 +198,28 @@ namespace a32bitpacked {
       size_t result_i = 0;
 
       #if DELTA == 1
-        size_t num_simd_packed = (((length-1)/INTS_PER_REG)*INTS_PER_REG*((length-1) >= INTS_PER_REG*2))+1;
-        result_i = variant_encode(data_in,data_i++,1,result_in,1);
         unsigned int *data = new unsigned int[length];
+        #if VECTORIZE == 1
+        size_t num_simd_packed = (((length-1)/INTS_PER_REG)*INTS_PER_REG*((length-1) >= INTS_PER_REG*2))+1;
+        #else
+        size_t num_simd_packed = 0;
+        #endif
         unsigned int max = produce_deltas(data_in,length,data,num_simd_packed);
-        const uint8_t bits_used = (unsigned int)log2(max)+1;
-        result_in[0] = bits_used;
+        #if VECTORIZE == 1
+          result_i = 1;
+          const uint8_t bits_used = (unsigned int)log2(max)+1;
+          result_in[0] = bits_used;
+          #else
+          (void) max;
+        #endif
+        result_i = variant_encode(data_in,data_i++,1,result_in,result_i);
       #else
-        size_t num_simd_packed = (length/INTS_PER_REG)*INTS_PER_REG*(length >= INTS_PER_REG*2);
         unsigned int *data = data_in;
-        const uint8_t bits_used = (unsigned int)log2(data_in[length-1])+1;
-        result_in[result_i++] = bits_used;
+        #if VECTORIZE == 1
+          size_t num_simd_packed = (length/INTS_PER_REG)*INTS_PER_REG*(length >= INTS_PER_REG*2);
+          const uint8_t bits_used = (unsigned int)log2(data_in[length-1])+1;
+          result_in[result_i++] = bits_used;
+        #endif
       #endif 
       //cout << "bits_used: " << (uint) result_in[0] << endl;
       //cout << "sending in: " << data[data_i] << endl;
@@ -224,7 +231,7 @@ namespace a32bitpacked {
       data_i = num_simd_packed;
       #endif
       
-      //cout << "starting encode at: " << result_i << " data elem: " << data_i << endl;
+      //cout << "starting encode at: " << result_i << " data elem: " << data_i << " result: " << result_i << endl;
       result_i = variant_encode(data,data_i,length,result_in,result_i);
 
       #if DELTA == 1
@@ -239,61 +246,69 @@ namespace a32bitpacked {
   inline void print_data(uint8_t *data, const size_t length, const size_t cardinality){
     (void)length;
     if(cardinality != 0){
-      uint8_t bits_used = data[0];
       //cout << "bits_used: " << (uint)bits_used << endl;
-
+      #if VECTORIZE == 1
       size_t data_i = 1;
+      #else
+      size_t data_i = 0;
+      #endif
+
       size_t num_decoded = 0;
 
       #if DELTA == 1
-      size_t num_simd_packed = ( ((cardinality-1)/INTS_PER_REG)*INTS_PER_REG*((cardinality-1) >= INTS_PER_REG*2))+1;
-      unsigned int prev = variant_decode(data,data_i);
-      cout << " Data: " << prev << endl;
-      num_decoded++;
+        #if VECTORIZE == 1
+        size_t num_simd_packed = ( ((cardinality-1)/INTS_PER_REG)*INTS_PER_REG*((cardinality-1) >= INTS_PER_REG*2))+1;
+        #endif
+        unsigned int prev = variant_decode(data,data_i);
+        cout << " Data: " << prev << endl;
+        num_decoded++;
       #else
       //cout << "Length: " << length << endl;
-      size_t num_simd_packed = (cardinality/INTS_PER_REG)*INTS_PER_REG*(cardinality >= INTS_PER_REG*2);
+        #if VECTORIZE == 1
+        size_t num_simd_packed = (cardinality/INTS_PER_REG)*INTS_PER_REG*(cardinality >= INTS_PER_REG*2);
+        #endif
       #endif 
 
       #if VECTORIZE == 1
-      #if DELTA == 1
-      __m128i prev_result = _mm_set1_epi32(prev);
+        uint8_t bits_used = data[0];
+          #if DELTA == 1
+          __m128i prev_result = _mm_set1_epi32(prev);
+          #endif
+
+        size_t bit_i = 0;
+       // cout << "num decoded: " << num_decoded << " num_simd_packed: " << num_simd_packed << endl;
+        while(num_decoded < num_simd_packed){
+         // cout << "num_decoded: " << num_decoded << endl;
+          __m128i packed_data = simd_bit_unpack(bits_used,bit_i,data,data_i);
+
+          #if DELTA == 1
+          packed_data = _mm_add_epi32(packed_data,prev_result);
+          prev_result = packed_data;
+          #endif
+
+          //Apply Function (intersection)
+          uint32_t *t = (uint32_t*) &packed_data;
+          cout << " Data: " << t[0] << endl;
+          cout << " Data: " << t[1] << endl;
+          cout << " Data: " << t[2] << endl;
+          cout << " Data: " << t[3] << endl;
+          //
+
+          #if DELTA == 1
+          prev = t[3];
+          #endif
+
+          //cout << "bit_i: " << bit_i << " data_i: " << data_i << endl;
+
+          num_decoded += INTS_PER_REG;
+        }
+        data_i += INTS_PER_REG*4;
       #endif
 
-      size_t bit_i = 0;
-     // cout << "num decoded: " << num_decoded << " num_simd_packed: " << num_simd_packed << endl;
-      while(num_decoded < num_simd_packed){
-       // cout << "num_decoded: " << num_decoded << endl;
-        __m128i packed_data = simd_bit_unpack(bits_used,bit_i,data,data_i);
-
-        #if DELTA == 1
-        packed_data = _mm_add_epi32(packed_data,prev_result);
-        prev_result = packed_data;
-        #endif
-
-        //Apply Function (intersection)
-        uint32_t *t = (uint32_t*) &packed_data;
-        cout << " Data: " << t[0] << endl;
-        cout << " Data: " << t[1] << endl;
-        cout << " Data: " << t[2] << endl;
-        cout << " Data: " << t[3] << endl;
-        //
-
-        #if DELTA == 1
-        prev = t[3];
-        #endif
-
-        //cout << "bit_i: " << bit_i << " data_i: " << data_i << endl;
-
-        num_decoded += INTS_PER_REG;
-      }
-      #endif
-
-      data_i += INTS_PER_REG*4;
       //cout << "starting variant decode at: " << data_i << endl;
       while(num_decoded < cardinality){
         unsigned int cur = variant_decode(data,data_i);
-        //cout << "cur: " << cur << endl;
+        //cout << "data_i: " << data_i << endl;
         #if DELTA == 1
         //cout << "prev: " << prev << endl;
         cur += prev;

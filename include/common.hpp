@@ -20,7 +20,6 @@
 #include <fstream>
 #include <math.h>
 
-#define DELTA 1
 #define HYBRID_LAYOUT 1
 #define WRITE_VECTOR 0
 #define SHORTS_PER_REG 8

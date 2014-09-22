@@ -102,10 +102,10 @@ namespace array32 {
     return result;
   }
 
-  inline void print_data(unsigned int *data,size_t length){
+  inline void print_data(unsigned int *data,size_t length,ofstream &file){
     //cout << "LEN: " << length << endl;
     for(size_t i = 0; i < length; i++){
-      cout << " Data: " << data[i] << endl;
+      file << " Data: " << data[i] << endl;
     }
   }
   inline size_t preprocess(unsigned int *r, unsigned int *data, size_t length){

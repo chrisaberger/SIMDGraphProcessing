@@ -1,7 +1,7 @@
 #include "bitset.hpp"
 #include "array32.hpp"
 #include "array16.hpp"
-#include "a32bitpacked.hpp"
+#include "a32bitpacked_delta.hpp"
 
 namespace hybrid {
   //untested

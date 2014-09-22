@@ -158,7 +158,7 @@ namespace array16 {
     }
     return result;
   }
-  inline void print_data(unsigned short *A, size_t s_a){
+  inline void print_data(unsigned short *A, size_t s_a, std::ofstream &file){
   	//cout << "LEN: " << s_a << endl;
     for(size_t i = 0; i < s_a; i++){
       unsigned int prefix = (A[i] << 16);
@@ -169,7 +169,7 @@ namespace array16 {
       size_t inner_end = i+size;
       while(i < inner_end){
         unsigned int tmp = prefix | A[i];
-        cout << " Data: " << tmp << endl;
+        file << " Data: " << tmp << endl;
         ++i;
       }
       i--;

@@ -19,8 +19,7 @@ else
 endif #debug
 endif #intel
 
-all: Matrix.o MutableGraph.o UnsignedIntegerArray.o
-
+all: UnsignedIntegerArray.o Matrix.o MutableGraph.o 
 HEADERS= $(shell ls include/*hpp)
 OBJDIR=build
 EXEDIR=bin

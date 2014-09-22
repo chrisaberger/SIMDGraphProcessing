@@ -9,15 +9,14 @@
 #include <sys/resource.h>
 #include <stdio.h>  
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <iterator>
 #include <algorithm>  // for std::find
-#include <iostream>   // for std::cout
 #include <cstring>
 #include <sys/mman.h>
 #include <fcntl.h>    /* For O_RDWR */
 #include <unistd.h>   /* For open(), creat() */
-#include <fstream>
 #include <math.h>
 
 #define HYBRID_LAYOUT 1
@@ -65,7 +64,10 @@ namespace common{
     ARRAY16 = 1,
     ARRAY32 = 2,
     HYBRID = 3,
-    A32BITPACKED = 4
+    A32BITPACKED = 4,
+    A32BITPACKED_DELTA = 5,
+    VARIANT = 6,
+    VARIANT_DELTA = 7
   };
   
 }

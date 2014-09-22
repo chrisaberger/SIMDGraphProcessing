@@ -10,13 +10,12 @@ class UnsignedIntegerArray{
     size_t length;
   	uint8_t *data;
 
-
     UnsignedIntegerArray(unsigned int *data_in, size_t length_in, common::type t_in);
     ~UnsignedIntegerArray(){
       delete[] data;
     }
 
-    void print_data();
+    void print_data(string file);
 };
 
 #endif

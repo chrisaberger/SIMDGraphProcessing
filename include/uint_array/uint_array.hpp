@@ -15,6 +15,15 @@ namespace uint_array{
       case common::A32BITPACKED:
         index += a32bitpacked::preprocess((data+index),data_in,length_in);
         break;
+      case common::A32BITPACKED_DELTA:
+        index += a32bitpacked_delta::preprocess((data+index),data_in,length_in);
+        break;
+      case common::VARIANT:
+        index += variant::preprocess((data+index),data_in,length_in);
+        break;
+      case common::VARIANT_DELTA:
+        index += variant_delta::preprocess((data+index),data_in,length_in);
+        break;
       default:
         break;
     }
@@ -85,19 +94,28 @@ namespace uint_array{
     }
     return count;
   }
-  inline void print_data(uint8_t *data, size_t length, size_t cardinality, common::type t){
+  inline void print_data(uint8_t *data, size_t length, size_t cardinality, common::type t, std::ofstream &file){
     switch(t){
       case common::ARRAY32:
-        array32::print_data((unsigned int*)data,length/4);
+        array32::print_data((unsigned int*)data,length/4,file);
         break;
       case common::ARRAY16:
-        array16::print_data((unsigned short*)data,length/2);
+        array16::print_data((unsigned short*)data,length/2,file);
         break;
       case common::BITSET:
-        bitset::print_data((unsigned short*)data,length/2);
+        bitset::print_data((unsigned short*)data,length/2,file);
         break;
       case common::A32BITPACKED:
-        a32bitpacked::print_data(data,length,cardinality);
+        a32bitpacked::print_data(data,length,cardinality,file);
+        break;
+      case common::A32BITPACKED_DELTA:
+        a32bitpacked_delta::print_data(data,length,cardinality,file);
+        break;
+      case common::VARIANT:
+        variant::print_data(data,length,cardinality,file);
+        break;
+      case common::VARIANT_DELTA:
+        variant_delta::print_data(data,length,cardinality,file);
         break;
       default:
         break;

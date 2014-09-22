@@ -103,13 +103,13 @@ namespace bitset {
     }
     return result;
   }
-  inline void print_data(unsigned short *A, size_t s_a){
+  inline void print_data(unsigned short *A, size_t s_a, ofstream &file){
   	//cout << "Size: " << s_a << endl;
     for(size_t i = 0; i < s_a; i++){
     	unsigned short cur_word = A[i];
     	for(size_t j = 0; j < BITS_PER_WORD; j++){
     		if((cur_word >> j) % 2)
-    			cout << " Data: " << BITS_PER_WORD*i + j << endl;
+    			file << " Data: " << BITS_PER_WORD*i + j << endl;
     	}
     }
   }

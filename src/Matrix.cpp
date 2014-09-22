@@ -47,12 +47,15 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t num_rows, size_t card
 }
 
 void Matrix::print_rows(unsigned int i, unsigned int j){
+  ofstream myfile;
+  myfile.open("debug.txt");
+
   cout << "ROW: " << i << endl;
   size_t start = indicies[i];
   size_t end = indicies[i+1];
   size_t card = row_lengths[i];
   common::type row_type = (common::type) row_types[i];
-  uint_array::print_data(data+start,end-start,card,row_type);
+  uint_array::print_data(data+start,end-start,card,row_type,myfile);
 
   cout << "ROW: " << j << endl;
   start = indicies[j];
@@ -60,16 +63,19 @@ void Matrix::print_rows(unsigned int i, unsigned int j){
   card = row_lengths[j];
   cout << "start: " << start << " end: " << end << endl;
   row_type = (common::type) row_types[j];
-  uint_array::print_data(data+start,end-start,card,row_type);
+  uint_array::print_data(data+start,end-start,card,row_type,myfile);
 }
 
 void Matrix::print_matrix(){
+  ofstream myfile;
+  myfile.open("matrix_data.txt");
+
 	for(size_t i = 0; i < num_rows; i++){
 		cout << "ROW: " << i << endl;
 		size_t start = indicies[i];
 		size_t end = indicies[i+1];
     size_t card = row_lengths[i];
     const common::type row_type = (common::type) row_types[i];
-		uint_array::print_data(data+start,end-start,card,row_type);
+		uint_array::print_data(data+start,end-start,card,row_type,myfile);
 	}
 }

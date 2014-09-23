@@ -1,63 +1,95 @@
 #include "common.hpp"
-#include "variant_delta.hpp" //really just need variant but this helps for a32 so no circular dep
+#include "a32bitpacked.hpp"
 
-namespace a32bitpacked {
-  static size_t global_bit_i = 0;
-  static size_t global_data_i = 1;
-  inline __m128i simd_bit_unpack(const uint8_t bits_used, const uint8_t *data){
+namespace a32bitpacked_delta {
+  static inline unsigned int produce_deltas(unsigned int *data_in, size_t length, unsigned int *data, size_t num_simd_packed){    
+    size_t max = 0;
+    unsigned int prev = 0;
+
+    if(num_simd_packed > 0){
+      //place first 4 elements->serves as intial delta for subtraction.
+      __m128i prev_data_register = _mm_set1_epi32(data_in[0]); //set delta
+      data[0] = data_in[0];
+
+      for(size_t i = 1; i < num_simd_packed; i+=INTS_PER_REG){
+        __m128i data_register = _mm_loadu_si128((__m128i*)&data_in[i]);
+        __m128i deltas = _mm_sub_epi32(data_register,prev_data_register);
+        _mm_storeu_si128((__m128i*)&data[i],deltas);
+        prev_data_register = data_register;
+
+        //uint32_t *t = (uint32_t*) &deltas;
+        //cout << "STORING DELTAS Values[" << i << "]: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << endl;
+     
+        //Find max difference (will tell the # of bits to represent value needed)
+        uint32_t *ot = (uint32_t*) &deltas;
+        for(size_t j = 0; j < INTS_PER_REG; j++){
+          if(ot[j] > max){
+            max = ot[j];
+          }
+        }
+        //Store the deltas
+      }
+      prev = data_in[num_simd_packed-1];
+    }
+
+    for(size_t i = num_simd_packed; i < length; i++){
+      unsigned int cur = data_in[i] - prev;
+      //cout  << "Writing delta index: " << i << "  " << cur << endl;
+      data[i] = cur;
+      prev = data_in[i];
+    }
+
+    return max;
+  }
+  static inline __m128i simd_bit_unpack(const uint8_t bits_used, size_t &bit_i, uint8_t *data, size_t &data_i, __m128i data_register){
     //cout << "Bits used: " << (uint)bits_used << endl;
     unsigned int mask32 = (long)((long)1 << (long)bits_used)-1;
     //cout << "mASK: " << hex << mask32 << dec << endl;
     __m128i mask = _mm_set1_epi32(mask32);
-    if(global_bit_i+bits_used <= 32){
-      __m128i data_register = _mm_loadu_si128((__m128i*)&data[global_data_i]);
-
-      //cout << "Bit_i: " << global_bit_i << endl;
+    cout << "Bit Index: " << bit_i << endl;
+    if(bit_i+bits_used <= 32){
       //uint32_t *t = (uint32_t*) &data_register;
       //cout << "1LOADING Values[" << data_i << "]: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << endl;
      
-      __m128i result = _mm_srli_epi32(data_register,global_bit_i);
+      __m128i result = _mm_srli_epi32(data_register,bit_i);
       result = _mm_and_si128(result,mask);
-      global_bit_i += bits_used;
+      bit_i += bits_used;
 
       return result;
     }
-    else if(global_bit_i < 32){
-      __m128i data_register = _mm_loadu_si128((__m128i*)&data[global_data_i]);
-
+    else if(bit_i < 32){
       //uint32_t *t = (uint32_t*) &data_register;
       //cout << "2LOADING Values[" << data_i << "]: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << endl;
 
-      __m128i cur_lower = _mm_srli_epi32(data_register,global_bit_i);
-      data_register = _mm_loadu_si128((__m128i*)&data[global_data_i+INTS_PER_REG*4]);
+      __m128i cur_lower = _mm_srli_epi32(data_register,bit_i);
+      data_register = _mm_loadu_si128((__m128i*)&data[data_i+INTS_PER_REG*4]);
 
-      //t = (uint32_t*) &data_register;
+      ///t = (uint32_t*) &data_register;
       //cout << "22LOADING Values[" << data_i+INTS_PER_REG*4 << "]: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << endl;
 
 
-      __m128i cur_upper = _mm_slli_epi32(data_register,(32-global_bit_i));
+      __m128i cur_upper = _mm_slli_epi32(data_register,(32-bit_i));
       __m128i result = _mm_and_si128(_mm_or_si128(cur_upper,cur_lower),mask);
 
-      global_bit_i = bits_used-(32-global_bit_i);      
-      global_data_i += INTS_PER_REG*4;
+      bit_i = bits_used-(32-bit_i);      
+      data_i += INTS_PER_REG*4;
+
       return result;
     } else{
-      global_bit_i = 0;
-      global_data_i += INTS_PER_REG*4;
-
-      __m128i data_register = _mm_loadu_si128((__m128i*)&data[global_data_i]);
+      bit_i = 0;
+      data_i += INTS_PER_REG*4;
 
       //uint32_t *t = (uint32_t*) &data_register;
       //cout << "3LOADING Values[" << data_i << "]: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << endl;
 
-      __m128i result = _mm_srli_epi32(data_register,global_bit_i);
+      __m128i result = _mm_srli_epi32(data_register,bit_i);
       result = _mm_and_si128(result,mask);
-      global_bit_i += bits_used;
+      bit_i += bits_used;
 
       return result;
     }
   }
-  inline size_t simd_bit_pack(const uint8_t bits_used, unsigned int *data, size_t data_index, size_t num_simd_packed, uint8_t *result_in, size_t result_i){
+  static inline size_t simd_bit_pack(const uint8_t bits_used, unsigned int *data, size_t data_index, size_t num_simd_packed, uint8_t *result_in, size_t result_i){
     size_t num_packed = 0;
     size_t bit_i = 0;
     size_t data_i = data_index;
@@ -117,15 +149,21 @@ namespace a32bitpacked {
     }
     return result_i;
   }
-  inline size_t preprocess(uint8_t *result_in, unsigned int *data_in, size_t length){
+  static inline size_t preprocess(uint8_t *result_in, unsigned int *data_in, size_t length){
     if(length > 0){
       size_t data_i = 0;
       size_t result_i = 0;
 
-      unsigned int *data = data_in;
-      size_t num_simd_packed = (length/INTS_PER_REG)*INTS_PER_REG*(length >= INTS_PER_REG*2);
-      const uint8_t bits_used = (unsigned int)log2(data_in[length-1])+1;
-      result_in[result_i++] = bits_used;
+      unsigned int *data = new unsigned int[length];
+      size_t num_simd_packed = (((length-1)/INTS_PER_REG)*INTS_PER_REG*((length-1) >= INTS_PER_REG*2))+1;
+      unsigned int max = produce_deltas(data_in,length,data,num_simd_packed);
+
+      result_i = 1;
+      const uint8_t bits_used = (unsigned int)log2(max)+1;
+      result_in[0] = bits_used;
+
+      result_i = variant::variant_encode(data_in,data_i++,1,result_in,result_i);
+
       //cout << "bits_used: " << (uint) result_in[0] << endl;
       //cout << "sending in: " << data[data_i] << endl;
       //cout << " num_simd_packed: " << num_simd_packed << endl;
@@ -137,77 +175,39 @@ namespace a32bitpacked {
       //cout << "starting encode at: " << result_i << " data elem: " << data_i << " result: " << result_i << endl;
       result_i = variant::variant_encode(data,data_i,length,result_in,result_i);
 
+      delete[] data;
+
       return result_i;
     } else{
       return 0;
     }
   }
-  inline void print_data(uint8_t *data, const size_t length, const size_t cardinality, std::ofstream &file){
+  static inline void print_data(uint8_t *data, const size_t length, const size_t cardinality, std::ofstream &file){
     (void)length;
-    
     if(cardinality != 0){
       //cout << "bits_used: " << (uint)bits_used << endl;
       size_t data_i = 1;
+
       size_t num_decoded = 0;
-      size_t num_simd_packed = (cardinality/INTS_PER_REG)*INTS_PER_REG*(cardinality >= INTS_PER_REG*2);
-      const uint8_t bits_used = data[0];
+
+      size_t num_simd_packed = ( ((cardinality-1)/INTS_PER_REG)*INTS_PER_REG*((cardinality-1) >= INTS_PER_REG*2))+1;
+      unsigned int prev = variant::variant_decode(data,data_i);
+      file << " Data: " << prev << endl;
+      num_decoded++;
+
+
+      uint8_t bits_used = data[0];
+      __m128i prev_result = _mm_set1_epi32(prev);
+
       size_t bit_i = 0;
-      //cout << "num decoded: " << num_decoded << " num_simd_packed: " << num_simd_packed << endl;
+     // cout << "num decoded: " << num_decoded << " num_simd_packed: " << num_simd_packed << endl;
       while(num_decoded < num_simd_packed){
        // cout << "num_decoded: " << num_decoded << endl;
-        __m128i packed_data;//simd_bit_unpack(bits_used,bit_i,data,data_i);
+        __m128i data_register = _mm_loadu_si128((__m128i*)&data[data_i]);
+        __m128i packed_data = simd_bit_unpack(bits_used,bit_i,data,data_i, data_register);
 
-        unsigned int mask32 = (long)((long)1 << (long)bits_used)-1;
-        //cout << "mASK: " << hex << mask32 << dec << endl;
-        __m128i mask = _mm_set1_epi32(mask32);
-        if(bit_i+bits_used <= 32){
-          __m128i data_register = _mm_loadu_si128((__m128i*)&data[data_i]);
-
-          //uint32_t *t = (uint32_t*) &data_register;
-          //cout << "1LOADING Values[" << data_i << "]: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << endl;
-         
-          __m128i result = _mm_srli_epi32(data_register,bit_i);
-          result = _mm_and_si128(result,mask);
-          bit_i += bits_used;
-
-          packed_data = result;
-        }
-        else if(bit_i < 32){
-          __m128i data_register = _mm_loadu_si128((__m128i*)&data[data_i]);
-
-          //uint32_t *t = (uint32_t*) &data_register;
-          //cout << "2LOADING Values[" << data_i << "]: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << endl;
-
-          __m128i cur_lower = _mm_srli_epi32(data_register,bit_i);
-          data_register = _mm_loadu_si128((__m128i*)&data[data_i+INTS_PER_REG*4]);
-
-          //t = (uint32_t*) &data_register;
-          //cout << "22LOADING Values[" << data_i+INTS_PER_REG*4 << "]: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << endl;
-
-
-          __m128i cur_upper = _mm_slli_epi32(data_register,(32-bit_i));
-          __m128i result = _mm_and_si128(_mm_or_si128(cur_upper,cur_lower),mask);
-
-          bit_i = bits_used-(32-bit_i);      
-          data_i += INTS_PER_REG*4;
-
-          packed_data = result;
-        } else{
-          bit_i = 0;
-          data_i += INTS_PER_REG*4;
-
-          __m128i data_register = _mm_loadu_si128((__m128i*)&data[data_i]);
-
-          //uint32_t *t = (uint32_t*) &data_register;
-          //cout << "3LOADING Values[" << data_i << "]: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << endl;
-
-          __m128i result = _mm_srli_epi32(data_register,bit_i);
-          result = _mm_and_si128(result,mask);
-          bit_i += bits_used;
-
-          packed_data = result;
-        }
-
+        packed_data = _mm_add_epi32(packed_data,prev_result);
+        prev_result = packed_data;
 
         //Apply Function (intersection)
         uint32_t *t = (uint32_t*) &packed_data;
@@ -217,6 +217,8 @@ namespace a32bitpacked {
         file << " Data: " << t[3] << endl;
         //
 
+        prev = t[3];
+
         //cout << "bit_i: " << bit_i << " data_i: " << data_i << endl;
 
         num_decoded += INTS_PER_REG;
@@ -225,7 +227,17 @@ namespace a32bitpacked {
         data_i += INTS_PER_REG*4;
       }
 
-      variant::print_data(&data[data_i],length-data_i,cardinality-num_decoded,file);
+      //cout << "starting variant decode at: " << data_i << endl;
+      while(num_decoded < cardinality){
+        unsigned int cur = variant::variant_decode(data,data_i);
+        //cout << "data_i: " << data_i << endl;
+        //cout << "prev: " << prev << endl;
+        cur += prev;
+        prev = cur;
+
+        file << " Data: " << cur << endl;
+        num_decoded++;
+      }
     }
   }
 } 

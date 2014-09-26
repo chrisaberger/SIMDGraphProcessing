@@ -41,12 +41,12 @@ namespace a32bitpacked_delta {
 
     return max;
   }
-  static inline __m128i simd_bit_unpack(const uint8_t bits_used, size_t &bit_i, uint8_t *data, size_t &data_i, __m128i data_register){
+  inline __m128i simd_bit_unpack(const uint8_t bits_used, size_t &bit_i, uint8_t *data, size_t &data_i, __m128i data_register){
     //cout << "Bits used: " << (uint)bits_used << endl;
     unsigned int mask32 = (long)((long)1 << (long)bits_used)-1;
     //cout << "mASK: " << hex << mask32 << dec << endl;
     __m128i mask = _mm_set1_epi32(mask32);
-    cout << "Bit Index: " << bit_i << endl;
+    //cout << "Bit Index: " << bit_i << endl;
     if(bit_i+bits_used <= 32){
       //uint32_t *t = (uint32_t*) &data_register;
       //cout << "1LOADING Values[" << data_i << "]: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << endl;

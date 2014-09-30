@@ -20,24 +20,28 @@ else
 endif #debug
 endif #intel
 
-HEADERS=$(wildcard include/*hpp)
-SOURCES=$(wildcard src/*cpp)
-OBJECTS=$(SOURCES:src/%.cpp=build/%.o)
-APPS_SOURCES=$(shell ls apps)
-APPS=$(APPS_SOURCES:.cpp=)
-APPS_EXES=$(EXEDIR)/$(APPS)
 OBJDIR=build
 EXEDIR=bin
+HEADERS=$(wildcard include/*hpp)
+SOURCES=$(wildcard src/*cpp)
+OBJECTS=$(SOURCES:src/%.cpp=$(OBJDIR)/%.o)
+APPS_SOURCES=$(shell ls apps)
+APPS=$(APPS_SOURCES:.cpp=)
+APPS_EXES=$(APPS:%=$(EXEDIR)/%)
 
 all: $(APPS_EXES)
 
-$(APPS_EXES): $(OBJECTS) $(APP_SOURCES)
-	$(CXX) $(CXXFLAGS) -o $@ $(@:bin%=apps%) $(OBJECTS) -Iinclude
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
 
-$(OBJECTS): $(SOURCES) $(HEADERS)
+$(EXEDIR):
+	mkdir -p $(EXEDIR)
+
+$(APPS_EXES): $(OBJECTS) $(APP_SOURCES) $(EXEDIR)
+	$(CXX) $(CXXFLAGS) -o $@ $(@:bin%=apps%.cpp) $(OBJECTS) -Iinclude
+
+$(OBJECTS): $(SOURCES) $(HEADERS) $(OBJDIR)
 	$(CXX) $(CXXFLAGS) -c $< -Iinclude -o $(@:src%=build%)
-
-UNAME := $(shell uname)
 
 clean:
 	rm -rf $(OBJDIR) $(EXEDIR)

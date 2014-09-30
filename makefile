@@ -38,10 +38,10 @@ $(EXEDIR):
 	mkdir -p $(EXEDIR)
 
 $(APPS_EXES): $(OBJECTS) $(APP_SOURCES) $(EXEDIR)
-	$(CXX) $(CXXFLAGS) -o $@ $(@:bin%=apps%.cpp) $(OBJECTS) -Iinclude
+	$(CXX) $(CXXFLAGS) -o $@ -I include $(@:bin%=apps%.cpp) $(OBJECTS) 
 
 $(OBJECTS): $(SOURCES) $(HEADERS) $(OBJDIR)
-	$(CXX) $(CXXFLAGS) -c $< -Iinclude -o $(@:src%=build%)
+	$(CXX) $(CXXFLAGS) -c $(@:build%.o=src%.cpp) -I include -o $@
 
 clean:
 	rm -rf $(OBJDIR) $(EXEDIR)

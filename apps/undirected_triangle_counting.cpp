@@ -56,7 +56,7 @@ int main (int argc, char* argv[]) {
   application::graph = new Matrix(vg->neighborhoods,vg->num_nodes,vg->num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY16);
   common::startClock();
-  application::num_triangles = application::graph->foreach_row(&Matrix::for_row,&application::edge_apply);
+  application::num_triangles = application::graph->foreach_row(&Matrix::foreach_column_in_row,&application::edge_apply);
   common::stopClock("ARRAY 16 TRIANGLE COUNTING");
   cout << "Count: " << application::num_triangles << endl << endl;
 
@@ -64,14 +64,14 @@ int main (int argc, char* argv[]) {
     &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY32);
   //application::graph->print_matrix();
   common::startClock();
-  application::num_triangles = application::graph->foreach_row(&Matrix::for_row,&application::edge_apply);
+  application::num_triangles = application::graph->foreach_row(&Matrix::foreach_column_in_row,&application::edge_apply);
   common::stopClock("ARRAY 32 TRIANGLE COUNTING");
   cout << "Count: " << application::num_triangles << endl << endl;
   
   application::graph = new Matrix(vg->neighborhoods,vg->num_nodes,vg->num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,common::HYBRID);
   common::startClock();
-  application::num_triangles = application::graph->foreach_row(&Matrix::for_row,&application::edge_apply);
+  application::num_triangles = application::graph->foreach_row(&Matrix::foreach_column_in_row,&application::edge_apply);
   common::stopClock("HYBRID TRIANGLE COUNTING");
   cout << "Count: " << application::num_triangles << endl << endl;
 

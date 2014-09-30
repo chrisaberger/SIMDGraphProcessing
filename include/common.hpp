@@ -7,7 +7,7 @@
 #include <ctime>
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <stdio.h>  
+#include <stdio.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -18,6 +18,24 @@
 #include <fcntl.h>    /* For O_RDWR */
 #include <unistd.h>   /* For open(), creat() */
 #include <math.h>
+
+// As seen in the dimmwitted project...
+
+// If we are not compiling on OSX, we use the NUMA library
+#ifndef __MACH__
+#include <numa.h>
+#include <numaif.h>
+#endif
+
+// If we are compiling on OSX, we define stubs for functions in the NUMA library
+#ifdef __MACH__
+#include <math.h>
+#include <stdlib.h>
+#define numa_alloc_onnode(X,Y) malloc(X)
+#define numa_max_node() 0
+#define numa_run_on_node(X) 0
+#define numa_set_localalloc() 0
+#endif
 
 #define VECTORIZE 1
 #define HYBRID_LAYOUT 0

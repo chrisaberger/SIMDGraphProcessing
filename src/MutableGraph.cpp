@@ -6,6 +6,11 @@ struct AdjComparator {
     return (i->size() > j->size()); 
   }
 };
+struct NeighborhoodComparator {
+  bool operator()(vector<unsigned int> *i,vector<unsigned int> *j) const { 
+    return (i->at(0) < j->at(0)); 
+  }
+};
 struct SrcPairComparator {
   bool operator()(pair<unsigned int,unsigned int> i,pair<unsigned int,unsigned int> j) const { 
     return (i.first > j.first); 
@@ -253,6 +258,10 @@ MutableGraph MutableGraph::directedFromEdgeList(const string path,const int num_
   //reassign ID's
   reassign_ids(out_neighborhoods,extern_ids);
   reassign_ids(in_neighborhoods,extern_ids);
+
+  std::sort(out_neighborhoods->begin(),out_neighborhoods->end(),NeighborhoodComparator());
+  std::sort(in_neighborhoods->begin(),in_neighborhoods->end(),NeighborhoodComparator());
+
   num_nodes = extern_ids->size();
 
   delete edges;

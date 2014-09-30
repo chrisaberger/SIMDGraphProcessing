@@ -6,6 +6,7 @@ namespace application{
   Matrix *graph;
   uint8_t *result;
   long num_triangles = 0;
+  common::type graphType = common::ARRAY32;
   
   inline bool myNodeSelection(unsigned int node){
     (void)node;
@@ -42,7 +43,7 @@ int main (int argc, char* argv[]) {
   common::startClock();
   Matrix allocated_graph = Matrix::buildSymetric(inputGraph.out_neighborhoods,
     inputGraph.num_nodes,inputGraph.num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY32);
+    &application::myNodeSelection,&application::myEdgeSelection,application::graphType);
   application::graph = &allocated_graph;
   common::stopClock("Building Graph");
 

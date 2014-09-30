@@ -1,6 +1,7 @@
 .SUFFIXES:
 #
 .SUFFIXES: .cpp .o .c .hpp
+
 # replace the CXX variable with a path to a C++11 compatible compiler.
 ifeq ($(INTEL), 1)
 # if you wish to use the Intel compiler, please do "make INTEL=1".
@@ -19,30 +20,25 @@ else
 endif #debug
 endif #intel
 
-all: UnsignedIntegerArray.o Matrix.o MutableGraph.o 
-HEADERS= $(shell ls include/*hpp)
+HEADERS=$(wildcard include/*hpp)
+SOURCES=$(wildcard src/*cpp)
+OBJECTS=$(SOURCES:src/%.cpp=build/%.o)
+APPS_SOURCES=$(shell ls apps)
+APPS=$(APPS_SOURCES:.cpp=)
+APPS_EXES=$(EXEDIR)/$(APPS)
 OBJDIR=build
 EXEDIR=bin
 
-$(shell mkdir -p $(OBJDIR))
-$(shell mkdir -p $(EXEDIR))
+all: $(APPS_EXES)
 
-MutableGraph.o: include/MutableGraph.hpp src/MutableGraph.cpp
-	$(CXX) $(CXXFLAGS) -c src/MutableGraph.cpp -Iinclude -o $(OBJDIR)/$@
+$(APPS_EXES): $(OBJECTS) $(APP_SOURCES)
+	$(CXX) $(CXXFLAGS) -o $@ $(@:bin%=apps%) $(OBJECTS) -Iinclude
 
-UnsignedIntegerArray.o: include/UnsignedIntegerArray.hpp src/UnsignedIntegerArray.cpp
-	$(CXX) $(CXXFLAGS) -c src/UnsignedIntegerArray.cpp -Iinclude -o $(OBJDIR)/$@
-
-Matrix.o: include/Matrix.hpp src/Matrix.cpp
-	$(CXX) $(CXXFLAGS) -c src/Matrix.cpp -Iinclude -o $(OBJDIR)/$@
+$(OBJECTS): $(SOURCES) $(HEADERS)
+	$(CXX) $(CXXFLAGS) -c $< -Iinclude -o $(@:src%=build%)
 
 UNAME := $(shell uname)
 
-OBJECTS= $(OBJDIR)/Matrix.o $(OBJDIR)/MutableGraph.o $(OBJDIR)/UnsignedIntegerArray.o
-
-.DEFAULT:  apps/$@.cpp
-	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/$@ apps/$@.cpp  $(OBJECTS) -Iinclude
-
-clean: 
+clean:
 	rm -rf $(OBJDIR) $(EXEDIR)
 

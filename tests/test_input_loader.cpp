@@ -15,14 +15,14 @@ inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
 
 int main (int argc, char* argv[]) {
 
-  MutableGraph inputGraph = MutableGraph::undirectedFromEdgeList(argv[1],atoi(argv[2]));
+  MutableGraph inputGraph = MutableGraph::undirectedFromEdgeList(argv[1],1);
   cout << "Loaded edge list" << endl;
   
   Matrix m = Matrix::buildSymetric(inputGraph.out_neighborhoods,
     inputGraph.num_nodes,inputGraph.num_edges,
     &myNodeSelection,&myEdgeSelection,common::ARRAY32);
   
-  m.print_matrix("output.txt");
+  m.print_data("output.txt");
 
   return 0;
 }

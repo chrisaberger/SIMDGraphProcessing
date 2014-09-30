@@ -141,9 +141,9 @@ MutableGraph MutableGraph::undirectedFromEdgeList(const string path,const int nu
 
   vector<pair<unsigned int,unsigned int>> *edges = new vector<pair<unsigned int,unsigned int>>(); //guess a size
   
-  for(size_t i=0; i <= (size_t) num_files;++i){
+  for(size_t i=0; i < (size_t) num_files;++i){
     string file_path = path;
-    if(num_files!=0) file_path.append(to_string(i));
+    if(num_files!=1) file_path.append(to_string(i));
 
     ifstream myfile (file_path);
     string line;
@@ -203,9 +203,9 @@ MutableGraph MutableGraph::directedFromEdgeList(const string path,const int num_
 
   vector<pair<unsigned int,unsigned int>> *edges = new vector<pair<unsigned int,unsigned int>>(); //guess a size
   
-  for(size_t i=0; i <= (size_t) num_files;++i){
+  for(size_t i=0; i < (size_t) num_files;++i){
     string file_path = path;
-    if(num_files!=0) file_path.append(to_string(i));
+    if(num_files!=1) file_path.append(to_string(i));
 
     ifstream myfile (file_path);
     string line;

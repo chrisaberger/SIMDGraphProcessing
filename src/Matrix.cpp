@@ -162,12 +162,10 @@ void Matrix::print_data(string filename){
   cout << "Writing matrix row_data to file: " << filename << endl;
 	for(size_t i = 0; i < matrix_size; i++){
 		myfile << "ROW: " << i << endl;
-    cout << "row: " << i << endl;
 		size_t start = row_indicies[i];
 		size_t end = row_indicies[i+1];
     size_t card = row_lengths[i];
     const common::type row_type = (common::type) row_types[i];
-    cout <<"getting type: " << i << " " << (unsigned int)row_types[i] << endl;
 
 		uint_array::print_data(row_data+start,end-start,card,row_type,myfile);
 	}

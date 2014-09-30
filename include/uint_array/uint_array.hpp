@@ -31,16 +31,16 @@ namespace uint_array{
   }
 
   template<typename T> 
-  inline T foreach(T (*function)(unsigned int,unsigned int),unsigned int col,uint8_t *data,size_t length,common::type t){
+  inline T reduce(T (*function)(unsigned int,unsigned int),unsigned int col,uint8_t *data,size_t length,common::type t){
     switch(t){
       case common::ARRAY32:
-        return array32::foreach(function,col,(unsigned int*)data,length/4);
+        return array32::reduce(function,col,(unsigned int*)data,length/4);
         break;
       case common::ARRAY16:
-        return array16::foreach(function,col,(unsigned short*)data,length/2);
+        return array16::reduce(function,col,(unsigned short*)data,length/2);
         break;
       case common::BITSET:
-        return bitset::foreach(function,col,(unsigned short*)data,length/2);
+        return bitset::reduce(function,col,(unsigned short*)data,length/2);
         break;
       default:
         return (T) 0;

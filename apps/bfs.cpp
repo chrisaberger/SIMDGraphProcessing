@@ -2,6 +2,7 @@
 #include "Matrix.hpp"
 #include "MutableGraph.hpp"
 
+/*
 namespace application{
   Matrix *graph;
   uint8_t *result;
@@ -22,9 +23,11 @@ namespace application{
     num_triangles = graph->reduce_row(&Matrix::reduce_column_in_row,&edgeApply);
   }
 }
+*/
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
+  /*
   if(argc != 3){
     cout << "Please see usage below: " << endl;
     cout << "\t./main <adjacency list file/folder> <# of threads>" << endl;
@@ -52,6 +55,6 @@ int main (int argc, char* argv[]) {
   common::stopClock("CSR TRIANGLE COUNTING");
 
   cout << "Count: " << application::num_triangles << endl << endl;
-
+  */
   return 0;
 }

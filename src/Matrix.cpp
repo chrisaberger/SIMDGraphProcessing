@@ -7,38 +7,36 @@ Matrix Matrix::buildSymetric(vector< vector<unsigned int>*  > *g, size_t matrix_
 
   size_t *row_indicies_in = new size_t[matrix_size_in+1];
   unsigned int *row_lengths_in = new unsigned int[matrix_size_in];
-  unsigned char *row_types_in = new unsigned char[matrix_size_in];
-
+  uint8_t *row_types_in = new uint8_t[matrix_size_in];
   uint8_t *tmp_row_data = new uint8_t[cardinality_in*40]; 
 
   size_t new_cardinality = 0;
   size_t index = 0;
 
   for(size_t i = 0; i < matrix_size_in; ++i) {
-    row_indicies_in[i] = index;
     if(nodeFilter(i)){
+      row_indicies_in[i] = index;
       vector<unsigned int> *hood = g->at(i);
       hood->erase(hood->begin()); //we know the ID here equals the index-undirected is easy.
       unsigned int *filtered_hood = new unsigned int[hood->size()];
       size_t filter_index = 0;
-      cout << "node: " << i << endl;
       for(size_t j = 0; j < hood->size(); ++j) {
         if(nodeFilter(hood->at(j)) && edgeFilter(i,hood->at(j))){
           new_cardinality++;
-          cout <<  " nbr: " << hood->at(j) << endl;
           filtered_hood[filter_index++] = hood->at(j);
         } 
       }
       row_lengths_in[i] = filter_index;
       const common::type row_type = Matrix::get_array_type(t_in,filtered_hood,filter_index,matrix_size_in); //depends on above array being set
       row_types_in[i] = row_type;
+
       index = uint_array::preprocess(tmp_row_data,index,filtered_hood,filter_index,row_type);
       delete[] filtered_hood;
     }
   }
 
   uint8_t *row_data_in = new uint8_t[index];
-  cout << "row_data Length (Bytes): " << index << endl;
+  cout << "ROW DATA SIZE (Bytes): " << index << endl;
   std::copy(tmp_row_data,tmp_row_data+index,row_data_in);
   row_indicies_in[matrix_size_in] = index;
 
@@ -51,7 +49,7 @@ Matrix Matrix::buildAsymetric(vector< vector<unsigned int>*  > *out_nbrs,vector<
 
   size_t *row_indicies_in = new size_t[matrix_size_in+1];
   unsigned int *row_lengths_in = new unsigned int[matrix_size_in];
-  unsigned char *row_types_in = new unsigned char[matrix_size_in];
+  uint8_t *row_types_in = new unsigned char[matrix_size_in];
   uint8_t *tmp_row_data = new uint8_t[cardinality_in*40]; 
 
   size_t new_cardinality = 0;
@@ -88,15 +86,16 @@ Matrix Matrix::buildAsymetric(vector< vector<unsigned int>*  > *out_nbrs,vector<
   }
 
   uint8_t *row_data_in = new uint8_t[index];
-  cout << "row_data Length (Bytes): " << index << endl;
+  cout << "ROW DATA SIZE (Bytes): " << index << endl;
   std::copy(tmp_row_data,tmp_row_data+index,row_data_in);
   row_indicies_in[matrix_size_in] = index;
 
+  index = 0;
+  nbr_i = 0;
   size_t *col_indicies_in = new size_t[matrix_size_in+1];
   unsigned int *col_lengths_in = new unsigned int[matrix_size_in];
-  unsigned char *col_types_in = new unsigned char[matrix_size_in];
+  uint8_t *col_types_in = new uint8_t[matrix_size_in];
   uint8_t *tmp_col_data = new uint8_t[cardinality_in*40]; 
-  nbr_i = 0;
   for(size_t i = 0; i < matrix_size_in; ++i) {
     col_indicies_in[i] = index;
     if(nbr_i < out_nbrs->size() && in_nbrs->at(nbr_i)->at(0) == i){
@@ -116,7 +115,7 @@ Matrix Matrix::buildAsymetric(vector< vector<unsigned int>*  > *out_nbrs,vector<
         col_lengths_in[i] = filter_index;
         const common::type col_type = Matrix::get_array_type(t_in,filtered_hood,filter_index,matrix_size_in); //depends on above array being set
         col_types_in[i] = col_type;
-        index = uint_array::preprocess(tmp_row_data,index,filtered_hood,filter_index,col_type);
+        index = uint_array::preprocess(tmp_col_data,index,filtered_hood,filter_index,col_type);
         delete[] filtered_hood;
       }
       nbr_i++;
@@ -127,7 +126,7 @@ Matrix Matrix::buildAsymetric(vector< vector<unsigned int>*  > *out_nbrs,vector<
   }
 
   uint8_t *col_data_in = new uint8_t[index];
-  cout << "col_data Length (Bytes): " << index << endl;
+  cout << "COLUMN DATA SIZE (Bytes): " << index << endl;
   std::copy(tmp_col_data,tmp_col_data+index,col_data_in);
   col_indicies_in[matrix_size_in] = index;
 
@@ -156,7 +155,7 @@ void Matrix::print_rows(unsigned int i, unsigned int j){
   uint_array::print_data(row_data+start,end-start,card,row_type,myfile);
 }
 
-void Matrix::print_matrix(string filename){
+void Matrix::print_data(string filename){
   ofstream myfile;
   myfile.open(filename);
 
@@ -168,9 +167,10 @@ void Matrix::print_matrix(string filename){
 		size_t end = row_indicies[i+1];
     size_t card = row_lengths[i];
     const common::type row_type = (common::type) row_types[i];
+
 		uint_array::print_data(row_data+start,end-start,card,row_type,myfile);
 	}
-
+  myfile << endl;
   //Printing in neighbors
   if(!symmetric){
     for(size_t i = 0; i < matrix_size; i++){

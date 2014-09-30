@@ -14,13 +14,15 @@ namespace application{
   inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
     return nbr < node;
   }
-  //Our functor that gets applied to every edge (or set element in the matrix)
-  inline long edge_apply(unsigned int src, unsigned int dst){
-    long count = graph->row_intersect(result,src,dst);
-    return count;
+  inline long edgeApply(unsigned int src, unsigned int dst){
+    return graph->row_intersect(result,src,dst);
+  }
+  inline void queryOver(){
+    num_triangles = graph->reduce_row(&Matrix::reduce_column_in_row,&edgeApply);
   }
 }
 
+//Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
   if(argc != 3){
     cout << "Please see usage below: " << endl;
@@ -45,7 +47,7 @@ int main (int argc, char* argv[]) {
   common::stopClock("Building Graph");
 
   common::startClock();
-  application::num_triangles = application::graph->reduce_row(&Matrix::reduce_column_in_row,&application::edge_apply);
+  application::queryOver();
   common::stopClock("CSR TRIANGLE COUNTING");
 
   cout << "Count: " << application::num_triangles << endl << endl;

@@ -90,7 +90,7 @@ namespace bitset {
 	  return count;
 	}
 	template<typename T> 
-  inline T foreach(T (*function)(unsigned int,unsigned int),unsigned int col,unsigned short *data, size_t length){
+  inline T reduce(T (*function)(unsigned int,unsigned int),unsigned int col,unsigned short *data, size_t length){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
     	unsigned short cur_word = data[i];

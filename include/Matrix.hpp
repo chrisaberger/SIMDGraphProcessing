@@ -15,7 +15,7 @@ class Matrix{
     */
   	size_t *row_indicies; 
     unsigned int *row_lengths;
-    unsigned char *row_types;
+    uint8_t *row_types;
   	uint8_t *row_data; 
 
     /*
@@ -23,7 +23,7 @@ class Matrix{
     */
     size_t *column_indicies;
     unsigned int *column_lengths;
-    unsigned char *column_types;
+    uint8_t *column_types;
     uint8_t *column_data;
 
     //Loading a symetric matrix (undirected graph)
@@ -33,7 +33,7 @@ class Matrix{
       common::type t_in,
       size_t *row_indicies_in,
       unsigned int *row_lengths_in,
-      unsigned char *row_types_in,
+      uint8_t *row_types_in,
       uint8_t *row_data_in
     ):  
       matrix_size(matrix_size_in),  //number of nodes
@@ -56,11 +56,11 @@ class Matrix{
       common::type t_in,
       size_t *row_indicies_in,
       unsigned int *row_lengths_in,
-      unsigned char *row_types_in,
+      uint8_t *row_types_in,
       uint8_t *row_data_in,
       size_t *column_indicies_in,
       unsigned int *column_lengths_in,
-      unsigned char *column_types_in,
+      uint8_t *column_types_in,
       uint8_t *column_data_in
     ):  
       matrix_size(matrix_size_in),  //number of nodes
@@ -75,6 +75,7 @@ class Matrix{
       column_lengths(column_lengths_in),
       column_types(column_types_in),
       column_data(column_data_in){};
+    Matrix(){};
 
     ~Matrix(){
       delete[] row_indicies;
@@ -100,15 +101,15 @@ class Matrix{
     static common::type get_hybrid_array_type(unsigned int *r_data, size_t len, size_t m_size);
 
     //Mainly for debug
-    void print_matrix(string filename);
+    void print_data(string filename);
 
     //Some accessors.  Right now these are for rows but the same thing can be done for columns.
     //Currently out neighbors but easy to apply to in neighbors.
     void print_rows(unsigned int i, unsigned int j);
     template<typename T> 
-    T foreach_row(T (Matrix::*function)(unsigned int,T (*f)(unsigned int,unsigned int)), T (*f)(unsigned int,unsigned int));
+    T reduce_row(T (Matrix::*function)(unsigned int,T (*f)(unsigned int,unsigned int)), T (*f)(unsigned int,unsigned int));
     template<typename T> 
-    T foreach_column_in_row(unsigned int c,T (*function)(unsigned int,unsigned int));
+    T reduce_column_in_row(unsigned int c,T (*function)(unsigned int,unsigned int));
     size_t row_intersect(uint8_t *R, unsigned int i, unsigned int j);
 };
 
@@ -143,6 +144,9 @@ inline common::type Matrix::get_array_type(common::type t_stat,unsigned int *r_d
     return t_stat;
   }
   #else
+  (void)r_data;
+  (void)len;
+  (void)size;
   return t_stat;
   #endif
 }
@@ -162,9 +166,9 @@ inline common::type Matrix::get_hybrid_array_type(unsigned int *r_data, size_t r
 }
 
 template<typename T> 
-T Matrix::foreach_row(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,unsigned int)), T (*f)(unsigned int,unsigned int)) {
+T Matrix::reduce_row(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,unsigned int)), T (*f)(unsigned int,unsigned int)) {
   T reducer = (T) 0;
-  //#pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
+  #pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
   for(size_t i = 0; i < matrix_size; i++){
     reducer += (this->*rowfunction)(i,f);
   }
@@ -172,11 +176,16 @@ T Matrix::foreach_row(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,
 }
 
 template<typename T> 
-T Matrix::foreach_column_in_row(unsigned int row,T (*function)(unsigned int,unsigned int)){
+T Matrix::reduce_column_in_row(unsigned int row,T (*function)(unsigned int,unsigned int)){
   size_t start = row_indicies[row];
   size_t end = row_indicies[row+1];
+  #if HYBRID_LAYOUT == 1
   const common::type row_type = (common::type) row_types[row];
-  return uint_array::foreach(function,row,row_data+start,end-start,row_type);
+  #else
+  const common::type row_type = (common::type) t;
+  #endif
+  
+  return uint_array::reduce(function,row,row_data+start,end-start,row_type);
 }
 
 #endif

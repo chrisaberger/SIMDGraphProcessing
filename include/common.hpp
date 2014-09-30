@@ -19,7 +19,8 @@
 #include <unistd.h>   /* For open(), creat() */
 #include <math.h>
 
-#define HYBRID_LAYOUT 1
+#define VECTORIZE 1
+#define HYBRID_LAYOUT 0
 #define WRITE_VECTOR 0
 #define SHORTS_PER_REG 8
 #define INTS_PER_REG 4
@@ -59,7 +60,7 @@ namespace common{
     } 
   }  
 
-  enum type: unsigned char {
+  enum type: uint8_t {
     BITSET = 0,
     ARRAY16 = 1,
     ARRAY32 = 2,

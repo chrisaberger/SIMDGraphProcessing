@@ -21,10 +21,8 @@ void build_neighborhoods(vector< vector<unsigned int>* > *neighborhoods,vector<p
   while(i < edges->size()){
     vector<unsigned int> *cur = new vector<unsigned int>(); //guess a size
     cur->push_back(edges->at(i).first);
-    cout << "n1: " << edges->at(i).first << endl;
     unsigned int prev_src = edges->at(i).first;
     while(i < edges->size() && edges->at(i).first == prev_src){
-      cout << "nbr: " << edges->at(i).second << endl;
       cur->push_back(edges->at(i).second);
       i++;
     }
@@ -62,7 +60,6 @@ src1 dst0 dst1 dst2 dst3 ...
 
 */
 MutableGraph MutableGraph::undirectedFromAdjList(const string path,const int num_files) {
-
   vector< vector<unsigned int>* >* *graph_in = new vector< vector<unsigned int>* >*[num_files];
 
   size_t num_edges = 0;
@@ -70,13 +67,12 @@ MutableGraph MutableGraph::undirectedFromAdjList(const string path,const int num
   //Place graph into vector of vectors then decide how you want to
   //store the graph.
   
-  //startClock();
-  #pragma omp parallel for default(none) shared(graph_in,path) reduction(+:num_edges) reduction(+:num_nodes)
-  for(size_t i=0; i <= (size_t) num_files;++i){
+  //#pragma omp parallel for default(none) shared(graph_in,path) reduction(+:num_edges) reduction(+:num_nodes)
+  for(size_t i=0; i < (size_t) num_files;++i){
     vector< vector<unsigned int>*  > *file_adj = new vector< vector<unsigned int>* >();
 
     string file_path = path;
-    if(num_files!=0) file_path.append(to_string(i));
+    if(num_files!=1) file_path.append(to_string(i));
 
     ifstream myfile (file_path);
     string line;
@@ -97,23 +93,19 @@ MutableGraph MutableGraph::undirectedFromAdjList(const string path,const int num
         num_nodes++;
         file_adj->push_back(cur);
       }
-      //Pre-sort by degree.
-      //std::sort(file_adj->begin(),file_adj->end(),Comparator());
       graph_in[i] = file_adj;
     }
-    delete file_adj;
   }
-  //stopClock("Reading files from disk");
 
-  //startClock();
   //Serial Merge: Could actually do a merge sort if I cared enough.
   vector< vector<unsigned int>*  > *neighborhoods = new vector< vector<unsigned int>* >();
   neighborhoods->reserve(num_nodes);
-  for(size_t i=0; i <= (size_t) num_files;++i){
+  for(size_t i=0; i < (size_t) num_files;++i){
     neighborhoods->insert(neighborhoods->end(),graph_in[i]->begin(),graph_in[i]->end());
     graph_in[i]->erase(graph_in[i]->begin(),graph_in[i]->end());
   }
   delete[] graph_in;
+
   //Sort the neighborhoods by degree.
   std::sort(neighborhoods->begin(),neighborhoods->end(),AdjComparator());
 
@@ -123,7 +115,7 @@ MutableGraph MutableGraph::undirectedFromAdjList(const string path,const int num
 
   reassign_ids(neighborhoods,extern_ids);
 
-  return MutableGraph(num_nodes,num_edges,false,extern_ids,neighborhoods,neighborhoods); 
+  return MutableGraph(num_nodes,num_edges,true,extern_ids,neighborhoods,neighborhoods); 
   //stopClock("Reassigning ids");
 }
 

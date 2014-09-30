@@ -7,9 +7,6 @@ namespace application{
   uint8_t *result;
   long num_triangles = 0;
   
-  size_t huge_diff = 0;
-  size_t num_int = 0;
-
   inline bool myNodeSelection(unsigned int node){
     (void)node;
     return true;
@@ -19,60 +16,38 @@ namespace application{
   }
   //Our functor that gets applied to every edge (or set element in the matrix)
   inline long edge_apply(unsigned int src, unsigned int dst){
-    //cout << "n: " << n << " nbr: " << nbr << endl;
     long count = graph->row_intersect(result,src,dst);
-    //cout << "count: " << count << endl;
     return count;
   }
 }
 
 int main (int argc, char* argv[]) { 
-  if(argc != 4){
+  if(argc != 3){
     cout << "Please see usage below: " << endl;
-    cout << "\t./main <adjacency list file/folder> <# of files> <# of threads>" << endl;
+    cout << "\t./main <adjacency list file/folder> <# of threads>" << endl;
     exit(0);
   }
 
-  cout << "Number of threads: " << atoi(argv[3]) << endl;
-  omp_set_num_threads(atoi(argv[3]));        
+  cout << endl << "Number of threads: " << atoi(argv[2]) << endl;
+  omp_set_num_threads(atoi(argv[2]));        
 
-  //common::startClock();
-  MutableGraph *vg = new MutableGraph(argv[1],atoi(argv[2]));
-  //common::stopClock("INPUT");
-  cout << endl;
-
-  application::result = new uint8_t[vg->num_nodes];
-
-  application::graph = new Matrix(vg->neighborhoods,vg->num_nodes,vg->num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,common::A32BITPACKED);  
-  //application::graph->print_matrix();  
-  /*
   common::startClock();
-  //application::num_triangles = application::graph->foreach_row(&Matrix::for_row,&application::edge_apply);
-  common::stopClock("BITSET TRIANGLE COUNTING");
-  cout << "Count: " << application::num_triangles << endl;
-  */
+  MutableGraph inputGraph = MutableGraph::undirectedFromAdjList(argv[1],1); //filename, # of files
+  application::result = new uint8_t[inputGraph.num_nodes]; //we don't actually use this for just a count
+    //for more sophisticated queries this would be used.
+  common::stopClock("Reading File");
 
-  application::graph = new Matrix(vg->neighborhoods,vg->num_nodes,vg->num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY16);
   common::startClock();
-  application::num_triangles = application::graph->foreach_row(&Matrix::foreach_column_in_row,&application::edge_apply);
-  common::stopClock("ARRAY 16 TRIANGLE COUNTING");
-  cout << "Count: " << application::num_triangles << endl << endl;
-
-  application::graph = new Matrix(vg->neighborhoods,vg->num_nodes,vg->num_edges,
+  Matrix allocated_graph = Matrix::buildSymetric(inputGraph.out_neighborhoods,
+    inputGraph.num_nodes,inputGraph.num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY32);
-  //application::graph->print_matrix();
+  application::graph = &allocated_graph;
+  common::stopClock("Building Graph");
+
   common::startClock();
-  application::num_triangles = application::graph->foreach_row(&Matrix::foreach_column_in_row,&application::edge_apply);
-  common::stopClock("ARRAY 32 TRIANGLE COUNTING");
-  cout << "Count: " << application::num_triangles << endl << endl;
-  
-  application::graph = new Matrix(vg->neighborhoods,vg->num_nodes,vg->num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,common::HYBRID);
-  common::startClock();
-  application::num_triangles = application::graph->foreach_row(&Matrix::foreach_column_in_row,&application::edge_apply);
-  common::stopClock("HYBRID TRIANGLE COUNTING");
+  application::num_triangles = application::graph->reduce_row(&Matrix::reduce_column_in_row,&application::edge_apply);
+  common::stopClock("CSR TRIANGLE COUNTING");
+
   cout << "Count: " << application::num_triangles << endl << endl;
 
   return 0;

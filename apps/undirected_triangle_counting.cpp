@@ -31,6 +31,7 @@ int main (int argc, char* argv[]) {
     exit(0);
   }
 
+  cout << "Number of nodes: " << numa_max_node() + 1 << endl;
   cout << endl << "Number of threads: " << atoi(argv[2]) << endl;
   omp_set_num_threads(atoi(argv[2]));        
 

@@ -1,6 +1,8 @@
-.SUFFIXES:
-#
-.SUFFIXES: .cpp .o .c .hpp
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Linux)
+	LIBS=-lnuma
+endif
 
 # replace the CXX variable with a path to a C++11 compatible compiler.
 ifeq ($(INTEL), 1)
@@ -38,10 +40,10 @@ $(EXEDIR):
 	mkdir -p $(EXEDIR)
 
 $(APPS_EXES): $(OBJECTS) $(APP_SOURCES) $(EXEDIR)
-	$(CXX) $(CXXFLAGS) -o $@ -I include $(@:bin%=apps%.cpp) $(OBJECTS) 
+	$(CXX) $(CXXFLAGS) $(@:bin%=apps%.cpp) $(OBJECTS) $(LIBS) -o $@ -Iinclude 
 
 $(OBJECTS): $(SOURCES) $(HEADERS) $(OBJDIR)
-	$(CXX) $(CXXFLAGS) -c $(@:build%.o=src%.cpp) -I include -o $@
+	$(CXX) $(CXXFLAGS) -Iinclude $(LIB_INCS) -o $@ -c $(@:build%.o=src%.cpp) 
 
 clean:
 	rm -rf $(OBJDIR) $(EXEDIR)

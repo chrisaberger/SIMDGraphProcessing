@@ -1,6 +1,7 @@
 // class templates
 #include "Matrix.hpp"
 #include "MutableGraph.hpp"
+#include "Node.hpp"
 
 namespace application{
   Matrix *graph;
@@ -23,6 +24,28 @@ namespace application{
   }
 }
 
+class Worker {
+private:
+  Node* node;
+  Matrix local_graph;
+
+public:
+  Worker(int node, MutableGraph* input_graph) {
+    this->node = new Node(node);
+    this->node->run_on();
+    this->local_graph = Matrix::buildSymetric(
+      input_graph->out_neighborhoods,
+      input_graph->num_nodes, input_graph->num_edges,
+      &application::myNodeSelection,
+      &application::myEdgeSelection,
+      application::graphType);
+  }
+
+  void run() {
+    local_graph.reduce_row(&Matrix::reduce_column_in_row, &application::edgeApply);
+  }
+};
+
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
   if(argc != 3){
@@ -31,9 +54,11 @@ int main (int argc, char* argv[]) {
     exit(0);
   }
 
-  cout << "Number of nodes: " << numa_max_node() + 1 << endl;
+  numa_set_localalloc();
+  
+  int num_nodes = numa_max_node() + 1;
+  cout << "Number of nodes: " << num_nodes << endl;
   cout << endl << "Number of threads: " << atoi(argv[2]) << endl;
-  omp_set_num_threads(atoi(argv[2]));        
 
   common::startClock();
   MutableGraph inputGraph = MutableGraph::undirectedFromAdjList(argv[1],1); //filename, # of files
@@ -42,10 +67,12 @@ int main (int argc, char* argv[]) {
   common::stopClock("Reading File");
 
   common::startClock();
-  Matrix allocated_graph = Matrix::buildSymetric(inputGraph.out_neighborhoods,
-    inputGraph.num_nodes,inputGraph.num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,application::graphType);
-  application::graph = &allocated_graph;
+
+  std::vector<Worker> nodes;
+  for(int i = 0; i < num_nodes; i++) {
+    nodes.push_back(Worker(i, &inputGraph));
+  }
+
   common::stopClock("Building Graph");
 
   common::startClock();

@@ -63,4 +63,31 @@ namespace variant_delta {
       }
     }
   }
+  template<typename T> 
+  inline T reduce(T (*function)(unsigned int,unsigned int),unsigned int col,uint8_t *data, size_t cardinality){
+    T result = (T) 0;
+
+    if(cardinality != 0){
+      //cout << "bits_used: " << (uint)bits_used << endl;
+      size_t data_i = 0;
+      size_t num_decoded = 0;
+
+      unsigned int prev = variant::variant_decode(data,data_i);
+      result += function(col,prev);
+      num_decoded++;
+
+      //cout << "starting variant decode at: " << data_i << endl;
+      while(num_decoded < cardinality){
+        //cout << "\tdata_i: " << data_i << endl;
+        unsigned int cur = variant::variant_decode(data,data_i);
+        //cout << "cur[" << num_decoded << "]" << cur << endl;
+        cur += prev;
+        prev = cur;
+
+        result += function(col,prev);
+        num_decoded++;
+      }
+    }
+    return result;
+  }
 } 

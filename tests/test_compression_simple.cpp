@@ -28,11 +28,9 @@ int main (int argc, char* argv[]) {
     cout << " Data: " << data[i] << endl;
   }
 
-  UnsignedIntegerArray *my_data = new UnsignedIntegerArray(data,a_size,common::A32BITPACKED);
+  UnsignedIntegerArray *my_data = new UnsignedIntegerArray(data,a_size,common::A32BITPACKED_DELTA);
   cout <<  endl << "A32BITPACKED BYTES: " << my_data->length << endl << endl;
 
-  unsigned int *new_dat = (unsigned int*)(my_data->data+1);
-  __m128i data_register = _mm_loadu_si128((__m128i*)&new_dat[0]);
   //uint32_t *tt = (uint32_t*) &data_register;
   //cout << "RRLOADING Values: " << (void *) my_data->data << endl;
 

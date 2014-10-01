@@ -60,13 +60,10 @@ namespace a32bitpacked_delta {
       return 0;
     }
   }
-  inline __m128i get_next_see(uint8_t *data,size_t data_i,__m128i prev_result, size_t bit_i){
+  inline __m128i get_next_see(uint8_t *data,size_t data_i,__m128i prev_result, __m128i mask, size_t bit_i){
     //data_i
     //bit_i
     //bits_used
-    uint8_t bits_used = data[0]; 
-    unsigned int mask32 = (long)((long)1 << (long)bits_used)-1;
-    __m128i mask = _mm_set1_epi32(mask32);
     if(bit_i+bits_used <= 32){
       __m128i data_register = _mm_loadu_si128((__m128i*)&data[data_i]);
       __m128i result = _mm_srli_epi32(data_register,bit_i);
@@ -77,26 +74,31 @@ namespace a32bitpacked_delta {
     } else if(bit_i < 32){
       __m128i data_register = _mm_loadu_si128((__m128i*)&data[data_i]);
       __m128i cur_lower = _mm_srli_epi32(data_register,bit_i);
-      data_register = _mm_loadu_si128((__m128i*)&data[data_i+INTS_PER_REG]);
+      data_register = _mm_loadu_si128((__m128i*)&data[data_i+INTS_PER_REG*4]);
 
       __m128i cur_upper = _mm_slli_epi32(data_register,(32-bit_i));
       __m128i result = _mm_and_si128(_mm_or_si128(cur_upper,cur_lower),mask);
-
       result = _mm_add_epi32(result,prev_result);
 
       return result;
     } else{
-      bit_i = 0;
-      data_i += INTS_PER_REG*4;
-
-      __m128i data_register = _mm_loadu_si128((__m128i*)&data[data_i]);
-      __m128i result = _mm_srli_epi32(data_register,bit_i);
+      __m128i data_register = _mm_loadu_si128((__m128i*)&data[data_i+INTS_PER_REG*4]);
+      __m128i result = _mm_srli_epi32(data_register,0);
       result = _mm_and_si128(result,mask);
-
       result = _mm_add_epi32(result,prev_result);
-      prev_result = result;
       
       return result;
+    }
+  }
+  inline __m128i increment_pointers(size_t &data_i, size_t &bit_i, bool last){
+    if(bit_i+bits_used <= 32){
+      bit_i += bits_used;
+    } else if(bit_i < 32){
+      bit_i = bits_used-(32-bit_i);      
+      data_i += INTS_PER_REG*4 + last*16;
+    } else{
+      bit_i = 0;
+      data_i += INTS_PER_REG*4*2;
     }
   }
   inline void print_data(uint8_t *data, const size_t length, const size_t cardinality, std::ofstream &file){

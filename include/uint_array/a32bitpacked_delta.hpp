@@ -60,7 +60,7 @@ namespace a32bitpacked_delta {
       return 0;
     }
   }
-  inline __m128i get_next_see(uint8_t *data,size_t data_i,__m128i prev_result, __m128i mask, size_t bit_i){
+  inline __m128i get_next_see(uint8_t *data,uint8_t bits_used,size_t data_i,__m128i prev_result, __m128i mask, size_t bit_i){
     //data_i
     //bit_i
     //bits_used
@@ -90,7 +90,7 @@ namespace a32bitpacked_delta {
       return result;
     }
   }
-  inline __m128i increment_pointers(size_t &data_i, size_t &bit_i, bool last){
+  inline void increment_pointers(uint8_t bits_used,size_t &data_i, size_t &bit_i, bool last){
     if(bit_i+bits_used <= 32){
       bit_i += bits_used;
     } else if(bit_i < 32){

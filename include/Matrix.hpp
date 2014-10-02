@@ -26,56 +26,12 @@ class Matrix{
     uint8_t *column_types;
     uint8_t *column_data;
 
-    //Loading a symetric matrix (undirected graph)
-    Matrix(
-      size_t matrix_size_in, 
-      size_t cardinality_in, 
-      common::type t_in,
-      size_t *row_indicies_in,
-      unsigned int *row_lengths_in,
-      uint8_t *row_types_in,
-      uint8_t *row_data_in
-    ):  
-      matrix_size(matrix_size_in),  //number of nodes
-      cardinality(cardinality_in),  //number of edges
-      t(t_in),
-      symmetric(true),
-      row_indicies(row_indicies_in), //formerly nodes
-      row_lengths(row_lengths_in),
-      row_types(row_types_in),
-      row_data(row_data_in),
-      column_indicies(row_indicies_in), //formerly nodes
-      column_lengths(row_lengths_in),
-      column_types(row_types_in),
-      column_data(row_data_in){};
+    Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_t cardinality_in, 
+      bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in);
 
-    //Loading a asymetric matrix (directed graph)
-    Matrix(
-      size_t matrix_size_in, 
-      size_t cardinality_in, 
-      common::type t_in,
-      size_t *row_indicies_in,
-      unsigned int *row_lengths_in,
-      uint8_t *row_types_in,
-      uint8_t *row_data_in,
-      size_t *column_indicies_in,
-      unsigned int *column_lengths_in,
-      uint8_t *column_types_in,
-      uint8_t *column_data_in
-    ):  
-      matrix_size(matrix_size_in),  //number of nodes
-      cardinality(cardinality_in),  //number of edges
-      t(t_in),
-      symmetric(false),
-      row_indicies(row_indicies_in), //formerly nodes
-      row_lengths(row_lengths_in),
-      row_types(row_types_in),
-      row_data(row_data_in),
-      column_indicies(column_indicies_in), //formerly nodes
-      column_lengths(column_lengths_in),
-      column_types(column_types_in),
-      column_data(column_data_in){};
-    Matrix(){};
+    Matrix(vector< vector<unsigned int>*  > *out_nbrs,
+      vector< vector<unsigned int>*  > *in_nbrs, size_t matrix_size_in, size_t cardinality_in, 
+      bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in);
 
     ~Matrix(){
       delete[] row_indicies;
@@ -105,7 +61,7 @@ class Matrix{
 
     //Some accessors.  Right now these are for rows but the same thing can be done for columns.
     //Currently out neighbors but easy to apply to in neighbors.
-    void print_rows(unsigned int i, unsigned int j);
+    void print_rows(unsigned int i, unsigned int j, string filename);
     template<typename T> 
     T reduce_row(T (Matrix::*function)(unsigned int,T (*f)(unsigned int,unsigned int)), T (*f)(unsigned int,unsigned int));
     template<typename T> 
@@ -116,21 +72,25 @@ class Matrix{
 inline size_t Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j){
   size_t i_start = row_indicies[i];
   size_t i_end = row_indicies[i+1];
+  size_t card_a = row_lengths[i];
+
 
   size_t j_start = row_indicies[j];
   size_t j_end = row_indicies[j+1];
+  size_t card_b = row_lengths[j];
+
 
   long ncount;
   #if HYBRID_LAYOUT == 1
   const common::type t1 = (common::type) row_types[i];
   const common::type t2 = (common::type) row_types[j];
   if(t1 == t2){
-    ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,t1);
+    ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t1);
   } else{
     ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,t1,t2);
   }
   #else 
-    ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,t);
+    ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t);
   #endif
 
   return ncount;
@@ -168,7 +128,7 @@ inline common::type Matrix::get_hybrid_array_type(unsigned int *r_data, size_t r
 template<typename T> 
 T Matrix::reduce_row(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,unsigned int)), T (*f)(unsigned int,unsigned int)) {
   T reducer = (T) 0;
-  #pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
+  //#pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
   for(size_t i = 0; i < matrix_size; i++){
     reducer += (this->*rowfunction)(i,f);
   }
@@ -179,13 +139,15 @@ template<typename T>
 T Matrix::reduce_column_in_row(unsigned int row,T (*function)(unsigned int,unsigned int)){
   size_t start = row_indicies[row];
   size_t end = row_indicies[row+1];
+  size_t card = row_lengths[row];
+
   #if HYBRID_LAYOUT == 1
   const common::type row_type = (common::type) row_types[row];
   #else
   const common::type row_type = (common::type) t;
   #endif
   
-  return uint_array::reduce(function,row,row_data+start,end-start,row_type);
+  return uint_array::reduce(function,row,row_data+start,end-start,card,row_type);
 }
 
 #endif

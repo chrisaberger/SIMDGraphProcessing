@@ -43,21 +43,24 @@ int main (int argc, char* argv[]) {
     //for more sophisticated queries this would be used.
   common::stopClock("Reading File");
   
+  
+  unsigned int n1 = 79;
+  unsigned int n2 = 68;
+
   application::graph = new Matrix(inputGraph.out_neighborhoods,
     inputGraph.num_nodes,inputGraph.num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY32);
-  common::startClock();
-  application::queryOver();
-  common::stopClock("CSR TRIANGLE COUNTING");
+  application::graph->print_rows(n1,n2,"a32.txt");
+  application::num_triangles = application::graph->row_intersect(application::result,n1,n2);
   application::graph->Matrix::~Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
+
   
   application::graph = new Matrix(inputGraph.out_neighborhoods,
       inputGraph.num_nodes,inputGraph.num_edges,
       &application::myNodeSelection,&application::myEdgeSelection,common::VARIANT);
-  common::startClock();
-  application::queryOver();
-  common::stopClock("VARIANT");
+  application::graph->print_rows(n1,n2,"v.txt");
+  application::num_triangles = application::graph->row_intersect(application::result,n1,n2);
   application::graph->Matrix::~Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
   

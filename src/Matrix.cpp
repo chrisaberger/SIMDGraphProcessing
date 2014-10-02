@@ -1,7 +1,7 @@
 #include "Matrix.hpp"
 
 //Undirected Graphs
-Matrix Matrix::buildSymetric(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_t cardinality_in, 
+Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_t cardinality_in, 
   bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in){
   array16::prepare_shuffling_dictionary16();
 
@@ -17,10 +17,9 @@ Matrix Matrix::buildSymetric(vector< vector<unsigned int>*  > *g, size_t matrix_
     if(nodeFilter(i)){
       row_indicies_in[i] = index;
       vector<unsigned int> *hood = g->at(i);
-      hood->erase(hood->begin()); //we know the ID here equals the index-undirected is easy.
-      unsigned int *filtered_hood = new unsigned int[hood->size()];
+      unsigned int *filtered_hood = new unsigned int[hood->size()-1];
       size_t filter_index = 0;
-      for(size_t j = 0; j < hood->size(); ++j) {
+      for(size_t j = 1; j < hood->size(); ++j) {
         if(nodeFilter(hood->at(j)) && edgeFilter(i,hood->at(j))){
           new_cardinality++;
           filtered_hood[filter_index++] = hood->at(j);
@@ -40,10 +39,26 @@ Matrix Matrix::buildSymetric(vector< vector<unsigned int>*  > *g, size_t matrix_
   std::copy(tmp_row_data,tmp_row_data+index,row_data_in);
   row_indicies_in[matrix_size_in] = index;
 
-  return Matrix(matrix_size_in,new_cardinality,t_in,row_indicies_in,row_lengths_in,row_types_in,row_data_in);
+  matrix_size = matrix_size_in;
+  cardinality = cardinality_in;
+  t = t_in;
+
+  row_indicies = row_indicies_in;
+  row_lengths = row_lengths_in;
+  row_data = row_data_in;
+  row_types = row_types_in;
+  
+  symmetric = true;
+
+  column_indicies = row_indicies_in;
+  column_lengths = row_lengths_in;
+  column_types = row_types_in;
+  column_data = row_data_in;
+
+  //return Matrix(matrix_size_in,new_cardinality,t_in,row_indicies_in,row_lengths_in,row_types_in,row_data_in);
 }
 //Directed Graph
-Matrix Matrix::buildAsymetric(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigned int>*  > *in_nbrs, size_t matrix_size_in, size_t cardinality_in, 
+Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigned int>*  > *in_nbrs, size_t matrix_size_in, size_t cardinality_in, 
   bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in){
   array16::prepare_shuffling_dictionary16();
 
@@ -130,27 +145,38 @@ Matrix Matrix::buildAsymetric(vector< vector<unsigned int>*  > *out_nbrs,vector<
   std::copy(tmp_col_data,tmp_col_data+index,col_data_in);
   col_indicies_in[matrix_size_in] = index;
 
-  return Matrix(matrix_size_in,new_cardinality,t_in,
-    row_indicies_in,row_lengths_in,row_types_in,row_data_in,
-    col_indicies_in,col_lengths_in,col_types_in,col_data_in);
+  matrix_size = matrix_size_in;
+  cardinality = cardinality_in;
+  t = t_in;
+  
+  row_indicies = row_indicies_in;
+  row_lengths = row_lengths_in;
+  row_data = row_data_in;
+  row_types = row_types_in;
+
+  symmetric = false;
+
+  column_indicies = col_indicies_in;
+  column_lengths = col_lengths_in;
+  column_types = col_types_in;
+  column_data = col_data_in;
 }
 
-void Matrix::print_rows(unsigned int i, unsigned int j){
+void Matrix::print_rows(unsigned int i, unsigned int j, string filename){
   ofstream myfile;
-  myfile.open("debug.txt");
+  myfile.open(filename);
 
-  cout << "ROW: " << i << endl;
+  myfile << "ROW: " << i << endl;
   size_t start = row_indicies[i];
   size_t end = row_indicies[i+1];
   size_t card = row_lengths[i];
   common::type row_type = (common::type) row_types[i];
   uint_array::print_data(row_data+start,end-start,card,row_type,myfile);
 
-  cout << "ROW: " << j << endl;
+  myfile << "ROW: " << j << endl;
   start = row_indicies[j];
   end = row_indicies[j+1];
   card = row_lengths[j];
-  cout << "start: " << start << " end: " << end << endl;
   row_type = (common::type) row_types[j];
   uint_array::print_data(row_data+start,end-start,card,row_type,myfile);
 }

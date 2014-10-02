@@ -40,6 +40,12 @@ UNAME := $(shell uname)
 
 OBJECTS= $(OBJDIR)/Matrix.o $(OBJDIR)/MutableGraph.o $(OBJDIR)/UnsignedIntegerArray.o
 
+test_undirected_triangle_counting: tests/test_undirected_triangle_counting.cpp
+	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/test_undirected_triangle_counting tests/test_undirected_triangle_counting.cpp  $(OBJECTS) -Iinclude
+
+test_compression_simple: tests/test_compression_simple.cpp
+	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/test_compression_simple tests/test_compression_simple.cpp  $(OBJECTS) -Iinclude
+
 .DEFAULT:  apps/$@.cpp
 	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/$@ apps/$@.cpp  $(OBJECTS) -Iinclude
 

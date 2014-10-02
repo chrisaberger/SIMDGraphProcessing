@@ -24,6 +24,7 @@
 #define WRITE_VECTOR 0
 #define SHORTS_PER_REG 8
 #define INTS_PER_REG 4
+#define BYTES_PER_REG 16
 
 using namespace std;
 
@@ -66,9 +67,7 @@ namespace common{
     ARRAY32 = 2,
     HYBRID = 3,
     A32BITPACKED = 4,
-    A32BITPACKED_DELTA = 5,
-    VARIANT = 6,
-    VARIANT_DELTA = 7
+    VARIANT = 5
   };
   
 }

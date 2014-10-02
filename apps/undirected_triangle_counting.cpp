@@ -62,10 +62,15 @@ int main (int argc, char* argv[]) {
   cout << "Count: " << application::num_triangles << endl << endl;
   
   
-  /*
+  
   application::graph = new Matrix(inputGraph.out_neighborhoods,
       inputGraph.num_nodes,inputGraph.num_edges,
       &application::myNodeSelection,&application::myEdgeSelection,common::A32BITPACKED);
+
+    application::graph = new Matrix(inputGraph.out_neighborhoods,
+      inputGraph.num_nodes,inputGraph.num_edges,
+      &application::myNodeSelection,&application::myEdgeSelection,common::HYBRID);
+  /*
   common::startClock();
   application::graph->print_data("a32bitpacked.txt");
   application::queryOver();

@@ -7,7 +7,7 @@
 #include <ctime>
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <stdio.h>
+#include <stdio.h>  
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -18,6 +18,13 @@
 #include <fcntl.h>    /* For O_RDWR */
 #include <unistd.h>   /* For open(), creat() */
 #include <math.h>
+
+#define VECTORIZE 1
+#define HYBRID_LAYOUT 0
+#define WRITE_VECTOR 0
+#define SHORTS_PER_REG 8
+#define INTS_PER_REG 4
+#define BYTES_PER_REG 16
 
 // As seen in the dimmwitted project...
 
@@ -36,12 +43,6 @@
 #define numa_run_on_node(X) 0
 #define numa_set_localalloc() 0
 #endif
-
-#define VECTORIZE 1
-#define HYBRID_LAYOUT 0
-#define WRITE_VECTOR 0
-#define SHORTS_PER_REG 8
-#define INTS_PER_REG 4
 
 using namespace std;
 
@@ -84,9 +85,7 @@ namespace common{
     ARRAY32 = 2,
     HYBRID = 3,
     A32BITPACKED = 4,
-    A32BITPACKED_DELTA = 5,
-    VARIANT = 6,
-    VARIANT_DELTA = 7
+    VARIANT = 5
   };
   
 }

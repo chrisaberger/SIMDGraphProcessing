@@ -49,6 +49,13 @@ struct MutableGraph {
   static MutableGraph undirectedFromEdgeList(const string path,const int num_files);
   static MutableGraph directedFromEdgeList(const string path,const int num_files);
 
+  void print_data() {
+     for(int i = 0; i < out_neighborhoods->size(); i++) {
+        for(int j = 0; j < out_neighborhoods->at(i)->size(); j++) {
+           cout << i << " " << out_neighborhoods->at(i)->at(j) << endl;
+        }
+     }
+  }
 };
 
 #endif

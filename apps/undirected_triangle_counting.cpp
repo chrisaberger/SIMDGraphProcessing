@@ -27,22 +27,23 @@ namespace application{
 class Worker {
 private:
   Node* node;
-  Matrix local_graph;
+  Matrix *local_graph;
 
 public:
   Worker(int node, MutableGraph* input_graph) {
     this->node = new Node(node);
     this->node->run_on();
-    this->local_graph = Matrix::buildSymetric(
+    this->local_graph = new Matrix(
       input_graph->out_neighborhoods,
       input_graph->num_nodes, input_graph->num_edges,
       &application::myNodeSelection,
       &application::myEdgeSelection,
       application::graphType);
+    this->local_graph->print_data("test.txt");
   }
 
   void run() {
-    local_graph.reduce_row(&Matrix::reduce_column_in_row, &application::edgeApply);
+    cout << local_graph->reduce_row(&Matrix::reduce_column_in_row, &application::edgeApply);
   }
 };
 
@@ -55,7 +56,7 @@ int main (int argc, char* argv[]) {
   }
 
   numa_set_localalloc();
-  
+
   int num_nodes = numa_max_node() + 1;
   cout << "Number of nodes: " << num_nodes << endl;
   cout << endl << "Number of threads: " << atoi(argv[2]) << endl;
@@ -63,11 +64,14 @@ int main (int argc, char* argv[]) {
   common::startClock();
   MutableGraph inputGraph = MutableGraph::undirectedFromAdjList(argv[1],1); //filename, # of files
   application::result = new uint8_t[inputGraph.num_nodes]; //we don't actually use this for just a count
+  inputGraph.print_data();
+  cout << "hello";
     //for more sophisticated queries this would be used.
   common::stopClock("Reading File");
 
   common::startClock();
 
+  num_nodes = 1;
   std::vector<Worker> nodes;
   for(int i = 0; i < num_nodes; i++) {
     nodes.push_back(Worker(i, &inputGraph));
@@ -76,7 +80,9 @@ int main (int argc, char* argv[]) {
   common::stopClock("Building Graph");
 
   common::startClock();
-  application::queryOver();
+  for(auto worker : nodes) {
+    worker.run();
+  }
   common::stopClock("CSR TRIANGLE COUNTING");
 
   cout << "Count: " << application::num_triangles << endl << endl;

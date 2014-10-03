@@ -1,14 +1,12 @@
-// class templates
 #include "Matrix.hpp"
 #include "MutableGraph.hpp"
 #include "Node.hpp"
 
 namespace application{
   Matrix *graph;
-  uint8_t *result;
   long num_triangles = 0;
   common::type graphType = common::ARRAY32;
-  
+
   inline bool myNodeSelection(unsigned int node){
     (void)node;
     return true;
@@ -16,12 +14,11 @@ namespace application{
   inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
     return nbr < node;
   }
-  inline long edgeApply(unsigned int src, unsigned int dst){
-    return graph->row_intersect(result,src,dst);
-  }
-  inline void queryOver(){
-    num_triangles = graph->reduce_row(&Matrix::reduce_column_in_row,&edgeApply);
-  }
+}
+
+uint8_t *result;
+long edgeApply(Matrix* graph, unsigned int src, unsigned int dst) {
+  return graph->row_intersect(result, src, dst);
 }
 
 class Worker {
@@ -39,16 +36,16 @@ public:
       &application::myNodeSelection,
       &application::myEdgeSelection,
       application::graphType);
-    this->local_graph->print_data("test.txt");
+    //we don't actually use this for just a count
   }
 
   void run() {
-    cout << local_graph->reduce_row(&Matrix::reduce_column_in_row, &application::edgeApply);
+    cout << local_graph->reduce_row(this->local_graph, &Matrix::reduce_column_in_row, &edgeApply);
   }
 };
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
-int main (int argc, char* argv[]) { 
+int main (int argc, char* argv[]) {
   if(argc != 3){
     cout << "Please see usage below: " << endl;
     cout << "\t./main <adjacency list file/folder> <# of threads>" << endl;
@@ -63,10 +60,8 @@ int main (int argc, char* argv[]) {
 
   common::startClock();
   MutableGraph inputGraph = MutableGraph::undirectedFromAdjList(argv[1],1); //filename, # of files
-  application::result = new uint8_t[inputGraph.num_nodes]; //we don't actually use this for just a count
-  inputGraph.print_data();
-  cout << "hello";
-    //for more sophisticated queries this would be used.
+  result = new uint8_t[inputGraph.num_nodes];
+
   common::stopClock("Reading File");
 
   common::startClock();

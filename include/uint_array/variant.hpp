@@ -121,8 +121,8 @@ namespace variant {
       }
     }
   }
-  template<typename T> 
-  inline T reduce(T (*function)(unsigned int,unsigned int),unsigned int col,uint8_t *data, size_t cardinality){
+  template<typename T, typename U>
+  inline T reduce(U env,T (*function)(U,unsigned int,unsigned int),unsigned int col,uint8_t *data, size_t cardinality){
     T result = (T) 0;
 
     if(cardinality != 0){
@@ -131,7 +131,7 @@ namespace variant {
       size_t num_decoded = 0;
 
       unsigned int prev = variant::variant_decode(data,data_i);
-      result += function(col,prev);
+      result += function(env,col,prev);
       num_decoded++;
 
       //cout << "starting variant decode at: " << data_i << endl;
@@ -141,7 +141,7 @@ namespace variant {
         cur += prev;
         prev = cur;
 
-        result += function(col,prev);
+        result += function(env,col,prev);
         num_decoded++;
       }
     }

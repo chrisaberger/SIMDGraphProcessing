@@ -62,10 +62,13 @@ class Matrix{
     //Some accessors.  Right now these are for rows but the same thing can be done for columns.
     //Currently out neighbors but easy to apply to in neighbors.
     void print_rows(unsigned int i, unsigned int j, string filename);
-    template<typename T> 
-    T reduce_row(T (Matrix::*function)(unsigned int,T (*f)(unsigned int,unsigned int)), T (*f)(unsigned int,unsigned int));
-    template<typename T> 
-    T reduce_column_in_row(unsigned int c,T (*function)(unsigned int,unsigned int));
+
+    template<typename T, typename U> 
+    T reduce_row(U env, T (Matrix::*function)(U, unsigned int,T (*f)(U, unsigned int,unsigned int)), T (*f)(U, unsigned int,unsigned int));
+
+    template<typename T, typename U> 
+    T reduce_column_in_row(U env, unsigned int c,T (*function)(U, unsigned int,unsigned int));
+
     size_t row_intersect(uint8_t *R, unsigned int i, unsigned int j);
 };
 
@@ -125,18 +128,18 @@ inline common::type Matrix::get_hybrid_array_type(unsigned int *r_data, size_t r
   }
 }
 
-template<typename T> 
-T Matrix::reduce_row(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,unsigned int)), T (*f)(unsigned int,unsigned int)) {
+template<typename T, typename U> 
+T Matrix::reduce_row(U env, T (Matrix::*rowfunction)(U, unsigned int,T (*f)(U, unsigned int,unsigned int)), T (*f)(U, unsigned int,unsigned int)) {
   T reducer = (T) 0;
   //#pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
   for(size_t i = 0; i < matrix_size; i++){
-    reducer += (this->*rowfunction)(i,f);
+    reducer += (this->*rowfunction)(env,i,f);
   }
   return reducer;
 }
 
-template<typename T> 
-T Matrix::reduce_column_in_row(unsigned int row,T (*function)(unsigned int,unsigned int)){
+template<typename T, typename U>
+T Matrix::reduce_column_in_row(U env, unsigned int row,T (*function)(U, unsigned int,unsigned int)){
   size_t start = row_indicies[row];
   size_t end = row_indicies[row+1];
   size_t card = row_lengths[row];
@@ -147,7 +150,7 @@ T Matrix::reduce_column_in_row(unsigned int row,T (*function)(unsigned int,unsig
   const common::type row_type = (common::type) t;
   #endif
   
-  return uint_array::reduce(function,row,row_data+start,end-start,card,row_type);
+  return uint_array::reduce(env,function,row,row_data+start,end-start,card,row_type);
 }
 
 #endif

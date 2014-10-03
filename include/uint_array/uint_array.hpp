@@ -24,23 +24,23 @@ namespace uint_array{
     return index;
   }
 
-  template<typename T> 
-  inline T reduce(T (*function)(unsigned int,unsigned int),unsigned int col,uint8_t *data,size_t length, size_t card,common::type t){
+  template<typename T, typename U> 
+  inline T reduce(U env,T (*function)(U,unsigned int,unsigned int),unsigned int col,uint8_t *data,size_t length, size_t card,common::type t){
     switch(t){
       case common::ARRAY32:
-        return array32::reduce(function,col,(unsigned int*)data,length/4);
+        return array32::reduce(env,function,col,(unsigned int*)data,length/4);
         break;
       case common::ARRAY16:
-        return array16::reduce(function,col,(unsigned short*)data,length/2);
+        return array16::reduce(env,function,col,(unsigned short*)data,length/2);
         break;
       case common::BITSET:
-        return bitset::reduce(function,col,(unsigned short*)data,length/2);
+        return bitset::reduce(env,function,col,(unsigned short*)data,length/2);
         break;
       case common::A32BITPACKED:
-        return a32bitpacked::reduce(function,col,data,card);
+        return a32bitpacked::reduce(env,function,col,data,card);
         break;
       case common::VARIANT:
-        return variant::reduce(function,col,data,card);
+        return variant::reduce(env,function,col,data,card);
         break;
       default:
         return (T) 0;

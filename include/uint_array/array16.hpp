@@ -139,8 +139,8 @@ namespace array16 {
 	  }
 	  return count;
 	}
-  template<typename T> 
-  inline T reduce(T (*function)(unsigned int,unsigned int),unsigned int col,unsigned short *data, size_t length){
+  template<typename T, typename U>
+  inline T reduce(U env,T (*function)(U,unsigned int,unsigned int),unsigned int col,unsigned short *data, size_t length){
     T result = (T) 0;
     for(size_t j = 0; j < length; ++j){
       const size_t header_length = 2;
@@ -152,7 +152,7 @@ namespace array16 {
       //Traverse partition use prefix to get nbr id.
       for(;j < partition_end;++j){
         unsigned int cur = (prefix << 16) | data[j]; //neighbor node
-        result += function(col,cur);
+        result += function(env,col,cur);
       }
       j = partition_end-1;   
     }

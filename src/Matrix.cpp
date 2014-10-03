@@ -24,7 +24,6 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
           new_cardinality++;
           filtered_hood[filter_index++] = hood->at(j);
         }
-         cout << i << " " << j << endl;
       }
       row_lengths_in[i] = filter_index;
       const common::type row_type = Matrix::get_array_type(t_in,filtered_hood,filter_index,matrix_size_in); //depends on above array being set

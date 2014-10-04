@@ -93,11 +93,11 @@ namespace array32 {
     return count;
   }
   
-  template<typename T, typename U> 
-  inline T reduce(U env,T (*function)(U,unsigned int,unsigned int),unsigned int col,unsigned int *data, size_t length){
+  template<typename T>
+  inline T reduce(std::function<T(unsigned int,unsigned int)> f,unsigned int col,unsigned int *data, size_t length){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
-      result += function(env,col,data[i]);
+      result += f(col,data[i]);
     }
     return result;
   }

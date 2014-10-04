@@ -90,15 +90,15 @@ namespace bitset {
 	  return count;
 	}
 
-  template<typename T, typename U>
-  inline T reduce(U env,T (*function)(U,unsigned int,unsigned int),unsigned int col,unsigned short *data, size_t length){
+  template<typename T>
+  inline T reduce(std::function<T(unsigned int,unsigned int)> f,unsigned int col,unsigned short *data, size_t length){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
     	unsigned short cur_word = data[i];
     	for(size_t j = 0; j < BITS_PER_WORD; j++){
     		if((cur_word >> j) % 2){
     			unsigned int cur = BITS_PER_WORD*i + j;
-    			result += function(env,col,cur);
+    			result += f(col,cur);
     		}
     	}
     }

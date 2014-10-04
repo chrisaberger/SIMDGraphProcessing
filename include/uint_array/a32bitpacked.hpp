@@ -192,8 +192,8 @@ namespace a32bitpacked {
       num_decoded++;
     }
   }
-  template<typename T, typename U> 
-  inline T reduce(U env,T (*function)(U,unsigned int,unsigned int),unsigned int col,uint8_t *data, size_t cardinality){
+  template<typename T>
+  inline T reduce(std::function<T(unsigned int,unsigned int)> f,unsigned int col,uint8_t *data, size_t cardinality){
     T return_value = (T) 0;
     size_t data_i = 1;
     const uint8_t bits_used = data[0];
@@ -223,13 +223,13 @@ namespace a32bitpacked {
 
           //Apply Function (intersection)
           unsigned int uint_data = _mm_extract_epi32(result, 0);
-          return_value += function(env,col,uint_data);
+          return_value += f(col,uint_data);
           uint_data = _mm_extract_epi32(result, 1);
-          return_value += function(env,col,uint_data);
+          return_value += f(col,uint_data);
           uint_data = _mm_extract_epi32(result, 2);
-          return_value += function(env,col,uint_data);
+          return_value += f(col,uint_data);
           uint_data = _mm_extract_epi32(result, 3);
-          return_value += function(env,col,uint_data);
+          return_value += f(col,uint_data);
 
           prev = uint_data;
 
@@ -249,13 +249,13 @@ namespace a32bitpacked {
 
           //Apply Function (intersection)
           unsigned int uint_data = _mm_extract_epi32(result, 0);
-          return_value += function(env,col,uint_data);
+          return_value += f(col,uint_data);
           uint_data = _mm_extract_epi32(result, 1);
-          return_value += function(env,col,uint_data);
+          return_value += f(col,uint_data);
           uint_data = _mm_extract_epi32(result, 2);
-          return_value += function(env,col,uint_data);
+          return_value += f(col,uint_data);
           uint_data = _mm_extract_epi32(result, 3);
-          return_value += function(env,col,uint_data);
+          return_value += f(col,uint_data);
 
           prev = uint_data;
 
@@ -273,7 +273,7 @@ namespace a32bitpacked {
     while(num_decoded < cardinality){
       unsigned int cur = variant::variant_decode(data,data_i)+prev;
       //cout << "edge: " << col << " " << cur << endl;
-      return_value += function(env,col,cur);
+      return_value += f(col,cur);
       prev = cur;
       num_decoded++;
     }

@@ -44,8 +44,8 @@ int main (int argc, char* argv[]) {
   common::stopClock("Reading File");
   
   
-  unsigned int n1 = 79;
-  unsigned int n2 = 68;
+  unsigned int n1 = 9;
+  unsigned int n2 = 8;
 
   application::graph = new Matrix(inputGraph.out_neighborhoods,
     inputGraph.num_nodes,inputGraph.num_edges,

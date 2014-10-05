@@ -15,9 +15,9 @@ namespace application{
   inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
     return nbr < node;
   }
-  inline long edgeApply(unsigned int src, unsigned int dst){
+  inline long edgeApply(unsigned int src, unsigned int dst, unsigned int *decodedA){
     //cout << "src: " << src << " dst: " << dst << endl;
-    long count = graph->row_intersect(result,src,dst);
+    long count = graph->row_intersect(result,src,dst,decodedA);
     //cout << count << endl;
     return count;
   }
@@ -43,15 +43,27 @@ int main (int argc, char* argv[]) {
     //for more sophisticated queries this would be used.
   common::stopClock("Reading File");
   
+  cout << endl;
   application::graph = new Matrix(inputGraph.out_neighborhoods,
     inputGraph.num_nodes,inputGraph.num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY32);
   common::startClock();
+
   application::queryOver();
   common::stopClock("CSR TRIANGLE COUNTING");
   application::graph->Matrix::~Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
-  
+
+  application::graph = new Matrix(inputGraph.out_neighborhoods,
+      inputGraph.num_nodes,inputGraph.num_edges,
+      &application::myNodeSelection,&application::myEdgeSelection,common::HYBRID);
+  common::startClock();
+  application::queryOver();
+  common::stopClock("HYBRID");
+  application::graph->Matrix::~Matrix(); 
+  cout << "Count: " << application::num_triangles << endl << endl;
+
+
   application::graph = new Matrix(inputGraph.out_neighborhoods,
       inputGraph.num_nodes,inputGraph.num_edges,
       &application::myNodeSelection,&application::myEdgeSelection,common::VARIANT);
@@ -60,23 +72,16 @@ int main (int argc, char* argv[]) {
   common::stopClock("VARIANT");
   application::graph->Matrix::~Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
-  
-  
-  
+
   application::graph = new Matrix(inputGraph.out_neighborhoods,
       inputGraph.num_nodes,inputGraph.num_edges,
       &application::myNodeSelection,&application::myEdgeSelection,common::A32BITPACKED);
-
-    application::graph = new Matrix(inputGraph.out_neighborhoods,
-      inputGraph.num_nodes,inputGraph.num_edges,
-      &application::myNodeSelection,&application::myEdgeSelection,common::HYBRID);
-  /*
   common::startClock();
-  application::graph->print_data("a32bitpacked.txt");
   application::queryOver();
-  common::stopClock("BP COUNTING");
+  common::stopClock("A32BITPACKED");
+  application::graph->Matrix::~Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
-  */
+  
 
   return 0;
 }

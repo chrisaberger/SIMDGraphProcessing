@@ -25,30 +25,33 @@ namespace uint_array{
   }
 
   template<typename T> 
-  inline T reduce(T (*function)(unsigned int,unsigned int),unsigned int col,uint8_t *data,size_t length, size_t card,common::type t){
+  inline T reduce(T (*function)(unsigned int,unsigned int,unsigned int*),unsigned int col,uint8_t *data,size_t length, size_t card,common::type t,unsigned int *outputA){
     switch(t){
       case common::ARRAY32:
-        return array32::reduce(function,col,(unsigned int*)data,length/4);
+        return array32::reduce(function,col,(unsigned int*)data,length/4,outputA);
         break;
       case common::ARRAY16:
-        return array16::reduce(function,col,(unsigned short*)data,length/2);
+        return array16::reduce(function,col,(unsigned short*)data,length/2,outputA);
         break;
       case common::BITSET:
-        return bitset::reduce(function,col,(unsigned short*)data,length/2);
+        return bitset::reduce(function,col,(unsigned short*)data,length/2,outputA);
         break;
       case common::A32BITPACKED:
-        return a32bitpacked::reduce(function,col,data,card);
+        a32bitpacked::decode(outputA,data,card);
+        return array32::reduce(function,col,outputA,card,outputA);
         break;
       case common::VARIANT:
-        return variant::reduce(function,col,data,card);
+        variant::decode(outputA,data,card);
+        return array32::reduce(function,col,outputA,card,outputA);
         break;
       default:
         return (T) 0;
         break;
     }
   }
-  inline size_t intersect(uint8_t *R, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b, unsigned int card_a, unsigned int card_b, common::type t){
+  inline size_t intersect(uint8_t *R, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b, unsigned int card_a, unsigned int card_b, common::type t,unsigned int *outputA){
     size_t count = 0;
+    unsigned int *outputB;
     switch(t){
       case common::ARRAY32:
         count = array32::intersect((unsigned int*)R,(unsigned int*)A,(unsigned int*)B,s_a/4,s_b/4);
@@ -60,10 +63,16 @@ namespace uint_array{
         count = bitset::intersect((unsigned short*)R,(unsigned short*)A,(unsigned short*)B,s_a/2,s_b/2);
         break;
       case common::A32BITPACKED:
-        count = a32bitpacked::intersect((unsigned int*)R,A,B,card_a,card_b);
+        outputB = new unsigned int[card_b];
+        a32bitpacked::decode(outputB,B,card_b);
+        count = array32::intersect((unsigned int*)R,outputA,outputB,card_a,card_b);
+        delete[] outputB;
         break;
       case common::VARIANT:
-        count = variant::intersect((unsigned int*)R,A,B,card_a,card_b);
+        outputB = new unsigned int[card_b];
+        variant::decode(outputB,B,card_b);
+        count = array32::intersect((unsigned int*)R,outputA,outputB,card_a,card_b);
+        delete[] outputB;
         break;
       default:
         break;

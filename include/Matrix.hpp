@@ -63,13 +63,13 @@ class Matrix{
     //Currently out neighbors but easy to apply to in neighbors.
     void print_rows(unsigned int i, unsigned int j, string filename);
     template<typename T> 
-    T reduce_row(T (Matrix::*function)(unsigned int,T (*f)(unsigned int,unsigned int)), T (*f)(unsigned int,unsigned int));
+    T reduce_row(T (Matrix::*function)(unsigned int,T (*f)(unsigned int,unsigned int,unsigned int*)), T (*f)(unsigned int,unsigned int,unsigned int*));
     template<typename T> 
-    T reduce_column_in_row(unsigned int c,T (*function)(unsigned int,unsigned int));
-    size_t row_intersect(uint8_t *R, unsigned int i, unsigned int j);
+    T reduce_column_in_row(unsigned int c,T (*function)(unsigned int,unsigned int,unsigned int*));
+    size_t row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a);
 };
 
-inline size_t Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j){
+inline size_t Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a){
   size_t i_start = row_indicies[i];
   size_t i_end = row_indicies[i+1];
   size_t card_a = row_lengths[i];
@@ -79,13 +79,12 @@ inline size_t Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j){
   size_t j_end = row_indicies[j+1];
   size_t card_b = row_lengths[j];
 
-
   long ncount;
   #if HYBRID_LAYOUT == 1
   const common::type t1 = (common::type) row_types[i];
   const common::type t2 = (common::type) row_types[j];
   if(t1 == t2){
-    ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t1);
+    ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t1,decoded_a);
   } else{
     ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,t1,t2);
   }
@@ -126,9 +125,9 @@ inline common::type Matrix::get_hybrid_array_type(unsigned int *r_data, size_t r
 }
 
 template<typename T> 
-T Matrix::reduce_row(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,unsigned int)), T (*f)(unsigned int,unsigned int)) {
+T Matrix::reduce_row(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,unsigned int,unsigned int*)), T (*f)(unsigned int,unsigned int,unsigned int*)) {
   T reducer = (T) 0;
-  //#pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
+  #pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
   for(size_t i = 0; i < matrix_size; i++){
     reducer += (this->*rowfunction)(i,f);
   }
@@ -136,10 +135,12 @@ T Matrix::reduce_row(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,u
 }
 
 template<typename T> 
-T Matrix::reduce_column_in_row(unsigned int row,T (*function)(unsigned int,unsigned int)){
+T Matrix::reduce_column_in_row(unsigned int row,T (*function)(unsigned int,unsigned int,unsigned int*)){
   size_t start = row_indicies[row];
   size_t end = row_indicies[row+1];
   size_t card = row_lengths[row];
+
+  unsigned int *decoded_a = new unsigned int[card];
 
   #if HYBRID_LAYOUT == 1
   const common::type row_type = (common::type) row_types[row];
@@ -147,7 +148,11 @@ T Matrix::reduce_column_in_row(unsigned int row,T (*function)(unsigned int,unsig
   const common::type row_type = (common::type) t;
   #endif
   
-  return uint_array::reduce(function,row,row_data+start,end-start,card,row_type);
+  T result = uint_array::reduce(function,row,row_data+start,end-start,card,row_type,decoded_a);
+
+  delete[] decoded_a;
+
+  return result;
 }
 
 #endif

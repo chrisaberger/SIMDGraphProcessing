@@ -204,13 +204,12 @@ namespace a32bitpacked {
     if(num_simd_packed > 0){
       unsigned int mask32 = (long)((long)1 << (long)bits_used)-1;
       __m128i mask = _mm_set1_epi32(mask32);
-
-      prev = variant::variant_decode(data,data_i);
       __m128i prev_result = _mm_set1_epi32(prev);
       
       bool incr_data_i = false;
       size_t bit_i = 0;
       __m128i data_register;
+      //cout << "num_simd_packed: " << num_simd_packed << endl;
       while(num_decoded < num_simd_packed){
         data_register = _mm_loadu_si128((__m128i*)&data[data_i]);
         while(bit_i+bits_used <= 32 && num_decoded < num_simd_packed){
@@ -222,16 +221,16 @@ namespace a32bitpacked {
           bit_i += bits_used;
 
           //Apply Function (intersection)
-          unsigned int uint_data = _mm_extract_epi32(result, 0);
-          return_value += function(col,uint_data);
-          uint_data = _mm_extract_epi32(result, 1);
-          return_value += function(col,uint_data);
-          uint_data = _mm_extract_epi32(result, 2);
-          return_value += function(col,uint_data);
-          uint_data = _mm_extract_epi32(result, 3);
-          return_value += function(col,uint_data);
+          uint32_t t = _mm_extract_epi32(result, 0);
+          return_value += function(col,t);
+          t = _mm_extract_epi32(result, 1);
+          return_value += function(col,t);
+          t = _mm_extract_epi32(result, 2);
+          return_value += function(col,t);
+          t = _mm_extract_epi32(result, 3);
+          return_value += function(col,t);
 
-          prev = uint_data;
+          prev = t;
 
           num_decoded += INTS_PER_REG;
         }
@@ -248,16 +247,16 @@ namespace a32bitpacked {
           bit_i = bits_used-(32-bit_i);      
 
           //Apply Function (intersection)
-          unsigned int uint_data = _mm_extract_epi32(result, 0);
-          return_value += function(col,uint_data);
-          uint_data = _mm_extract_epi32(result, 1);
-          return_value += function(col,uint_data);
-          uint_data = _mm_extract_epi32(result, 2);
-          return_value += function(col,uint_data);
-          uint_data = _mm_extract_epi32(result, 3);
-          return_value += function(col,uint_data);
+          uint32_t t = _mm_extract_epi32(result, 0);
+          return_value += function(col,t);
+          t = _mm_extract_epi32(result, 1);
+          return_value += function(col,t);
+          t = _mm_extract_epi32(result, 2);
+          return_value += function(col,t);
+          t = _mm_extract_epi32(result, 3);
+          return_value += function(col,t);
 
-          prev = uint_data;
+          prev = t;
 
           num_decoded += INTS_PER_REG;
           data_i += INTS_PER_REG*4;
@@ -268,16 +267,90 @@ namespace a32bitpacked {
           incr_data_i = false;
         }
       }
-      data_i += incr_data_i*BYTES_PER_REG;
+      data_i += INTS_PER_REG*incr_data_i*4;
     }
+    //cout << "Decoding at: " << data_i  << " Num decoded: " << num_decoded << " card: " << cardinality << endl;
+    //cout << "prev: " << prev << endl;
+
     while(num_decoded < cardinality){
       unsigned int cur = variant::variant_decode(data,data_i)+prev;
-      //cout << "edge: " << col << " " << cur << endl;
       return_value += function(col,cur);
       prev = cur;
       num_decoded++;
     }
     return return_value;
+  }
+  inline void decode(unsigned int *output,uint8_t *data, size_t cardinality){
+    size_t output_i = 0;
+    size_t data_i = 1;
+    const uint8_t bits_used = data[0];
+    size_t num_decoded = 0;
+    unsigned int prev = variant::variant_decode(data,data_i);
+
+    size_t num_simd_packed = get_num_simd_packed(cardinality);
+    if(num_simd_packed > 0){
+      unsigned int mask32 = (long)((long)1 << (long)bits_used)-1;
+      __m128i mask = _mm_set1_epi32(mask32);
+      __m128i prev_result = _mm_set1_epi32(prev);
+      
+      bool incr_data_i = false;
+      size_t bit_i = 0;
+      __m128i data_register;
+      //cout << "num_simd_packed: " << num_simd_packed << endl;
+      while(num_decoded < num_simd_packed){
+        data_register = _mm_loadu_si128((__m128i*)&data[data_i]);
+        while(bit_i+bits_used <= 32 && num_decoded < num_simd_packed){
+          __m128i result = _mm_srli_epi32(data_register,bit_i);
+          result = _mm_and_si128(result,mask);
+          result = _mm_add_epi32(result,prev_result);
+          prev_result = result;
+          
+          bit_i += bits_used;
+
+          //Apply Function (intersection)
+          _mm_storeu_si128((__m128i*)&output[output_i],result);
+          prev = output[output_i+3];
+          output_i += INTS_PER_REG;
+
+          num_decoded += INTS_PER_REG;
+        }
+        if(bit_i < 32 && num_decoded < num_simd_packed){
+          __m128i cur_lower = _mm_srli_epi32(data_register,bit_i);
+          data_register = _mm_loadu_si128((__m128i*)&data[data_i+INTS_PER_REG*4]);
+
+          __m128i cur_upper = _mm_slli_epi32(data_register,(32-bit_i));
+          __m128i result = _mm_and_si128(_mm_or_si128(cur_upper,cur_lower),mask);
+
+          result = _mm_add_epi32(result,prev_result);
+          prev_result = result;
+
+          bit_i = bits_used-(32-bit_i);      
+
+          //Apply Function (intersection)
+          _mm_storeu_si128((__m128i*)&output[output_i],result);
+          prev = output[output_i+3];
+          output_i += INTS_PER_REG;
+
+          num_decoded += INTS_PER_REG;
+          data_i += INTS_PER_REG*4;
+          incr_data_i = true;
+        } else{
+          bit_i = 0;
+          data_i += INTS_PER_REG*4;
+          incr_data_i = false;
+        }
+      }
+      data_i += INTS_PER_REG*incr_data_i*4;
+    }
+    //cout << "Decoding at: " << data_i  << " Num decoded: " << num_decoded << " card: " << cardinality << endl;
+    //cout << "prev: " << prev << endl;
+
+    while(num_decoded < cardinality){
+      unsigned int cur = variant::variant_decode(data,data_i)+prev;
+      output[output_i++] = cur;
+      prev = cur;
+      num_decoded++;
+    }
   }
   inline void print_data(uint8_t *data, const size_t length, const size_t cardinality, std::ofstream &file){
     (void)length;
@@ -360,150 +433,6 @@ namespace a32bitpacked {
       prev = cur;
       num_decoded++;
     }
-  }
-  static __m128i shuffle_mask32[16] = {        
-    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0),
-    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0),
-    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,7,6,5,4),
-    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0),
-    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,11,10,9,8),
-    _mm_set_epi8(15,14,13,12,11,10,9,8,11,10,9,8,3,2,1,0),
-    _mm_set_epi8(15,14,13,12,11,10,9,8,11,10,9,8,7,6,5,4),
-    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0),
-    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,15,14,13,12),
-    _mm_set_epi8(15,14,13,12,11,10,9,8,15,14,13,12,3,2,1,0),
-    _mm_set_epi8(15,14,13,12,11,10,9,8,15,14,13,12,7,6,5,4),
-    _mm_set_epi8(15,14,13,12,15,14,13,12,7,6,5,4,3,2,1,0),
-    _mm_set_epi8(15,14,13,12,11,10,9,8,15,14,13,12,11,10,9,8),
-    _mm_set_epi8(15,14,13,12,15,14,13,12,11,10,9,8,3,2,1,0),
-    _mm_set_epi8(15,14,13,12,15,14,13,12,11,10,9,8,7,6,5,4),
-    _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0),
-  }; 
-  inline size_t intersect(unsigned int *C, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b) {
-    size_t count = 0;
-    size_t i_a = 0, i_b = 0;
-
-    /*
-    size_t data_i = 1;
-    const uint8_t bits_used = data[0];
-    size_t num_decoded = 0;
-    unsigned int prev = variant::variant_decode(data,data_i);
-
-    size_t num_simd_packed = get_num_simd_packed(cardinality);
-    if(num_simd_packed > 0){
-      unsigned int mask32 = (long)((long)1 << (long)bits_used)-1;
-      __m128i mask = _mm_set1_epi32(mask32);
-      __m128i prev_result = _mm_set1_epi32(prev);
-      size_t bit_i = 0;
-      */
-
-
-    // trim lengths to be a multiple of 4
-    i_a = 1;
-    i_b = 1;
-    const uint8_t bits_used_a = A[0];
-    const uint8_t bits_used_b = B[0];
-    size_t num_decoded_a = 0;
-    size_t num_decoded_b = 0;
-    unsigned int prev_a = variant::variant_decode(A,i_a);
-    unsigned int prev_b = variant::variant_decode(B,i_b);
-
-    #if VECTORIZE == 1
-    size_t st_a = get_num_simd_packed(s_a);
-    size_t st_b = get_num_simd_packed(s_b);
-    if(num_decoded_a < st_a  && num_decoded_b < st_b){
-      unsigned int mask32_a = (long)((long)1 << (long)bits_used_a)-1;
-      __m128i mask_a = _mm_set1_epi32(mask32_a);
-      unsigned int mask32_b = (long)((long)1 << (long)bits_used_b)-1;
-      __m128i mask_b = _mm_set1_epi32(mask32_b);
-
-      __m128i prev_result_a = _mm_set1_epi32(prev_a);
-      __m128i prev_result_b = _mm_set1_epi32(prev_b);
-
-      size_t bit_i_a = 0;
-      size_t bit_i_b = 0;
-
-      __m128i v_a = get_next_see(A,bits_used_a,i_a,prev_result_a,mask_a,bit_i_a,num_decoded_a >= st_a);
-      __m128i v_b = get_next_see(B,bits_used_a,i_b,prev_result_b,mask_b,bit_i_b,num_decoded_b >= st_b);
-
-      while(num_decoded_a < st_a && num_decoded_b < st_b) {
-        //cout << "VECTOR INTERSECT" << endl;
-        //[ compute mask of common elements
-        unsigned int cyclic_shift = _MM_SHUFFLE(0,3,2,1);
-        __m128i cmp_mask1 = _mm_cmpeq_epi32(v_a, v_b);    // pairwise comparison
-        v_b = _mm_shuffle_epi32(v_b, cyclic_shift);       // shuffling
-        __m128i cmp_mask2 = _mm_cmpeq_epi32(v_a, v_b);    // again...
-        v_b = _mm_shuffle_epi32(v_b, cyclic_shift);
-        __m128i cmp_mask3 = _mm_cmpeq_epi32(v_a, v_b);    // and again...
-        v_b = _mm_shuffle_epi32(v_b, cyclic_shift);
-        __m128i cmp_mask4 = _mm_cmpeq_epi32(v_a, v_b);    // and again.
-        __m128i cmp_mask = _mm_or_si128(
-                _mm_or_si128(cmp_mask1, cmp_mask2),
-                _mm_or_si128(cmp_mask3, cmp_mask4)
-        ); // OR-ing of comparison masks
-        // convert the 128-bit mask to the 4-bit mask
-        unsigned int mask = _mm_movemask_ps((__m128)cmp_mask);
-        //]
-        
-        //[ copy out common elements
-        #if WRITE_VECTOR == 1
-        __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask32[mask]);
-        _mm_storeu_si128((__m128i*)&C[count], p);
-        #endif
-
-        count += _mm_popcnt_u32(mask); // a number of elements is a weight of the mask
-        //]
-        unsigned int a_max = _mm_extract_epi32(v_a, 3);
-        prev_a = a_max;
-        unsigned int b_max = _mm_extract_epi32(v_b, 3);
-        prev_b = b_max;
-        if(a_max <= b_max){
-          v_a = prev_result_a  + get_next_see(A,bits_used_a,i_a,prev_result_a,mask_a,bit_i_a,num_decoded_a >= st_a);
-          prev_result_a = v_a;
-          num_decoded_a += INTS_PER_REG;
-        }
-        if(a_max >= b_max){
-          v_b = prev_result_b + get_next_see(B,bits_used_b,i_b,prev_result_b,mask_b,bit_i_b,num_decoded_b >= st_b);
-          prev_result_b = v_b;
-          num_decoded_b += INTS_PER_REG;
-        }
-      }
-      #endif
-    }
-    // intersect the tail using scalar intersection
-    unsigned int b_cur;
-    if(num_decoded_b < s_b){
-      b_cur = prev_b + variant::variant_decode(B,i_b);
-      prev_b = b_cur;
-    }
-    bool notFinished = num_decoded_a < s_a && num_decoded_b < s_b;
-    while(notFinished){
-      unsigned int a_cur = prev_a + variant::variant_decode(A,i_a);
-      prev_a = a_cur;
-      while(notFinished && b_cur < a_cur){
-        prev_b = b_cur;
-        num_decoded_b++;
-        notFinished = num_decoded_b < s_b;
-        if(notFinished){
-          b_cur = prev_b + variant::variant_decode(B,i_b);
-          prev_b = b_cur;
-        }
-      }
-      if(notFinished && a_cur == b_cur){
-        #if WRITE_VECTOR == 1
-        C[count] = a_cur;
-        #endif
-        ++count;
-      }
-      num_decoded_a++;
-      notFinished = notFinished && num_decoded_a < s_a;
-    }
-
-    #if WRITE_VECTOR == 0
-    C = C;
-    #endif
-    
-    return count;
   }
 
 }

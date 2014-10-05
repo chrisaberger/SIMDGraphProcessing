@@ -147,6 +147,30 @@ namespace variant {
     }
     return result;
   }
+  inline void decode(unsigned int *output,uint8_t *data, size_t cardinality){
+    size_t output_i = 0;    
+
+    if(cardinality != 0){
+      //cout << "bits_used: " << (uint)bits_used << endl;
+      size_t data_i = 0;
+      size_t num_decoded = 0;
+
+      unsigned int prev = variant::variant_decode(data,data_i);
+      output[output_i++] = prev;
+      num_decoded++;
+
+      //cout << "starting variant decode at: " << data_i << endl;
+      while(num_decoded < cardinality){
+        //cout << "\tdata_i: " << data_i << endl;
+        unsigned int cur = variant::variant_decode(data,data_i);
+        cur += prev;
+        prev = cur;
+
+        output[output_i++] = prev;
+        num_decoded++;
+      }
+    }
+  }
   inline size_t intersect(unsigned int *C, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
@@ -169,8 +193,6 @@ namespace variant {
       unsigned int a_max = _mm_extract_epi32(v_a, 3);
       unsigned int b_max = _mm_extract_epi32(v_b, 3);
       while(num_checked_a < st_a && num_checked_b < st_b) {
-
-
         //[ compute mask of common elements
        // cout << "looping: " << num_checked_a << " " << st_a << " " << num_checked_b << " " << st_b << endl;
         unsigned int cyclic_shift = _MM_SHUFFLE(0,3,2,1);
@@ -239,32 +261,36 @@ namespace variant {
     }
     //cout << i_a << " " << i_b << " count: " <<  count << endl;
     // intersect the tail using scalar intersection
-    unsigned int b_cur = 0;
-    if(num_checked_b < s_b){
-      b_cur = prev_b + variant::variant_decode(B,i_b);
-      prev_b = b_cur;
-    }
     //cout << "BBBB: " << b_cur << endl;
-    //cout << "num_checked_a: " << num_checked_a << " num_checked_b: " << num_checked_b << endl;
     bool notFinished = num_checked_a < s_a && num_checked_b < s_b;
+    bool advanceB = notFinished;
+    bool first = true;
+    unsigned int b_cur = 0;
     while(notFinished){
       //cout << "i_a: " << i_a << "i_b: " << i_b << endl;
       unsigned int a_cur = prev_a + variant::variant_decode(A,i_a);
       prev_a = a_cur;
+      
+      //cout << "acur: " << a_cur << " bcur: " << b_cur << endl;
+      //cout << "num_checked_a: " << num_checked_a << " num_checked_b: " << num_checked_b << endl;
+      advanceB = num_checked_b < s_b && b_cur < a_cur;
 
-      while(notFinished && b_cur < a_cur){
+      while(advanceB || first){
+        first = false;
+        b_cur = prev_b + variant::variant_decode(B,i_b);
+        prev_b = b_cur;
+
         num_checked_b++;
-        //cout << "acur: " << a_cur << " bcur: " << b_cur << " i_b: " << i_b << endl;;
-        //cout << "num_checked_b: " << num_checked_b << " s_b: " << s_b << endl;
-
-        notFinished = num_checked_b < s_b;
-        if(notFinished){
-          b_cur = prev_b + variant::variant_decode(B,i_b);
-          prev_b = b_cur;
-        }
+        advanceB = num_checked_b < s_b && b_cur < a_cur;
       }
+
+      notFinished = num_checked_b < s_b || b_cur > a_cur;
+
+      //cout << "acur: " << a_cur << " bcur: " << b_cur << endl;
+      //cout << "num_checked_a: " << num_checked_a << " num_checked_b: " << num_checked_b << " notFinished: " << notFinished << endl;
+     
       //cout << "COUNTacur: " << a_cur << " bcur: " << b_cur << endl;
-      if(notFinished && a_cur == b_cur){
+      if(a_cur == b_cur){
         //cout << "HIT: " << count  << endl << endl;
         #if WRITE_VECTOR == 1
         C[count] = a_cur;

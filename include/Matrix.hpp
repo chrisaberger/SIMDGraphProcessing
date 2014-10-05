@@ -72,12 +72,17 @@ class Matrix{
 inline size_t Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a){
   size_t i_start = row_indicies[i];
   size_t i_end = row_indicies[i+1];
-  size_t card_a = row_lengths[i];
-
 
   size_t j_start = row_indicies[j];
   size_t j_end = row_indicies[j+1];
-  size_t card_b = row_lengths[j];
+
+  size_t card_a = 0;
+  size_t card_b = 0;
+
+  #if COMPRESSION == 1
+  card_a = row_lengths[i];
+  card_b = row_lengths[j];
+  #endif
 
   long ncount;
   #if HYBRID_LAYOUT == 1
@@ -86,10 +91,10 @@ inline size_t Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j, 
   if(t1 == t2){
     ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t1,decoded_a);
   } else{
-    ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,t1,t2);
+    ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,t1,t2,card_a,card_b,decoded_a);
   }
   #else 
-    ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t);
+    ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t,decoded_a);
   #endif
 
   return ncount;
@@ -119,7 +124,13 @@ inline common::type Matrix::get_hybrid_array_type(unsigned int *r_data, size_t r
   else if(row_size != 0 && 
     (row_size/((r_data[row_size-1] >> 16) - (r_data[0] >> 16) + 1)) > 8){
     return common::ARRAY16;
-  } else{
+  } else if(row_size >= 12){
+    return common::A32BITPACKED;
+  } 
+  else if(row_size < 12 && row_size > 4){
+    return common::VARIANT;
+  } 
+  else{
     return common::ARRAY32;
   }
 }
@@ -139,8 +150,11 @@ T Matrix::reduce_column_in_row(unsigned int row,T (*function)(unsigned int,unsig
   size_t start = row_indicies[row];
   size_t end = row_indicies[row+1];
   size_t card = row_lengths[row];
-
-  unsigned int *decoded_a = new unsigned int[card];
+  
+  unsigned int *decoded_a = row_lengths;
+  #if COMPRESSION == 1
+  decoded_a = new unsigned int[card];
+  #endif
 
   #if HYBRID_LAYOUT == 1
   const common::type row_type = (common::type) row_types[row];
@@ -150,7 +164,9 @@ T Matrix::reduce_column_in_row(unsigned int row,T (*function)(unsigned int,unsig
   
   T result = uint_array::reduce(function,row,row_data+start,end-start,card,row_type,decoded_a);
 
+  #if COMPRESSION == 1
   delete[] decoded_a;
+  #endif
 
   return result;
 }

@@ -48,9 +48,18 @@ int main (int argc, char* argv[]) {
     inputGraph.num_nodes,inputGraph.num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY32);
   common::startClock();
-
   application::queryOver();
   common::stopClock("CSR TRIANGLE COUNTING");
+  application::graph->Matrix::~Matrix(); 
+  cout << "Count: " << application::num_triangles << endl << endl;
+
+  cout << endl;
+  application::graph = new Matrix(inputGraph.out_neighborhoods,
+    inputGraph.num_nodes,inputGraph.num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY16);
+  common::startClock();
+  application::queryOver();
+  common::stopClock("ARRAY16 TRIANGLE COUNTING");
   application::graph->Matrix::~Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
 
@@ -63,7 +72,7 @@ int main (int argc, char* argv[]) {
   application::graph->Matrix::~Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
 
-
+  #if COMPRESSION == 1
   application::graph = new Matrix(inputGraph.out_neighborhoods,
       inputGraph.num_nodes,inputGraph.num_edges,
       &application::myNodeSelection,&application::myEdgeSelection,common::VARIANT);
@@ -81,7 +90,7 @@ int main (int argc, char* argv[]) {
   common::stopClock("A32BITPACKED");
   application::graph->Matrix::~Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
-  
+  #endif
 
   return 0;
 }

@@ -23,12 +23,11 @@ namespace uint_array{
     }
     return index;
   }
-
   template<typename T> 
-  inline T reduce(T (*function)(unsigned int,unsigned int,unsigned int*),unsigned int col,uint8_t *data,size_t length, size_t card,common::type t,unsigned int *outputA){
+  inline T sum_decoded(T (*function)(unsigned int,unsigned int,unsigned int*),unsigned int col,uint8_t *data,size_t length, size_t card,common::type t,unsigned int *outputA){
     switch(t){
       case common::ARRAY32:
-        return array32::reduce(function,col,(unsigned int*)data,length/4,outputA);
+        return array32::sum_decoded(function,col,(unsigned int*)data,length/4,outputA);
         break;
       case common::ARRAY16:
         return array16::reduce(function,col,(unsigned short*)data,length/2,outputA);
@@ -38,17 +37,44 @@ namespace uint_array{
         break;
       case common::A32BITPACKED:
         a32bitpacked::decode(outputA,data,card);
-        return array32::reduce(function,col,outputA,card,outputA);
+        return array32::sum_decoded(function,col,outputA,card,outputA);
         break;
       case common::VARIANT:
         variant::decode(outputA,data,card);
-        return array32::reduce(function,col,outputA,card,outputA);
+        return array32::sum_decoded(function,col,outputA,card,outputA);
         break;
       default:
         return (T) 0;
         break;
     }
-  }
+  } 
+  template<typename T> 
+  inline T sum(unsigned int col,uint8_t *data,size_t length, size_t card,common::type t, T *old_data, unsigned int *lengths){
+    switch(t){
+      case common::ARRAY32:
+        return array32::sum(col,(unsigned int*)data,length/4,old_data,lengths);
+        break;
+      /*
+      case common::ARRAY16:
+        return array16::reduce(function,col,(unsigned short*)data,length/2,outputA);
+        break;
+      case common::BITSET:
+        return bitset::reduce(function,col,(unsigned short*)data,length/2,outputA);
+        break;
+      case common::A32BITPACKED:
+        a32bitpacked::decode(outputA,data,card);
+        return array32::sum_decoded(function,col,outputA,card,outputA);
+        break;
+      case common::VARIANT:
+        variant::decode(outputA,data,card);
+        return array32::sum_decoded(function,col,outputA,card,outputA);
+        break;
+        */
+      default:
+        return 0.0;
+        break;
+    }
+  } 
   inline size_t intersect(uint8_t *R, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b, 
     unsigned int card_a, unsigned int card_b, common::type t,unsigned int *outputA){
     size_t count = 0;

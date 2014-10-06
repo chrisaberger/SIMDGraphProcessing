@@ -22,7 +22,7 @@ namespace application{
     return count;
   }
   inline void queryOver(){
-    num_triangles = graph->reduce_row(&Matrix::reduce_column_in_row,&edgeApply);
+    num_triangles = graph->sum_over_rows(&Matrix::sum_over_columns_in_row,&edgeApply);
   }
 }
 

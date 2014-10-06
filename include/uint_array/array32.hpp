@@ -94,11 +94,19 @@ namespace array32 {
   }
   
   template<typename T> 
-  inline T reduce(T (*function)(unsigned int,unsigned int,unsigned int*),unsigned int col,unsigned int *data, size_t length,unsigned int *outputA){
+  inline T sum_decoded(T (*function)(unsigned int,unsigned int,unsigned int*),unsigned int col,unsigned int *data, size_t length,unsigned int *outputA){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
       result += function(col,data[i],outputA);
     }
+    return result;
+  }
+  template<typename T> 
+  inline T sum(unsigned int col,unsigned int *data, size_t length, T *old_data, unsigned int *lengths){
+    float result = 0.0;
+    for(size_t i = 0; i < length; i++){
+      result += old_data[data[i]]/lengths[data[i]];
+    } 
     return result;
   }
 

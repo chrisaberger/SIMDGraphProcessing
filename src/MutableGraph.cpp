@@ -71,7 +71,7 @@ MutableGraph MutableGraph::undirectedFromAdjList(const string path,const int num
   size_t num_nodes = 0;
   //Place graph into vector of vectors then decide how you want to
   //store the graph.
-  
+
   //#pragma omp parallel for default(none) shared(graph_in,path) reduction(+:num_edges) reduction(+:num_nodes)
   for(size_t i=0; i < (size_t) num_files;++i){
     vector< vector<unsigned int>*  > *file_adj = new vector< vector<unsigned int>* >();
@@ -86,14 +86,11 @@ MutableGraph MutableGraph::undirectedFromAdjList(const string path,const int num
         vector<unsigned int> *cur = new vector<unsigned int>(); //guess a size
         cur->reserve(line.length());
         istringstream iss(line);
-        do{
-          string sub;
-          iss >> sub;
-          if(sub.compare("")){
-            cur->push_back(atoi(sub.c_str()));
-          }
-        } while (iss);
-        cur->resize(cur->size());   
+
+        unsigned int sub;
+        while(iss >> sub)
+          cur->push_back(sub);
+        cur->resize(cur->size());
         num_edges += cur->size()-1;
         num_nodes++;
         file_adj->push_back(cur);
@@ -138,14 +135,14 @@ dst1 src0
 MutableGraph MutableGraph::undirectedFromEdgeList(const string path,const int num_files) {
   size_t num_edges = 0;
   size_t num_nodes = 0;
-  
+
   //Place graph into vector of vectors then decide how you want to
   //store the graph.
 
   cout << "Reading File: " << path << endl;
 
   vector<pair<unsigned int,unsigned int>> *edges = new vector<pair<unsigned int,unsigned int>>(); //guess a size
-  
+
   for(size_t i=0; i < (size_t) num_files;++i){
     string file_path = path;
     if(num_files!=1) file_path.append(to_string(i));
@@ -155,11 +152,11 @@ MutableGraph MutableGraph::undirectedFromEdgeList(const string path,const int nu
     if (myfile.is_open()){
       while ( getline (myfile,line) ){
         istringstream iss(line);
-        
+
         string sub;
         iss >> sub;
         unsigned int src = atoi(sub.c_str());
-          
+
         iss >> sub;
         unsigned int dst = atoi(sub.c_str());
 

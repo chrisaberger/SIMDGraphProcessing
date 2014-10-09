@@ -288,6 +288,22 @@ public:
    }
 
    template<typename T> 
+   void part_reduce_row_omp(
+       std::function<T(unsigned int, std::function<T(unsigned int,unsigned int)>)> rowfunction,
+       std::function<T(unsigned int,unsigned int)> f,
+       int node_id, int num_nodes) {
+     size_t work_size = matrix_size / num_nodes;
+     size_t start = node_id * work_size;
+     // Make sure that we process all nodes
+     size_t end = (node_id == num_nodes - 1) ? matrix_size : start + work_size;
+
+     #pragma omp parallel for default(none) shared(start,end,f,rowfunction) schedule(dynamic) num_threads(4)
+     for(size_t i = start; i < end; i++){
+        rowfunction(i,f);
+     }
+   }
+
+   template<typename T> 
    void part_reduce_row(
        std::function<T(unsigned int, std::function<T(unsigned int,unsigned int)>)> rowfunction,
        std::function<T(unsigned int,unsigned int)> f,

@@ -1,3 +1,5 @@
+#include <atomic>
+
 #include "Matrix.hpp"
 #include "MutableGraph.hpp"
 #include "Node.hpp"
@@ -24,13 +26,10 @@ class Worker {
 private:
   Node* node;
   Matrix* local_graph;
-  size_t from;
-  size_t to;
   int num_threads;
   int num_nodes;
-  long triangles;
+  std::atomic<long> triangles;
   uint8_t *result;
-  std::mutex* counter_mutex;
 
 public:
   Worker(int node, int num_nodes, int num_threads, MutableGraph* input_graph) {
@@ -42,19 +41,24 @@ public:
       &application::myNodeSelection,
       &application::myEdgeSelection,
       application::graphType);
-    this->from = from;
-    this->to = to;
     this->num_nodes = num_nodes;
     this->num_threads = num_threads;
     this->triangles = 0;
     this->result = new uint8_t[input_graph->num_nodes];
-    this->counter_mutex = new std::mutex();
+  }
+
+  Worker(int node, int num_nodes, int num_threads, Matrix* input_graph) {
+    this->node = new Node(node);
+    this->node->run_on();
+    this->local_graph = input_graph;
+    this->num_nodes = num_nodes;
+    this->num_threads = num_threads;
+    this->triangles = 0;
+    this->result = new uint8_t[input_graph->matrix_size];
   }
 
   int edgeApply(unsigned int src, unsigned int dst) {
-    this->counter_mutex->lock();
     this->triangles += this->local_graph->row_intersect(this->result, src, dst);
-    this->counter_mutex->unlock();
     return 0;
   }
 
@@ -65,10 +69,13 @@ public:
     for(int i = 0; i < this->num_threads; i++) {
        auto edge_fun = std::bind(&Worker::edgeApply, this, _1, _2);
        auto col_fun = std::bind(&Matrix::reduce_column_in_row<int>, this->local_graph, _1, _2);
-       auto thread_fun = std::bind(&Matrix::part_reduce_row<int>, this->local_graph, std::cref(col_fun), std::cref(edge_fun), i + this->num_threads * this->node->get_id(), this->num_threads * this->num_nodes);
+       auto thread_fun = std::bind(&Matrix::part_reduce_row_omp<int>, this->local_graph, std::cref(col_fun), std::cref(edge_fun), this->node->get_id(), this->num_nodes);
+       //auto thread_fun = std::bind(&Matrix::part_reduce_row<int>, this->local_graph, std::cref(col_fun), std::cref(edge_fun), i + this->node->get_id() * this->num_threads, this->num_nodes * this->num_threads);
        std::thread* worker_thread = new std::thread(thread_fun);
        this->node->add_thread(worker_thread);
     }
+
+    cout << "Launched " << this->num_threads << " threads on node " << this->node->get_id() << endl;
   }
 
   long join() {
@@ -87,6 +94,7 @@ int main (int argc, char* argv[]) {
 
   // Allocate memory where the thread is running
   numa_set_localalloc();
+  numa_run_on_node(0);
 
   int num_nodes = numa_max_node() + 1;
   int num_threads = atoi(argv[2]);
@@ -100,9 +108,19 @@ int main (int argc, char* argv[]) {
 
   common::startClock();
 
+  Matrix* mat = new Matrix(
+      inputGraph.out_neighborhoods,
+      inputGraph.num_nodes, inputGraph.num_edges,
+      &application::myNodeSelection,
+      &application::myEdgeSelection,
+      application::graphType);
+
+  cout << "Number of nodes: " << mat->matrix_size << endl;
+
   std::vector<Worker*> nodes;
   for(int i = 0; i < num_nodes; i++) {
     nodes.push_back(new Worker(i, num_nodes, num_threads, &inputGraph));
+    //nodes.push_back(new Worker(i, num_nodes, num_threads, mat));
   }
 
   common::stopClock("Building Graph");

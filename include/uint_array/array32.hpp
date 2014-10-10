@@ -260,6 +260,12 @@ namespace array32 {
       __m128i l_4 = _mm_min_epu32(_mm_shuffle_epi32(h_3, left_cyclic_shift),l_3);
       __m128i h_4 = _mm_max_epu32(h_3,_mm_shuffle_epi32(l_3,right_cyclic_shift));
       _mm_storeu_si128((__m128i*)&C[count], l_4);
+      _mm_storeu_si128((__m128i*)&C[count+INTS_PER_REG], h_4);
+
+      cout <<"Num hit: " << num_hit << endl;
+      print_sse_register(l_4);
+      print_sse_register(h_4);
+
       #endif
 
       unsigned int new_a_max = a_max;
@@ -269,23 +275,42 @@ namespace array32 {
         i_a = next_i_a;
         v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
         new_a_max = _mm_extract_epi32(v_a, 3);
-        v_b = h_4;
+        v_b = _mm_loadu_si128((__m128i*)&C[count+(INTS_PER_REG-num_hit)]);
       }
       if(a_max >= b_max){
         i_b = next_i_b;
         v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
         b_max = _mm_extract_epi32(v_b, 3);
-        v_a = h_4;
+        v_a = _mm_loadu_si128((__m128i*)&C[count+(INTS_PER_REG-num_hit)]);
       }
       a_max = new_a_max;
-      count += INTS_PER_REG;// a number of elements is a weight of the mask
+      count += INTS_PER_REG-num_hit;// a number of elements is a weight of the mask
+      cout << "count: " << count << endl;
     }
     #endif
 
-    //count += num_hit;
-    //i_a = next_i_a;
-    //i_b = next_i_b;
-    cout << count << " " << i_a << " " << i_b << endl;
+    if(a_max < b_max && i_b < s_b){
+      bool a = i_b < s_b && C[count] > B[i_b];
+      bool b = (i_b+1) < s_b && C[count+1] > B[i_b+1];
+      bool c = (i_b+2) < s_b && C[count+2] > B[i_b+2];
+      bool d = (i_b+3) < s_b && C[count+3] > B[i_b+3];
+
+      size_t incr = a*1 + b*1 + c*1 + d*1;
+      cout << "incr: " << incr << endl;
+      count += incr;
+      i_b += incr;
+    }
+    if(a_max > b_max && i_a < s_a){
+      bool a = i_a < s_a && C[count] > A[i_a];
+      bool b = (i_a+1) < s_a && C[count+1] > A[i_a+1];
+      bool c = (i_a+2) < s_a && C[count+2] > A[i_a+2];
+      bool d = (i_a+3) < s_a && C[count+3] > A[i_a+3];
+
+      size_t incr = a*1 + b*1 + c*1 + d*1;
+      cout << "incr: " << incr << " " << _mm_extract_epi32(v_a,0) << endl;
+      count += incr;
+      i_a += incr;
+    }
 
     // intersect the tail using scalar intersection
     bool notFinished = i_a < s_a  && i_b < s_b;

@@ -122,6 +122,32 @@ namespace variant {
     }
   }
   template<typename T> 
+  inline T sum(uint8_t *data, size_t cardinality, T *old_data, unsigned int *lengths){
+    T result = (T) 0;
+
+    if(cardinality != 0){
+      //cout << "bits_used: " << (uint)bits_used << endl;
+      size_t data_i = 0;
+      size_t num_decoded = 0;
+
+      unsigned int prev = variant::variant_decode(data,data_i);
+      result += old_data[prev]/lengths[prev];
+      num_decoded++;
+
+      //cout << "starting variant decode at: " << data_i << endl;
+      while(num_decoded < cardinality){
+        //cout << "\tdata_i: " << data_i << endl;
+        unsigned int cur = variant::variant_decode(data,data_i);
+        cur += prev;
+        prev = cur;
+
+        result += old_data[prev]/lengths[prev];
+        num_decoded++;
+      }
+    }
+    return result;
+  }
+  template<typename T> 
   inline T reduce(T (*function)(unsigned int,unsigned int),unsigned int col,uint8_t *data, size_t cardinality){
     T result = (T) 0;
 
@@ -171,6 +197,7 @@ namespace variant {
       }
     }
   }
+  /*
   inline size_t intersect(unsigned int *C, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
@@ -307,4 +334,5 @@ namespace variant {
     
     return count;
   }
+  */
 } 

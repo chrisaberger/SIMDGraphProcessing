@@ -6,11 +6,8 @@
 namespace hybrid {
   //untested
   inline size_t intersect_a16_bs(unsigned int *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
-    //cout << "16 & BS" << endl;
-    #if WRITE_VECTOR == 0
     (void)C;
     (void)s_b;
-    #endif
 
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
@@ -35,10 +32,8 @@ namespace hybrid {
   }
   //untested
   inline size_t intersect_a32_bs(unsigned int *C, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
-    #if WRITE_VECTOR == 0
     (void)C;
     (void)s_b;
-    #endif
     
     //cout << "32 & BS" << endl;
     size_t count = 0;

@@ -14,7 +14,7 @@ namespace array16 {
       for(unsigned char b = 0; b < 8; b++) { //Check each possible bit that can be set 1-by-1
         if(getBitSD(i, b)) {
           permutation[counter++] = 2*b; //tell us byte offset to get from comparison vector
-          permutation[counter++] = 2*b + 1; //tess us byte offset to get from comparison vector
+          permutation[counter++] = 2*b + 1; //tells us byte offset to get from comparison vector
         }
       }
       __m128i mask = _mm_loadu_si128((const __m128i*)permutation);
@@ -153,6 +153,25 @@ namespace array16 {
       for(;j < partition_end;++j){
         unsigned int cur = (prefix << 16) | data[j]; //neighbor node
         result += function(col,cur,outputA);
+      }
+      j = partition_end-1;   
+    }
+    return result;
+  }
+  template<typename T> 
+  inline T sum(unsigned short *data, size_t length,  T *old_data, unsigned int *lengths){
+    T result = (T) 0;
+    for(size_t j = 0; j < length; ++j){
+      const size_t header_length = 2;
+      const size_t start = j;
+      const size_t prefix = data[j++];
+      const size_t len = data[j++];
+      const size_t partition_end = start+header_length+len;
+
+      //Traverse partition use prefix to get nbr id.
+      for(;j < partition_end;++j){
+        unsigned int cur = (prefix << 16) | data[j]; //neighbor node
+        result += old_data[cur]/lengths[cur];
       }
       j = partition_end-1;   
     }

@@ -49,27 +49,24 @@ namespace uint_array{
     }
   } 
   template<typename T> 
-  inline T sum(unsigned int col,uint8_t *data,size_t length, size_t card,common::type t, T *old_data, unsigned int *lengths){
+  inline T sum(uint8_t *data,size_t length, size_t card,common::type t, T *old_data, unsigned int *lengths){
+    card = card;
     switch(t){
       case common::ARRAY32:
-        return array32::sum(col,(unsigned int*)data,length/4,old_data,lengths);
+        return array32::sum((unsigned int*)data,length/4,old_data,lengths);
         break;
-      /*
       case common::ARRAY16:
-        return array16::reduce(function,col,(unsigned short*)data,length/2,outputA);
+        return array16::sum((unsigned short*)data,length/2,old_data,lengths);
         break;
       case common::BITSET:
-        return bitset::reduce(function,col,(unsigned short*)data,length/2,outputA);
+        return bitset::sum((unsigned short*)data,length/2,old_data,lengths);
         break;
       case common::A32BITPACKED:
-        a32bitpacked::decode(outputA,data,card);
-        return array32::sum_decoded(function,col,outputA,card,outputA);
+        return a32bitpacked::sum(data,card,old_data,lengths);
         break;
       case common::VARIANT:
-        variant::decode(outputA,data,card);
-        return array32::sum_decoded(function,col,outputA,card,outputA);
+        return variant::sum(data,card,old_data,lengths);
         break;
-        */
       default:
         return 0.0;
         break;

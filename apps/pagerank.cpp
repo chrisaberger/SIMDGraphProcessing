@@ -2,32 +2,38 @@
 #include "Matrix.hpp"
 #include "MutableGraph.hpp"
 
-/*
 namespace application{
   Matrix *graph;
-  uint8_t *result;
-  long num_triangles = 0;
-  common::type graphType = common::ARRAY32;
+  common::type graphType = common::A32BITPACKED;
   
   inline bool myNodeSelection(unsigned int node){
     (void)node;
     return true;
   }
   inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
-    return nbr < node;
+    (void) node;
+    (void) nbr;
+    return true;
   }
-  inline long edgeApply(unsigned int src, unsigned int dst){
-    return graph->row_intersect(result,src,dst);
-  }
+
   inline void queryOver(){
-    num_triangles = graph->reduce_row(&Matrix::reduce_column_in_row,&edgeApply);
+    float *new_pr_data = new float[graph->matrix_size];
+    float *old_pr_data = new float[graph->matrix_size];
+    memset (old_pr_data,(1.0/graph->matrix_size),graph->matrix_size);
+
+    size_t num_iterations = 0;
+    while(num_iterations < 10){
+      float diff = graph->map_columns(&Matrix::sum_over_rows_in_column,new_pr_data,old_pr_data);
+      float *tmp = old_pr_data;
+      old_pr_data = new_pr_data;
+      new_pr_data = tmp;
+      num_iterations++;
+    }
   }
 }
-*/
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
-  /*
   if(argc != 3){
     cout << "Please see usage below: " << endl;
     cout << "\t./main <adjacency list file/folder> <# of threads>" << endl;
@@ -39,22 +45,53 @@ int main (int argc, char* argv[]) {
 
   common::startClock();
   MutableGraph inputGraph = MutableGraph::undirectedFromAdjList(argv[1],1); //filename, # of files
-  application::result = new uint8_t[inputGraph.num_nodes]; //we don't actually use this for just a count
     //for more sophisticated queries this would be used.
   common::stopClock("Reading File");
-
-  common::startClock();
-  Matrix allocated_graph = Matrix::buildSymetric(inputGraph.out_neighborhoods,
+  
+  cout << endl;
+  application::graph = new Matrix(inputGraph.out_neighborhoods,
     inputGraph.num_nodes,inputGraph.num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,application::graphType);
-  application::graph = &allocated_graph;
-  common::stopClock("Building Graph");
-
+    &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY32);
   common::startClock();
   application::queryOver();
-  common::stopClock("CSR TRIANGLE COUNTING");
+  common::stopClock("CSR PAGE RANK");
+  application::graph->Matrix::~Matrix(); 
 
-  cout << "Count: " << application::num_triangles << endl << endl;
-  */
+  cout << endl;
+  application::graph = new Matrix(inputGraph.out_neighborhoods,
+    inputGraph.num_nodes,inputGraph.num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY16);
+  common::startClock();
+  application::queryOver();
+  common::stopClock("ARRAY16 PAGE RANK");
+  application::graph->Matrix::~Matrix(); 
+
+    cout << endl;
+  application::graph = new Matrix(inputGraph.out_neighborhoods,
+    inputGraph.num_nodes,inputGraph.num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,common::HYBRID);
+  common::startClock();
+  application::queryOver();
+  common::stopClock("HYBRID PAGE RANK");
+  application::graph->Matrix::~Matrix(); 
+
+    cout << endl;
+  application::graph = new Matrix(inputGraph.out_neighborhoods,
+    inputGraph.num_nodes,inputGraph.num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,common::VARIANT);
+  common::startClock();
+  application::queryOver();
+  common::stopClock("VARIANT PAGE RANK");
+  application::graph->Matrix::~Matrix(); 
+
+  cout << endl;
+  application::graph = new Matrix(inputGraph.out_neighborhoods,
+    inputGraph.num_nodes,inputGraph.num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,common::A32BITPACKED);
+  common::startClock();
+  application::queryOver();
+  common::stopClock("A32BITPACKED PAGE RANK");
+  application::graph->Matrix::~Matrix(); 
+
   return 0;
 }

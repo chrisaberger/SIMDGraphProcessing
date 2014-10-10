@@ -6,16 +6,16 @@ ifeq ($(INTEL), 1)
 # if you wish to use the Intel compiler, please do "make INTEL=1".
     CXX ?= /opt/intel/bin/icpc
 ifeq ($(DEBUG),1)
-    override CXXFLAGS += -std=c++0x -O3 -Wall -ansi -fopenmp -xAVX -DDEBUG=1 -D_GLIBCXX_DEBUG   -ggdb
+    override CXXFLAGS += -std=c++0x -O3 -Wall -Wno-conversion -ansi -fopenmp -xAVX -DDEBUG=1 -D_GLIBCXX_DEBUG   -ggdb
 else
-    override CXXFLAGS += -std=c++0x -O3 -Wall -ansi -fopenmp -xAVX -DNDEBUG=1  -ggdb
+    override CXXFLAGS += -std=c++0x -O3 -Wall -ansi -fopenmp -xAVX -DNDEBUG=1  -ggdb -Wno-conversion
 endif # debug
 else #intel
     CXX ?= g++-4.7
 ifeq ($(DEBUG),1)
-    override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -ggdb -DDEBUG=1 -D_GLIBCXX_DEBUG -Wall -Wextra  -Wcast-align  
+    override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -ggdb -DDEBUG=1 -Wno-conversion -D_GLIBCXX_DEBUG -Wall -Wextra  -Wcast-align  
 else
-    override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -O3 -Wall -Wextra  -Wcast-align  
+    override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -O3 -Wall -Wextra -Wno-conversion  -Wcast-align  
 endif #debug
 endif #intel
 
@@ -45,6 +45,10 @@ test_undirected_triangle_counting: tests/test_undirected_triangle_counting.cpp
 
 test_compression_simple: tests/test_compression_simple.cpp
 	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/test_compression_simple tests/test_compression_simple.cpp  $(OBJECTS) -Iinclude
+
+test_primitives: tests/test_primitives.cpp
+	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/test_primitives tests/test_primitives.cpp  $(OBJECTS) -Iinclude
+
 
 .DEFAULT:  apps/$@.cpp
 	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/$@ apps/$@.cpp  $(OBJECTS) -Iinclude

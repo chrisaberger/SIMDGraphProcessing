@@ -203,6 +203,10 @@ namespace array32 {
       next_i_a = i_a + 4;
       next_i_b = i_b + 4;
 
+      cout << "printing data" << endl;
+      print_sse_register(v_a);
+      print_sse_register(v_b);
+
       //[ compute mask of common elements
       unsigned int right_cyclic_shift = _MM_SHUFFLE(0,3,2,1);
       
@@ -259,10 +263,12 @@ namespace array32 {
       #endif
 
       unsigned int new_a_max = a_max;
+      cout << "count: " << count << endl;
+      cout << "maxes: " << a_max << " " << b_max << " " << i_a << " " << next_i_a << endl;
       if(a_max <= b_max){
         i_a = next_i_a;
         v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
-        a_max = _mm_extract_epi32(v_a, 3);
+        new_a_max = _mm_extract_epi32(v_a, 3);
         v_b = h_4;
       }
       if(a_max >= b_max){
@@ -276,9 +282,10 @@ namespace array32 {
     }
     #endif
 
-    count += num_hit;
-    i_a = next_i_a;
-    i_b = next_i_b;
+    //count += num_hit;
+    //i_a = next_i_a;
+    //i_b = next_i_b;
+    cout << count << " " << i_a << " " << i_b << endl;
 
     // intersect the tail using scalar intersection
     bool notFinished = i_a < s_a  && i_b < s_b;
@@ -332,8 +339,8 @@ namespace array32 {
     unsigned int num_hit = 0;
     __m128i v_a;
     __m128i v_b;
-    unsigned int a_max;
-    unsigned int b_max;
+    unsigned int a_max = 0;
+    unsigned int b_max = 0;
     if(i_a < st_a && i_b < st_b){
       v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
       v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
@@ -368,7 +375,7 @@ namespace array32 {
       // convert the 128-bit mask to the 4-bit mask
       unsigned int mask_a = _mm_movemask_ps((__m128)cmp_a_mask);
       
-      num_hit = _mm_popcnt_u32(mask_a);
+      num_hit += _mm_popcnt_u32(mask_a);
       //[ copy out common elements
       #if WRITE_VECTOR == 1
       __m128i p_a = _mm_shuffle_epi8(v_a, shuffle_difference_mask32_a[mask_a]);
@@ -378,6 +385,7 @@ namespace array32 {
       if(a_max <= b_max){
         _mm_storeu_si128((__m128i*)&C[count], p_a);
         count += INTS_PER_REG-num_hit;
+        num_hit = 0;
         i_a = next_i_a;
         v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
         new_a_max = _mm_extract_epi32(v_a, 3);
@@ -388,15 +396,10 @@ namespace array32 {
         b_max = _mm_extract_epi32(v_b, 3);    
       }
       a_max = new_a_max;
-
-      cout << count << " " << num_hit << endl;
       //]
     }
     #endif
 
-    count += INTS_PER_REG-num_hit;
-
-    cout << i_a << " " << i_b << endl;
     // intersect the tail using scalar intersection
     bool notFinished = i_a < s_a  && i_b < s_b;
     while(notFinished){
@@ -404,15 +407,17 @@ namespace array32 {
         ++i_b;
         notFinished = i_b < s_b;
       }
-      if(notFinished && A[i_a] == B[i_b]){
+      if(notFinished && A[i_a] != B[i_b]){
         #if WRITE_VECTOR == 1
         C[count] = A[i_a];
         #endif
-
         ++count;
       }
       ++i_a;
       notFinished = notFinished && i_a < s_a;
+    }
+    while(i_a < s_a){
+      C[count++] = A[i_a++];
     }
 
     #if WRITE_VECTOR == 0

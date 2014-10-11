@@ -5,6 +5,10 @@
 #include <set>
 #include <vector>
 
+#define UNION 1
+#define DIFFERENCE 1
+#define PRINT 0
+
 //sparsity = length/max
 void create_synthetic_array(unsigned int *data, size_t length, unsigned int max){
   cout << "creating synthetic array" << endl;
@@ -60,22 +64,25 @@ void read_arrays(unsigned int *a_data, unsigned int *b_data, size_t a_size, size
 
 int main (int argc, char* argv[]) {
   srand ( time(NULL) );
-  size_t a_size = 100;
-  size_t b_size = 100;
-  unsigned int max1 = 1000;
-  unsigned int max2 = 500;
+  size_t a_size = 400000;
+  size_t b_size = 700000;
+  unsigned int max1 = 5000000;
+  unsigned int max2 = 6000000;
 
-  unsigned int num_times = 1;
+  unsigned int num_times = 1000;
 
   unsigned int *a_data = new unsigned int[a_size];
   unsigned int *b_data = new unsigned int[b_size];
   unsigned int *result = new unsigned int[a_size+b_size];
 
   common::startClock();
-  //create_synthetic_array(a_data,a_size,max1);
-  //create_synthetic_array(b_data,b_size,max2);
-  //print_arrays(a_data,b_data,a_size,b_size);
-  read_arrays(a_data,b_data,a_size,b_size);
+  create_synthetic_array(a_data,a_size,max1);
+  create_synthetic_array(b_data,b_size,max2);
+  #if PRINT == 1
+  print_arrays(a_data,b_data,a_size,b_size);
+  #endif 
+
+  //read_arrays(a_data,b_data,a_size,b_size);
   common::stopClock("CREATING ARRAYS");
 
   ofstream myfile;
@@ -83,57 +90,67 @@ int main (int argc, char* argv[]) {
   size_t count;
 
   ///////////////////////////////////////////////////////////////////////////////////////
-  /*
+  #if UNION == 1
   common::startClock();
   for(size_t i = 0; i < num_times; i++){
     count  = array32::set_union_std(result,a_data,b_data,a_size,b_size);
   }
-  common::stopClock("STD");  
+  common::stopClock("STD UNION");  
   
+  #if PRINT == 1
   myfile.open("std_union.txt");
   for(size_t i = 0; i < count; i++){
     myfile << "union[" << i << "]: " << result[i] << endl;
   }
   myfile.close();
+  #endif
 
   common::startClock();
   for(size_t i = 0; i < num_times; i++){
     count = array32::set_union(result,a_data,b_data,a_size,b_size);
   }
-  common::stopClock("SIMD");
+  common::stopClock("SIMD UNION");
 
-  
+  #if PRINT == 1
   myfile.open("simd_union.txt");
   for(size_t i = 0; i < count; i++){
     myfile << "union[" << i << "]: " << result[i] << endl;
   }
   myfile.close();
-  */
+  #endif
+
+  #endif
   ///////////////////////////////////////////////////////////////////////////////////////
+  #if DIFFERENCE == 1
   common::startClock();
   for(size_t i = 0; i < num_times; i++){
     count  = array32::set_difference_std(result,a_data,b_data,a_size,b_size);
   }
-  common::stopClock("STD");  
+  common::stopClock("STD DIFFERENCE");  
   
+  #if PRINT == 1
   myfile.open("std_difference.txt");
   for(size_t i = 0; i < count; i++){
     myfile << "difference[" << i << "]: " << result[i] << endl;
   }
   myfile.close();
+  #endif
 
-  
   common::startClock();
   for(size_t i = 0; i < num_times; i++){
     count = array32::set_difference(result,a_data,b_data,a_size,b_size);
   }
-  common::stopClock("simd diff");
+  common::stopClock("SIMD DIFFERENCE");
   
+  #if PRINT == 1
   myfile.open("simd_difference.txt");
   for(size_t i = 0; i < count; i++){
     myfile << "difference[" << i << "]: " << result[i] << endl;
   }
   myfile.close();
-  
+  #endif
+
+  #endif
+
   return 0;
 }

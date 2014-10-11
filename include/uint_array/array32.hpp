@@ -298,6 +298,7 @@ namespace array32 {
         b_max = _mm_extract_epi32(v_b, 3);
         count += INTS_PER_REG + (num_hit==1)*(INTS_PER_REG-num_hit);
       }
+      
       a_max = new_a_max;
       // a number of elements is a weight of the mask
       //cout << "i_a: " << i_a  << " i_b: " << i_b << endl; 
@@ -346,19 +347,13 @@ namespace array32 {
       ++i_a;
       notFinished = notFinished && i_a < s_a;
     }
-    while(i_a < s_a){
-      #if WRITE_VECTOR == 1
-      C[count] = A[i_a];
-      #endif
-      ++count;
-      ++i_a;
-    }
-    while(i_b < s_b){
-      #if WRITE_VECTOR == 1
-      C[count] = B[i_b];
-      #endif
-      ++count;
-      ++i_b;
+    if(i_a < s_a){
+      std::copy(&A[i_a],&A[i_a]+(s_a-i_a),&C[count]);
+      count += s_a-i_a;
+    } 
+    if(i_b < s_b){
+      std::copy(&B[i_b],&B[i_b]+(s_b-i_b),&C[count]);
+      count += s_b-i_b;
     }
 
     #if WRITE_VECTOR == 0
@@ -367,7 +362,7 @@ namespace array32 {
 
     return count;
   }
-  inline size_t difference(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
+  inline size_t set_difference(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
     size_t next_i_a = 0, next_i_b = 0;
@@ -456,13 +451,10 @@ namespace array32 {
       ++i_a;
       notFinished = notFinished && i_a < s_a;
     }
-    while(i_a < s_a){
-      C[count++] = A[i_a++];
+    if(i_a < s_a){
+      std::copy(&A[i_a],&A[i_a]+(s_a-i_a),&C[count]);
+      count += s_a-i_a;
     }
-
-    #if WRITE_VECTOR == 0
-    C = C;
-    #endif
     
     return count;
   }

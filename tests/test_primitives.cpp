@@ -7,6 +7,7 @@
 
 //sparsity = length/max
 void create_synthetic_array(unsigned int *data, size_t length, unsigned int max){
+  cout << "creating synthetic array" << endl;
   if(length > 0){
     set<unsigned int> x;
     x.insert(max);
@@ -25,6 +26,7 @@ void create_synthetic_array(unsigned int *data, size_t length, unsigned int max)
 }
 void print_arrays(unsigned int *a_data, unsigned int *b_data, size_t a_size, size_t b_size){
   ofstream myfile;
+  cout << "Printing arrays to files: " << "array1.txt" << " " << "array2.txt" << endl;
   myfile.open("array1.txt");
   for(size_t i = 0; i < a_size; i++){
     myfile << a_data[i] << endl;
@@ -39,6 +41,7 @@ void print_arrays(unsigned int *a_data, unsigned int *b_data, size_t a_size, siz
 }
 void read_arrays(unsigned int *a_data, unsigned int *b_data, size_t a_size, size_t b_size){
   (void) a_size; (void) b_size;
+  cout << "Reading arrays from files: " << "array1.txt" << " " << "array2.txt" << endl;
   ofstream myfile;
   unsigned int n,i=0;
   ifstream read("array1.txt");
@@ -57,71 +60,73 @@ void read_arrays(unsigned int *a_data, unsigned int *b_data, size_t a_size, size
 
 int main (int argc, char* argv[]) {
   srand ( time(NULL) );
-  size_t a_size = 1000000;
-  size_t b_size = 1000000;
-  unsigned int max1 = 0x0f00000;
-  unsigned int max2 = 0xff0000;
+  size_t a_size = 100;
+  size_t b_size = 100;
+  unsigned int max1 = 1000;
+  unsigned int max2 = 500;
 
+  unsigned int num_times = 1;
 
   unsigned int *a_data = new unsigned int[a_size];
   unsigned int *b_data = new unsigned int[b_size];
   unsigned int *result = new unsigned int[a_size+b_size];
 
-  create_synthetic_array(a_data,a_size,max1);
-  create_synthetic_array(b_data,b_size,max2);
+  common::startClock();
+  //create_synthetic_array(a_data,a_size,max1);
+  //create_synthetic_array(b_data,b_size,max2);
   //print_arrays(a_data,b_data,a_size,b_size);
-  //read_arrays(a_data,b_data,a_size,b_size);
+  read_arrays(a_data,b_data,a_size,b_size);
+  common::stopClock("CREATING ARRAYS");
 
   ofstream myfile;
-  vector<unsigned int> *r = new vector<unsigned int>();
-  r->reserve(a_size+b_size);
   std::vector<unsigned int>::iterator itv;
   size_t count;
-  size_t j;
-
-  //set<unsigned int> x;
-  //set<unsigned int> *y = new set<unsigned int>();
 
   ///////////////////////////////////////////////////////////////////////////////////////
+  /*
   common::startClock();
-  count  = array32::set_union(result,a_data,b_data,a_size,b_size);
-  common::stopClock("simd");
+  for(size_t i = 0; i < num_times; i++){
+    count  = array32::set_union_std(result,a_data,b_data,a_size,b_size);
+  }
+  common::stopClock("STD");  
   
-  myfile.open("simd_union.txt");
+  myfile.open("std_union.txt");
   for(size_t i = 0; i < count; i++){
     myfile << "union[" << i << "]: " << result[i] << endl;
   }
   myfile.close();
 
   common::startClock();
-  itv = std::set_union(&a_data[0],&a_data[0] + a_size, &b_data[0], &b_data[0] + b_size, r->begin());
-  itv = std::unique(r->begin(),itv);
-  common::stopClock("std");
+  for(size_t i = 0; i < num_times; i++){
+    count = array32::set_union(result,a_data,b_data,a_size,b_size);
+  }
+  common::stopClock("SIMD");
 
-  myfile.open("std_union.txt");
-
-  j = 0;
-  for(std::vector<unsigned int>::iterator iter=r->begin(); iter!=itv;++iter) {    
-    myfile << "union[" << j++ << "]: " << (*iter)<< endl;
+  
+  myfile.open("simd_union.txt");
+  for(size_t i = 0; i < count; i++){
+    myfile << "union[" << i << "]: " << result[i] << endl;
   }
   myfile.close();
+  */
   ///////////////////////////////////////////////////////////////////////////////////////
-
   common::startClock();
-  itv = std::set_difference(&a_data[0],&a_data[0] + a_size, &b_data[0], &b_data[0] + b_size, r->begin());
-  common::stopClock("std diff");
-
+  for(size_t i = 0; i < num_times; i++){
+    count  = array32::set_difference_std(result,a_data,b_data,a_size,b_size);
+  }
+  common::stopClock("STD");  
+  
   myfile.open("std_difference.txt");
-
-  j = 0;
-  for(std::vector<unsigned int>::iterator iter=r->begin(); iter!=itv;++iter) {    
-    myfile << "difference[" << j++ << "]: " << (*iter)<< endl;
+  for(size_t i = 0; i < count; i++){
+    myfile << "difference[" << i << "]: " << result[i] << endl;
   }
   myfile.close();
 
   
   common::startClock();
-  count = array32::set_difference(result,a_data,b_data,a_size,b_size);
+  for(size_t i = 0; i < num_times; i++){
+    count = array32::set_difference(result,a_data,b_data,a_size,b_size);
+  }
   common::stopClock("simd diff");
   
   myfile.open("simd_difference.txt");
@@ -129,6 +134,6 @@ int main (int argc, char* argv[]) {
     myfile << "difference[" << i << "]: " << result[i] << endl;
   }
   myfile.close();
-
+  
   return 0;
 }

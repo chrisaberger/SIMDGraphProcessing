@@ -8,6 +8,12 @@ namespace array32 {
     cout << "reg[3]: " << _mm_extract_epi32(reg,3) << endl << endl;   
   }
   static char max = char(0xff);
+  static unsigned int difference_incrementer[16] = {        
+    0,1,2,2,
+    3,3,3,3,
+    3,3,3,3,
+    3,3,3,4,
+  };
   static __m128i shuffle_mask32[16] = {        
     _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0), //0
     _mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0), //1
@@ -180,212 +186,202 @@ namespace array32 {
     
     return count;
   }
+  inline size_t set_union_std(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
+    unsigned int *itv = std::set_union(&A[0],&A[s_a],&B[0],&B[s_b],&C[0]);
+    itv = std::unique(&C[0],itv);  
+    return (itv - C);
+  }
+  inline size_t set_difference_std(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
+    unsigned int *itv = std::set_difference(&A[0],&A[s_a],&B[0],&B[s_b],&C[0]);
+    return (itv - C);
+  }
   inline size_t set_union(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
-    size_t next_i_a = 0, next_i_b = 0;
     // trim lengths to be a multiple of 4
     #if VECTORIZE == 1
     size_t st_a = (s_a / 4) * 4;
     size_t st_b = (s_b / 4) * 4;
-    unsigned int num_hit = 0;
-    __m128i v_a;
-    __m128i v_b;
-    unsigned int a_max = 0;
-    unsigned int b_max = 0;
     if(i_a < st_a && i_b < st_b){
-      v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
-      v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
-      a_max = _mm_extract_epi32(v_a, 3);
-      b_max = _mm_extract_epi32(v_b, 3);
-    }
-    while(i_a < st_a && i_b < st_b) {
-      next_i_a = i_a + 4;
-      next_i_b = i_b + 4;
+      unsigned int num_hit = 0;
+      size_t next_i_a = 0, next_i_b = 0;
+      __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
+      __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
+      unsigned int a_max = _mm_extract_epi32(v_a, 3);
+      unsigned int b_max = _mm_extract_epi32(v_b, 3);
+      while(i_a < st_a && i_b < st_b) {
+        next_i_a = i_a + 4;
+        next_i_b = i_b + 4;
 
-      /*
-      if(count > 6460 && count < 6470){
-        cout << "Data:" << endl;
-        print_sse_register(v_a);
-        print_sse_register(v_b); 
-      } */
-      
+        /*
+        if(count > 1970 && count < 1980){
+          cout << "Data:" << endl;
+          print_sse_register(v_a);
+          print_sse_register(v_b); 
+        }
+        */
+        
 
-      //[ compute mask of common elements
-      unsigned int right_cyclic_shift = _MM_SHUFFLE(0,3,2,1);
-      
-      __m128i cmp_a_mask0 = _mm_cmpeq_epi32(v_a, v_b);    // pairwise comparison
-      v_b = _mm_shuffle_epi32(v_b, right_cyclic_shift);       // shuffling
+        //[ compute mask of common elements
+        unsigned int right_cyclic_shift = _MM_SHUFFLE(0,3,2,1);
+        
+        __m128i cmp_a_mask0 = _mm_cmpeq_epi32(v_a, v_b);    // pairwise comparison
+        v_b = _mm_shuffle_epi32(v_b, right_cyclic_shift);       // shuffling
 
-      __m128i cmp_a_mask1 = _mm_cmpeq_epi32(v_a, v_b);    // again...
-      v_b = _mm_shuffle_epi32(v_b, right_cyclic_shift);
+        __m128i cmp_a_mask1 = _mm_cmpeq_epi32(v_a, v_b);    // again...
+        v_b = _mm_shuffle_epi32(v_b, right_cyclic_shift);
 
-      __m128i cmp_a_mask2 = _mm_cmpeq_epi32(v_a, v_b);    // and again...
-      v_b = _mm_shuffle_epi32(v_b, right_cyclic_shift);
+        __m128i cmp_a_mask2 = _mm_cmpeq_epi32(v_a, v_b);    // and again...
+        v_b = _mm_shuffle_epi32(v_b, right_cyclic_shift);
 
-      __m128i cmp_a_mask3 = _mm_cmpeq_epi32(v_a, v_b);    // and again.
-      v_b = _mm_shuffle_epi32(v_b, right_cyclic_shift);
+        __m128i cmp_a_mask3 = _mm_cmpeq_epi32(v_a, v_b);    // and again.
+        v_b = _mm_shuffle_epi32(v_b, right_cyclic_shift);
 
-      __m128i cmp_a_mask = _mm_or_si128(
-              _mm_or_si128(cmp_a_mask0, cmp_a_mask1),
-              _mm_or_si128(cmp_a_mask2, cmp_a_mask3)
-      ); // OR-ing of comparison masks
-      
-      // convert the 128-bit mask to the 4-bit mask
-      unsigned int mask_a = _mm_movemask_ps((__m128)cmp_a_mask);
-      
-      num_hit = _mm_popcnt_u32(mask_a);
-      //[ copy out common elements
-      #if WRITE_VECTOR == 1
-      __m128i p_a = _mm_or_si128(setinel_mask_a[mask_a],_mm_shuffle_epi8(v_a, shuffle_difference_mask32_a[mask_a]));  
-      __m128i p_b = v_b;
-  
-      /*
-      if(count > 6460 && count < 6470){
-        cout << "p's:" << endl;
-        cout << mask_a << endl;
-        print_sse_register(p_a);
-        print_sse_register(p_b); 
-      } */
-          
-      __m128i l_1 = _mm_min_epu32(p_a,p_b);
-      __m128i h_1 = _mm_max_epu32(p_a,p_b);      
-
-      unsigned int left_cyclic_shift = _MM_SHUFFLE(2,1,0,3);
-
-      // x x x v = l1 (v = valid data, x = tbd)
-      // v x x x = h1 
-      __m128i l_2 = _mm_min_epu32(_mm_shuffle_epi32(h_1,left_cyclic_shift),l_1);
-      __m128i h_2 = _mm_max_epu32(h_1,_mm_shuffle_epi32(l_1,right_cyclic_shift));
-
-      // x x v v = l1 (v = valid data, x = tbd)
-      // v v x x = h2 
-
-      left_cyclic_shift = _MM_SHUFFLE(1,0,3,2);
-      right_cyclic_shift = left_cyclic_shift;
-      __m128i l_3 = _mm_min_epu32(_mm_shuffle_epi32(h_2, left_cyclic_shift),l_2);
-      __m128i h_3 = _mm_max_epu32(h_2,_mm_shuffle_epi32(l_2,right_cyclic_shift));
-
-      left_cyclic_shift = _MM_SHUFFLE(0,3,2,1);
-      right_cyclic_shift = _MM_SHUFFLE(2,1,0,3);
-
-      __m128i l_4 = _mm_min_epu32(_mm_shuffle_epi32(h_3, left_cyclic_shift),l_3);
-      __m128i h_4 = _mm_max_epu32(h_3,_mm_shuffle_epi32(l_3,right_cyclic_shift));
-      _mm_storeu_si128((__m128i*)&C[count], l_4);
-      _mm_storeu_si128((__m128i*)&C[count+INTS_PER_REG], h_4);
-      
-      #endif
-
-      unsigned int new_a_max = a_max;
-      if(a_max < b_max){
-        i_a = next_i_a;
-        v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
-        new_a_max = _mm_extract_epi32(v_a, 3);
-        v_b = _mm_loadu_si128((__m128i*)&C[count+(INTS_PER_REG-num_hit)]);
-        count += INTS_PER_REG-num_hit;
-      } else if(a_max > b_max){
-        i_b = next_i_b;
-        v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
-        b_max = _mm_extract_epi32(v_b, 3);
-        v_a = _mm_loadu_si128((__m128i*)&C[count+(INTS_PER_REG-num_hit)]);
-        count += INTS_PER_REG-num_hit;
-      } else{
-        i_a = next_i_a;
-        v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
-        new_a_max = _mm_extract_epi32(v_a, 3);
-        i_b = next_i_b;
-        v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
-        b_max = _mm_extract_epi32(v_b, 3);
-        count += INTS_PER_REG + (num_hit==1)*(INTS_PER_REG-num_hit);
-      }
-      
-      a_max = new_a_max;
-      // a number of elements is a weight of the mask
-      //cout << "i_a: " << i_a  << " i_b: " << i_b << endl; 
-    }
-    #endif
-
-    //cout << "count: " << count << " " << i_a  << " " << i_b << " " << (a_max == b_max) << endl;
-    if(a_max < b_max && i_b < s_b){
-      bool a = i_b < s_b && C[count] > B[i_b];
-      bool b = (i_b+1) < s_b && C[count+1] > B[i_b+1];
-      bool c = (i_b+2) < s_b && C[count+2] > B[i_b+2];
-      bool d = (i_b+3) < s_b && C[count+3] > B[i_b+3];
-
-      size_t incr = a*1 + b*1 + c*1 + d*1;
-      count += incr;
-      i_b += incr;
-    }else if(a_max > b_max && i_a < s_a){
-      bool a = i_a < s_a && C[count] > A[i_a];
-      bool b = (i_a+1) < s_a && C[count+1] > A[i_a+1];
-      bool c = (i_a+2) < s_a && C[count+2] > A[i_a+2];
-      bool d = (i_a+3) < s_a && C[count+3] > A[i_a+3];
-
-      size_t incr = a*1 + b*1 + c*1 + d*1;
-      count += incr;
-      i_a += incr;
-    } else{
-      count += (num_hit==1)*(INTS_PER_REG-num_hit);
-    }
-
-    // intersect the tail using scalar intersection
-    bool notFinished = i_a < s_a  && i_b < s_b;
-    while(notFinished){
-      while(notFinished && B[i_b] < A[i_a]){
+        __m128i cmp_a_mask = _mm_or_si128(
+                _mm_or_si128(cmp_a_mask0, cmp_a_mask1),
+                _mm_or_si128(cmp_a_mask2, cmp_a_mask3)
+        ); // OR-ing of comparison masks
+        
+        // convert the 128-bit mask to the 4-bit mask
+        unsigned int mask_a = _mm_movemask_ps((__m128)cmp_a_mask);
+        
+        num_hit = _mm_popcnt_u32(mask_a);
+        //[ copy out common elements
         #if WRITE_VECTOR == 1
-        C[count] = B[i_b];
-        #endif
-        ++count;
-        ++i_b;
-        notFinished = i_b < s_b;
-      }
-      i_b += notFinished*(A[i_a]==B[i_b]);
-      #if WRITE_VECTOR == 1
-      C[count] = A[i_a];
-      #endif
-      ++count;
-      ++i_a;
-      notFinished = notFinished && i_a < s_a;
-    }
-    if(i_a < s_a){
-      std::copy(&A[i_a],&A[i_a]+(s_a-i_a),&C[count]);
-      count += s_a-i_a;
-    } 
-    if(i_b < s_b){
-      std::copy(&B[i_b],&B[i_b]+(s_b-i_b),&C[count]);
-      count += s_b-i_b;
-    }
+        __m128i p_a = _mm_or_si128(setinel_mask_a[mask_a],_mm_shuffle_epi8(v_a, shuffle_difference_mask32_a[mask_a]));  
+        __m128i p_b = v_b;
+    
+        /*
+        if(count > 1970 && count < 1980){
+          cout << "p's:" << endl;
+          cout << mask_a << endl;
+          print_sse_register(p_a);
+          print_sse_register(p_b); 
+        }
+        */
+            
+        __m128i l_1 = _mm_min_epu32(p_a,p_b);
+        __m128i h_1 = _mm_max_epu32(p_a,p_b);      
 
-    #if WRITE_VECTOR == 0
-    C = C;
+        unsigned int left_cyclic_shift = _MM_SHUFFLE(2,1,0,3);
+
+        // x x x v = l1 (v = valid data, x = tbd)
+        // v x x x = h1 
+        __m128i l_2 = _mm_min_epu32(_mm_shuffle_epi32(h_1,left_cyclic_shift),l_1);
+        __m128i h_2 = _mm_max_epu32(h_1,_mm_shuffle_epi32(l_1,right_cyclic_shift));
+
+        // x x v v = l1 (v = valid data, x = tbd)
+        // v v x x = h2 
+
+        left_cyclic_shift = _MM_SHUFFLE(1,0,3,2);
+        right_cyclic_shift = left_cyclic_shift;
+        __m128i l_3 = _mm_min_epu32(_mm_shuffle_epi32(h_2, left_cyclic_shift),l_2);
+        __m128i h_3 = _mm_max_epu32(h_2,_mm_shuffle_epi32(l_2,right_cyclic_shift));
+
+        left_cyclic_shift = _MM_SHUFFLE(0,3,2,1);
+        right_cyclic_shift = _MM_SHUFFLE(2,1,0,3);
+
+        __m128i l_4 = _mm_min_epu32(_mm_shuffle_epi32(h_3, left_cyclic_shift),l_3);
+        __m128i h_4 = _mm_max_epu32(h_3,_mm_shuffle_epi32(l_3,right_cyclic_shift));
+        _mm_storeu_si128((__m128i*)&C[count], l_4);
+        _mm_storeu_si128((__m128i*)&C[count+INTS_PER_REG], h_4);
+
+        /*
+        if(count > 1970 && count < 1980){
+          cout << "result:" << endl;
+          print_sse_register(l_4);
+          print_sse_register(h_4); 
+        }
+        */
+   
+        #endif
+
+        unsigned int new_a_max = a_max;
+        if(a_max < b_max){
+          i_a = next_i_a;
+          v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
+          new_a_max = _mm_extract_epi32(v_a, 3);
+          v_b = _mm_loadu_si128((__m128i*)&C[count+(INTS_PER_REG-num_hit)]);
+          count += INTS_PER_REG-num_hit;
+        } else if(a_max > b_max){
+          i_b = next_i_b;
+          v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
+          b_max = _mm_extract_epi32(v_b, 3);
+          v_a = _mm_loadu_si128((__m128i*)&C[count+(INTS_PER_REG-num_hit)]);
+          count += INTS_PER_REG-num_hit;
+        } else{
+          i_a = next_i_a;
+          v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
+          new_a_max = _mm_extract_epi32(v_a, 3);
+          i_b = next_i_b;
+          v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
+          b_max = _mm_extract_epi32(v_b, 3);
+          count += INTS_PER_REG + (INTS_PER_REG-num_hit);
+        }
+
+        a_max = new_a_max;
+        // a number of elements is a weight of the mask
+        //cout << "i_a: " << i_a  << " i_b: " << i_b << endl; 
+      }
+
+      if(a_max < b_max && i_b < s_b){
+        bool a = i_b < s_b && C[count] > B[i_b];
+        bool b = (i_b+1) < s_b && C[count+1] > B[i_b+1];
+        bool c = (i_b+2) < s_b && C[count+2] > B[i_b+2];
+        bool d = (i_b+3) < s_b && C[count+3] > B[i_b+3];
+
+        size_t incr = a*1 + b*1 + c*1 + d*1;
+        count += incr;
+        i_b += incr;
+      }else if(a_max > b_max && i_a < s_a){
+        bool a = i_a < s_a && C[count] > A[i_a];
+        bool b = (i_a+1) < s_a && C[count+1] > A[i_a+1];
+        bool c = (i_a+2) < s_a && C[count+2] > A[i_a+2];
+        bool d = (i_a+3) < s_a && C[count+3] > A[i_a+3];
+
+        size_t incr = a*1 + b*1 + c*1 + d*1;
+        count += incr;
+        i_a += incr;
+      } else{
+        count += (num_hit==1)*(INTS_PER_REG-num_hit);
+      }
+    }
     #endif
 
+    //cout << "Count: " << count << endl;
+    count += set_union_std(&C[count],&A[i_a],&B[i_b],s_a-i_a,s_b-i_b);
+    
     return count;
   }
   inline size_t set_difference(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
-    size_t next_i_a = 0, next_i_b = 0;
 
     // trim lengths to be a multiple of 4
     #if VECTORIZE == 1
     size_t st_a = (s_a / 4) * 4;
     size_t st_b = (s_b / 4) * 4;
+    size_t mask_a = 0;
+    __m128i v_a = _mm_setzero_si128();
     unsigned int num_hit = 0;
-    __m128i v_a;
-    __m128i v_b;
-    unsigned int a_max = 0;
-    unsigned int b_max = 0;
-    if(i_a < st_a && i_b < st_b){
-      v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
-      v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
-      a_max = _mm_extract_epi32(v_a, 3);
-      b_max = _mm_extract_epi32(v_b, 3);
-    }
     while(i_a < st_a && i_b < st_b) {
       //[ load segments of four 32-bit elements
-      next_i_a = i_a+4;
-      next_i_b = i_b+4;      
+      v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
+      __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
+      //]
+      
+      if(count > 40 && count < 48){
+        cout <<"data" << endl;
+        print_sse_register(v_a);
+        print_sse_register(v_b);
+      }
+      
+      //[ move pointers
+      unsigned int a_max = _mm_extract_epi32(v_a, 3);
+      unsigned int b_max = _mm_extract_epi32(v_b, 3);
+      i_a += (a_max <= b_max) * 4;
+      i_b += (a_max >= b_max) * 4;
+      //] 
 
       //[ compute mask of common elements
       unsigned int right_cyclic_shift = _MM_SHUFFLE(0,3,2,1);     
@@ -408,54 +404,32 @@ namespace array32 {
       ); // OR-ing of comparison masks
 
       // convert the 128-bit mask to the 4-bit mask
-      unsigned int mask_a = _mm_movemask_ps((__m128)cmp_a_mask);
-      
-      num_hit += _mm_popcnt_u32(mask_a);
+      mask_a |= _mm_movemask_ps((__m128)cmp_a_mask);
+      num_hit = _mm_popcnt_u32(mask_a);
       //[ copy out common elements
-      #if WRITE_VECTOR == 1
-      __m128i p_a = _mm_shuffle_epi8(v_a, shuffle_difference_mask32_a[mask_a]);
-      #endif
 
-      unsigned int new_a_max = a_max;
+      __m128i p_a = _mm_shuffle_epi8(v_a, shuffle_difference_mask32_a[mask_a]);
+      _mm_storeu_si128((__m128i*)&C[count], p_a);
+      count += (INTS_PER_REG-num_hit)*(a_max <= b_max);
       if(a_max <= b_max){
-        _mm_storeu_si128((__m128i*)&C[count], p_a);
-        count += INTS_PER_REG-num_hit;
-        num_hit = 0;
-        i_a = next_i_a;
-        v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
-        new_a_max = _mm_extract_epi32(v_a, 3);
+        cout <<"result: " << mask_a << " count: " << count << endl;
+        print_sse_register(p_a);
       }
-      if(a_max >= b_max){
-        i_b = next_i_b;
-        v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
-        b_max = _mm_extract_epi32(v_b, 3);    
-      }
-      a_max = new_a_max;
+      mask_a = mask_a*(a_max >= b_max);
+
       //]
     }
+    cout << "mask_a: "<< mask_a << " " << i_a << " " << difference_incrementer[mask_a] << endl;
+    i_a += difference_incrementer[mask_a];
+    __m128i p_a = _mm_shuffle_epi8(v_a, shuffle_difference_mask32_a[mask_a]);
+    _mm_storeu_si128((__m128i*)&C[count], p_a);
+    count += difference_incrementer[mask_a]-num_hit;
     #endif
 
     // intersect the tail using scalar intersection
-    bool notFinished = i_a < s_a  && i_b < s_b;
-    while(notFinished){
-      while(notFinished && B[i_b] < A[i_a]){
-        ++i_b;
-        notFinished = i_b < s_b;
-      }
-      if(notFinished && A[i_a] != B[i_b]){
-        #if WRITE_VECTOR == 1
-        C[count] = A[i_a];
-        #endif
-        ++count;
-      }
-      ++i_a;
-      notFinished = notFinished && i_a < s_a;
-    }
-    if(i_a < s_a){
-      std::copy(&A[i_a],&A[i_a]+(s_a-i_a),&C[count]);
-      count += s_a-i_a;
-    }
-    
+    cout << "ia: " << i_a << endl;
+    count += set_difference_std(&C[count],&A[i_a],&B[i_b],s_a-i_a,s_b-i_b);
+
     return count;
   }
   template<typename T> 

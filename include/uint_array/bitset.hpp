@@ -117,6 +117,16 @@ namespace bitset {
     }
     return result;
   }
+  inline void get_a32(unsigned int *result, unsigned short *A, size_t s_a){
+    size_t count = 0;
+    for(size_t i = 0; i < s_a; i++){
+      unsigned short cur_word = A[i];
+      for(size_t j = 0; j < BITS_PER_WORD; j++){
+        if((cur_word >> j) % 2)
+          result[count++] = BITS_PER_WORD*i + j ;
+      }
+    }
+  }
   inline void print_data(unsigned short *A, size_t s_a, ofstream &file){
   	//cout << "Size: " << s_a << endl;
     for(size_t i = 0; i < s_a; i++){

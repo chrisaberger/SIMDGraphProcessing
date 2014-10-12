@@ -1,5 +1,4 @@
 #include "Matrix.hpp"
-
 //Undirected Graphs
 Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_t cardinality_in, 
   bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in){
@@ -13,7 +12,7 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
   size_t new_cardinality = 0;
   size_t index = 0;
 
-  for(size_t i = 0; i < matrix_size_in; ++i) {
+  for(size_t i = 0; i < matrix_size_in; ++i){
     if(nodeFilter(i)){
       row_indicies_in[i] = index;
       vector<unsigned int> *hood = g->at(i);
@@ -210,4 +209,82 @@ void Matrix::print_data(string filename){
   }
 
   myfile.close();
+}
+
+void Matrix::createN2X(){
+  n2x = new vector< vector<unsigned int>*  >(matrix_size);
+  //n2x_counts = new vector< vector<unsigned int>*  >(matrix_size);
+
+  //parallel
+  for(size_t i = 0; i < matrix_size; i++){
+    size_t start = row_indicies[i];
+    size_t end = row_indicies[i+1];
+    size_t card = row_lengths[i];
+    const common::type row_type = (common::type) row_types[i];
+
+    unsigned int *union_data = new unsigned int[matrix_size];
+    unsigned int *prev_union = new unsigned int[matrix_size];
+    size_t union_size = 0;
+
+    unsigned int *neighbors = new unsigned int[card];
+    uint_array::get_a32(neighbors,row_data+start,end-start,card,row_type);
+    for(size_t j = 0; j < card; j++){
+      unsigned int nbr = neighbors[j];
+      size_t start2 = row_indicies[nbr];
+      size_t end2 = row_indicies[nbr+1];
+      size_t card2 = row_lengths[nbr];
+      const common::type row_type2 = (common::type) row_types[nbr];
+
+      unsigned int *next_input2 = new unsigned int[card2];
+      uint_array::get_a32(next_input2,row_data+start2,end2-start2,card2,row_type2);
+
+      union_size = array32::set_union(union_data,prev_union,next_input2,union_size,card2);
+      unsigned int *tmp = prev_union;
+      prev_union = union_data;
+      union_data = tmp;
+      delete[] next_input2;
+    }
+    union_data = prev_union;
+    
+    ///count up how many times it appears
+    //this isn't right actually need back edges to list it.
+    /*
+    vector<unsigned int> *un_count = new vector<unsigned int>(union_data,union_data+union_size);
+    for(size_t j = 0; j < card; j++){
+      unsigned int nbr = neighbors[j];
+      size_t start2 = row_indicies[nbr];
+      size_t end2 = row_indicies[nbr+1];
+      size_t card2 = row_lengths[nbr];
+      const common::type row_type2 = (common::type) row_types[nbr];
+      
+      unsigned int *next_input2 = new unsigned int[card2];
+      uint_array::get_a32(next_input2,row_data+start2,end2-start2,card2,row_type2);
+
+      size_t i_a=0, i_b= 0;
+      size_t s_a, s_b;
+      s_a = union_size;
+      s_b = card2;
+      unsigned int *A = union_data;
+      unsigned int *B = next_input2;
+      bool notFinished = i_a < s_a  && i_b < s_b;
+      while(notFinished){
+        while(notFinished && B[i_b] < A[i_a]){
+          ++i_b;
+          notFinished = i_b < s_b;
+        }
+        if(notFinished && A[i_a] == B[i_b]){
+          un_count->at(i_a)++;
+        }
+        ++i_a;
+        notFinished = notFinished && i_a < s_a;
+      }
+    }
+    */
+
+    vector<unsigned int> *un = new vector<unsigned int>(union_data,union_data+union_size);
+    n2x->at(i) = un;
+    //n2x_counts->at(i) = un_count;
+    union_size = 0;
+  }
+  //intersect n2x across all sets and take output of each +1 in incrementer array
 }

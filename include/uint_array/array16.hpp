@@ -177,6 +177,24 @@ namespace array16 {
     }
     return result;
   }
+  inline void get_a32(unsigned int *result, unsigned short *A, size_t s_a){
+    size_t count = 0;
+    for(size_t i = 0; i < s_a; i++){
+      unsigned int prefix = (A[i] << 16);
+      unsigned short size = A[i+1];
+      //cout << "size: " << size << endl;
+      i += 2;
+
+      size_t inner_end = i+size;
+      while(i < inner_end){
+        unsigned int tmp = prefix | A[i];
+
+        result[count++] = tmp; 
+        ++i;
+      }
+      i--;
+    }
+  }
   inline void print_data(unsigned short *A, size_t s_a, std::ofstream &file){
   	//cout << "LEN: " << s_a << endl;
     for(size_t i = 0; i < s_a; i++){

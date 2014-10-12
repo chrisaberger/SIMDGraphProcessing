@@ -202,6 +202,27 @@ namespace uint_array{
     #endif
     return count;
   }
+  inline void get_a32(unsigned int *result, uint8_t *data, size_t length, size_t cardinality, common::type t){
+    switch(t){
+      case common::ARRAY32:
+        std::copy((unsigned int*)data,(unsigned int*)data+(length/4),result);
+        break;
+      case common::ARRAY16:
+        array16::get_a32(result,(unsigned short*)data,length/2);
+        break;
+      case common::BITSET:
+        bitset::get_a32(result,(unsigned short*)data,length/2);
+        break;
+      case common::A32BITPACKED:
+        variant::decode(result,data,cardinality);
+        break;
+      case common::VARIANT:
+        variant::decode(result,data,cardinality);
+        break;
+      default:
+        break;
+    }
+  }
   inline void print_data(uint8_t *data, size_t length, size_t cardinality, common::type t, std::ofstream &file){
     switch(t){
       case common::ARRAY32:

@@ -26,6 +26,11 @@ class Matrix{
     uint8_t *column_types;
     uint8_t *column_data;
 
+    vector< vector<unsigned int>*  > *n2x;    
+    vector< vector<unsigned int>*  > *n2x_counts;
+
+    void createN2X();
+
     Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_t cardinality_in, 
       bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in);
 

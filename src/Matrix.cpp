@@ -75,17 +75,16 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
     if(nbr_i < out_nbrs->size() && out_nbrs->at(nbr_i)->at(0) == i){
       vector<unsigned int> *hood = out_nbrs->at(i);
       size_t node = hood->at(0);
-      hood->erase(hood->begin());
-
       if(nodeFilter(node)){
-        unsigned int *filtered_hood = new unsigned int[hood->size()];
+        unsigned int *filtered_hood = new unsigned int[hood->size()-1];
         size_t filter_index = 0;
-        for(size_t j = 0; j < hood->size(); ++j) {
+        for(size_t j = 1; j < hood->size(); ++j) {
           if(nodeFilter(hood->at(j)) && edgeFilter(i,hood->at(j))){
             new_cardinality++;
             filtered_hood[filter_index++] = hood->at(j);
           } 
         }
+
         row_lengths_in[i] = filter_index;
         const common::type row_type = Matrix::get_array_type(t_in,filtered_hood,filter_index,matrix_size_in); //depends on above array being set
         row_types_in[i] = row_type;
@@ -110,29 +109,43 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
   unsigned int *col_lengths_in = new unsigned int[matrix_size_in];
   uint8_t *col_types_in = new uint8_t[matrix_size_in];
   uint8_t *tmp_col_data = new uint8_t[cardinality_in*40]; 
+
+  cout << in_nbrs->at(1)->at(0) << endl;
+
   for(size_t i = 0; i < matrix_size_in; ++i) {
     col_indicies_in[i] = index;
-    if(nbr_i < out_nbrs->size() && in_nbrs->at(nbr_i)->at(0) == i){
-      vector<unsigned int> *hood = in_nbrs->at(i);
+    cout << nbr_i << " " << in_nbrs->size() <<" " << i << " " << in_nbrs->at(nbr_i)->at(0) << endl;
+    if(nbr_i < in_nbrs->size() && in_nbrs->at(nbr_i)->at(0) == i){
+      cout << "incrementer" << endl;
+      nbr_i++;
+      vector<unsigned int> *hood = out_nbrs->at(i);
       size_t node = hood->at(0);
-      hood->erase(hood->begin());
-
       if(nodeFilter(node)){
-        unsigned int *filtered_hood = new unsigned int[hood->size()];
+        unsigned int *filtered_hood = new unsigned int[hood->size()-1];
         size_t filter_index = 0;
-        for(size_t j = 0; j < hood->size(); ++j) {
+
+        size_t prev = 10000000000;
+        size_t num_hit = 0;
+
+        for(size_t j = 1; j < hood->size(); ++j) {
           if(nodeFilter(hood->at(j)) && edgeFilter(i,hood->at(j))){
             new_cardinality++;
+            if(prev >= (hood->at(j)-3)){
+              num_hit++;
+            }
             filtered_hood[filter_index++] = hood->at(j);
+            prev = hood->at(j);
           } 
         }
+
+        cout << "Node: " << i << " num_hit: " << num_hit << " deg: " << filter_index << endl;
+
         col_lengths_in[i] = filter_index;
         const common::type col_type = Matrix::get_array_type(t_in,filtered_hood,filter_index,matrix_size_in); //depends on above array being set
         col_types_in[i] = col_type;
         index = uint_array::preprocess(tmp_col_data,index,filtered_hood,filter_index,col_type);
         delete[] filtered_hood;
       }
-      nbr_i++;
     } else{
       col_lengths_in[i] = 0;
       col_types_in[i] = common::ARRAY32;

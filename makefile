@@ -49,6 +49,8 @@ test_compression_simple: tests/test_compression_simple.cpp
 test_primitives: tests/test_primitives.cpp
 	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/test_primitives tests/test_primitives.cpp  $(OBJECTS) -Iinclude
 
+test_matrix_multiply: tests/test_matrix_multiply.cpp
+	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/test_matrix_multiply tests/test_matrix_multiply.cpp  $(OBJECTS) -Iinclude
 
 .DEFAULT:  apps/$@.cpp
 	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/$@ apps/$@.cpp  $(OBJECTS) -Iinclude

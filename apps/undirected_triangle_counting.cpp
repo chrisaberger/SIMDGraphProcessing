@@ -38,7 +38,7 @@ int main (int argc, char* argv[]) {
   omp_set_num_threads(atoi(argv[2]));        
 
   common::startClock();
-  MutableGraph inputGraph = MutableGraph::undirectedFromAdjList(argv[1],1); //filename, # of files
+  MutableGraph inputGraph = MutableGraph::undirectedFromEdgeList(argv[1],1); //filename, # of files
   application::result = new uint8_t[inputGraph.num_nodes]; //we don't actually use this for just a count
     //for more sophisticated queries this would be used.
   common::stopClock("Reading File");

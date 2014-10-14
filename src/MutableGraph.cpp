@@ -1,6 +1,13 @@
 #include "MutableGraph.hpp"
 
 //this is a functor
+bool sortPairs(pair<unsigned int,unsigned int> i,pair<unsigned int,unsigned int> j) {
+  if(i.first == j.first){
+    return i.second > j.second;
+  } else{
+    return i.first > j.first;
+  }
+}
 struct AdjComparator {
   bool operator()(vector<unsigned int> *i,vector<unsigned int> *j) const { 
     return (i->size() > j->size()); 
@@ -21,7 +28,7 @@ struct DstPairComparator {
     return (i.second > j.second); 
   }
 };
-void build_neighborhoods(vector< vector<unsigned int>* > *neighborhoods,vector<pair<unsigned int,unsigned int>> *edges){
+void build_out_neighborhoods(vector< vector<unsigned int>* > *neighborhoods,vector<pair<unsigned int,unsigned int>> *edges){
   size_t i = 0;
   while(i < edges->size()){
     vector<unsigned int> *cur = new vector<unsigned int>(); //guess a size
@@ -29,6 +36,19 @@ void build_neighborhoods(vector< vector<unsigned int>* > *neighborhoods,vector<p
     unsigned int prev_src = edges->at(i).first;
     while(i < edges->size() && edges->at(i).first == prev_src){
       cur->push_back(edges->at(i).second);
+      i++;
+    }
+    neighborhoods->push_back(cur);
+  }
+}
+void build_in_neighborhoods(vector< vector<unsigned int>* > *neighborhoods,vector<pair<unsigned int,unsigned int>> *edges){
+  size_t i = 0;
+  while(i < edges->size()){
+    vector<unsigned int> *cur = new vector<unsigned int>(); //guess a size
+    cur->push_back(edges->at(i).second);
+    unsigned int prev_src = edges->at(i).second;
+    while(i < edges->size() && edges->at(i).second == prev_src){
+      cur->push_back(edges->at(i).first);
       i++;
     }
     neighborhoods->push_back(cur);
@@ -136,46 +156,62 @@ dst1 src0
 
 */
 MutableGraph MutableGraph::undirectedFromEdgeList(const string path,const int num_files) {
-  size_t num_edges = 0;
-  size_t num_nodes = 0;
-  
+  ////////////////////////////////////////////////////////////////////////////////////
   //Place graph into vector of vectors then decide how you want to
   //store the graph.
-
-  cout << "Reading File: " << path << endl;
-
   vector<pair<unsigned int,unsigned int>> *edges = new vector<pair<unsigned int,unsigned int>>(); //guess a size
+
+  cout << path << endl;
+  FILE *pFile = fopen(path.c_str(),"r");
+  if (pFile==NULL) {fputs ("File error",stderr); exit (1);}
+
+  // obtain file size:
+  fseek(pFile,0,SEEK_END);
+  size_t lSize = ftell(pFile);
+  rewind(pFile);
+
+  // allocate memory to contain the whole file:
+  char *buffer = (char*) malloc (sizeof(char)*lSize);
+  edges->reserve(lSize/2);
+  if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
+
+  // copy the file into the buffer:
+  size_t result = fread (buffer,1,lSize,pFile);
+  if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
+
+  char *test = strtok(buffer," \t\n");
   
-  for(size_t i=0; i < (size_t) num_files;++i){
-    string file_path = path;
-    if(num_files!=1) file_path.append(to_string(i));
+  while(test != NULL){
+    unsigned int src;
+    sscanf(test,"%u",&src);
+    test = strtok(NULL," \t\n");
+    
+    unsigned int dst;
+    sscanf(test,"%u",&dst);
+    test = strtok(NULL," \t\n");
 
-    ifstream myfile (file_path);
-    string line;
-    if (myfile.is_open()){
-      while ( getline (myfile,line) ){
-        istringstream iss(line);
-        
-        string sub;
-        iss >> sub;
-        unsigned int src = atoi(sub.c_str());
-          
-        iss >> sub;
-        unsigned int dst = atoi(sub.c_str());
-
-        edges->push_back(make_pair(src,dst));
-      }
-    }
+    edges->push_back(make_pair(src,dst));
+    edges->push_back(make_pair(dst,src));
   }
+  // terminate
+  fclose(pFile);
+  free(buffer);
 
-  num_edges = edges->size();
+  sort(edges->begin(),edges->end());
+  edges->erase(unique(edges->begin(),edges->begin()+edges->size()),edges->end());
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  size_t num_edges = edges->size();
+  size_t num_nodes = 0;
+  //Setup for my flat map
   std::sort(edges->begin(),edges->end(),SrcPairComparator());
 
   //go from edge list to vector of vectors
   vector< vector<unsigned int>*  > *neighborhoods = new vector< vector<unsigned int>* >();
-  build_neighborhoods(neighborhoods,edges);
+  build_out_neighborhoods(neighborhoods,edges);
   num_nodes = neighborhoods->size();
   delete edges;
+
+  cout << "num nodes: " << num_nodes << " num_edges: " << num_edges << endl;
 
   //order by degree
   std::sort(neighborhoods->begin(),neighborhoods->end(),AdjComparator());
@@ -204,53 +240,68 @@ MutableGraph MutableGraph::directedFromEdgeList(const string path,const int num_
   //Place graph into vector of vectors then decide how you want to
   //store the graph.
 
-  cout << "Reading File: " << path << endl;
-
   vector<pair<unsigned int,unsigned int>> *edges = new vector<pair<unsigned int,unsigned int>>(); //guess a size
+
+  cout << path << endl;
+  FILE *pFile = fopen(path.c_str(),"r");
+  if (pFile==NULL) {fputs ("File error",stderr); exit (1);}
+
+  // obtain file size:
+  fseek(pFile,0,SEEK_END);
+  size_t lSize = ftell(pFile);
+  rewind(pFile);
+
+  // allocate memory to contain the whole file:
+  char *buffer = (char*) malloc (sizeof(char)*lSize);
+  edges->reserve(lSize/4);
+  if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
+
+  // copy the file into the buffer:
+  size_t result = fread (buffer,1,lSize,pFile);
+  if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
+
+  printf ("%s\n",buffer);
+
+  char *test = strtok(buffer," \t\n");
   
-  for(size_t i=0; i < (size_t) num_files;++i){
-    string file_path = path;
-    if(num_files!=1) file_path.append(to_string(i));
+  while(test != NULL){
+    unsigned int src;
+    sscanf(test,"%u",&src);
+    test = strtok(NULL," \t\n");
+    
+    unsigned int dst;
+    sscanf(test,"%u",&dst);
+    test = strtok(NULL," \t\n");
 
-    ifstream myfile (file_path);
-    string line;
-    if (myfile.is_open()){
-      while ( getline (myfile,line) ){
-        istringstream iss(line);
-        
-        string sub;
-        iss >> sub;
-        unsigned int src = atoi(sub.c_str());
-          
-        iss >> sub;
-        unsigned int dst = atoi(sub.c_str());
-
-        edges->push_back(make_pair(src,dst));
-      }
-    }
+    cout << src << " " << dst << endl;
+    edges->push_back(make_pair(src,dst));
   }
+  // terminate
+  fclose(pFile);
+  free(buffer);
+
 
   num_edges = edges->size();
   unordered_map<unsigned int,unsigned int> *extern_ids = new unordered_map<unsigned int,unsigned int>();
 
   ////////////////////////////////////////////////////////////////////
   //out edges
-  std::sort(edges->begin(),edges->end(),SrcPairComparator());
+  std::sort(edges->begin(),edges->end(),SrcPairComparator()); //sets us up for flat map operation
 
   //go from edge list to vector of vectors
   vector< vector<unsigned int>*  > *out_neighborhoods = new vector< vector<unsigned int>* >();
-  build_neighborhoods(out_neighborhoods,edges);
+  build_out_neighborhoods(out_neighborhoods,edges); //does flat map
 
   //Build hash map
   build_hash(out_neighborhoods,extern_ids);
 
   ////////////////////////////////////////////////////////////////////
   //in edges
-  std::sort(edges->begin(),edges->end(),DstPairComparator());
+  std::sort(edges->begin(),edges->end(),DstPairComparator()); //sets us up for flat map operation
 
   //go from edge list to vector of vectors
   vector< vector<unsigned int>*  > *in_neighborhoods = new vector< vector<unsigned int>* >();
-  build_neighborhoods(in_neighborhoods,edges);
+  build_in_neighborhoods(in_neighborhoods,edges); //does flat map
 
   //Build hash map
   build_hash(in_neighborhoods,extern_ids);
@@ -259,11 +310,11 @@ MutableGraph MutableGraph::directedFromEdgeList(const string path,const int num_
   reassign_ids(out_neighborhoods,extern_ids);
   reassign_ids(in_neighborhoods,extern_ids);
 
+  std::sort(in_neighborhoods->begin(),in_neighborhoods->end(),NeighborhoodComparator()); //sort by degree
   std::sort(out_neighborhoods->begin(),out_neighborhoods->end(),NeighborhoodComparator());
-  std::sort(in_neighborhoods->begin(),in_neighborhoods->end(),NeighborhoodComparator());
 
   num_nodes = extern_ids->size();
-
+  cout << "num nodes: " << num_nodes << " num edges: " << num_edges << endl;
   delete edges;
 
   return MutableGraph(num_nodes,num_edges,false,extern_ids,out_neighborhoods,in_neighborhoods); 

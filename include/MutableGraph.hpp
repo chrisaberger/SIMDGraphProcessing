@@ -26,7 +26,7 @@ struct MutableGraph {
     in_neighborhoods(in_neighborhoods_in){}
   ~MutableGraph(){
     delete external_ids;
-    for(size_t i = 0; i < num_nodes; ++i) {
+    for(size_t i = 0; i < out_neighborhoods->size(); ++i) {
       vector<unsigned int> *hood = out_neighborhoods->at(i);
       hood->clear();
       delete hood;
@@ -35,7 +35,7 @@ struct MutableGraph {
     delete out_neighborhoods;
 
     if(!symmetric){
-      for(size_t i = 0; i < num_nodes; ++i) {
+      for(size_t i = 0; i < in_neighborhoods->size(); ++i) {
         vector<unsigned int> *hood = in_neighborhoods->at(i);
         hood->clear();
         delete hood;

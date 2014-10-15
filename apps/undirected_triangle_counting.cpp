@@ -28,69 +28,50 @@ namespace application{
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
-  if(argc != 3){
+  if(argc != 4){
     cout << "Please see usage below: " << endl;
-    cout << "\t./main <adjacency list file/folder> <# of threads>" << endl;
+    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp>" << endl;
     exit(0);
   }
 
   cout << endl << "Number of threads: " << atoi(argv[2]) << endl;
   omp_set_num_threads(atoi(argv[2]));        
 
+  std::string input_layout = argv[3];
+
+  common::type layout;
+  if(input_layout.compare("a32") == 0){
+    layout = common::ARRAY32;
+  } else if(input_layout.compare("a16") == 0){
+    layout = common::ARRAY16;
+  } else if(input_layout.compare("hybrid") == 0){
+    layout = common::HYBRID;
+  } else if(input_layout.compare("v") == 0){
+    layout = common::VARIANT;
+  } else if(input_layout.compare("bp") == 0){
+    layout = common::A32BITPACKED;
+  } else{
+    cout << "No valid layout entered." << endl;
+    exit(0);
+  }
+
   common::startClock();
-  MutableGraph inputGraph = MutableGraph::undirectedFromEdgeList(argv[1],1); //filename, # of files
-  application::result = new uint8_t[inputGraph.num_nodes]; //we don't actually use this for just a count
-    //for more sophisticated queries this would be used.
+  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1],1); //filename, # of files
+  application::result = new uint8_t[inputGraph->num_nodes]; //we don't actually use this for just a count
   common::stopClock("Reading File");
+
+  cout << endl;
+
+  application::graph = new Matrix(inputGraph->out_neighborhoods,
+    inputGraph->num_nodes,inputGraph->num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,layout);
+  inputGraph->MutableGraph::~MutableGraph(); 
   
-  cout << endl;
-  application::graph = new Matrix(inputGraph.out_neighborhoods,
-    inputGraph.num_nodes,inputGraph.num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY32);
   common::startClock();
   application::queryOver();
-  common::stopClock("CSR TRIANGLE COUNTING");
+  common::stopClock(input_layout);
   application::graph->Matrix::~Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
-
-  cout << endl;
-  application::graph = new Matrix(inputGraph.out_neighborhoods,
-    inputGraph.num_nodes,inputGraph.num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY16);
-  common::startClock();
-  application::queryOver();
-  common::stopClock("ARRAY16 TRIANGLE COUNTING");
-  application::graph->Matrix::~Matrix(); 
-  cout << "Count: " << application::num_triangles << endl << endl;
-
-  application::graph = new Matrix(inputGraph.out_neighborhoods,
-      inputGraph.num_nodes,inputGraph.num_edges,
-      &application::myNodeSelection,&application::myEdgeSelection,common::HYBRID);
-  common::startClock();
-  application::queryOver();
-  common::stopClock("HYBRID");
-  application::graph->Matrix::~Matrix(); 
-  cout << "Count: " << application::num_triangles << endl << endl;
-
-  #if COMPRESSION == 1
-  application::graph = new Matrix(inputGraph.out_neighborhoods,
-      inputGraph.num_nodes,inputGraph.num_edges,
-      &application::myNodeSelection,&application::myEdgeSelection,common::VARIANT);
-  common::startClock();
-  application::queryOver();
-  common::stopClock("VARIANT");
-  application::graph->Matrix::~Matrix(); 
-  cout << "Count: " << application::num_triangles << endl << endl;
-
-  application::graph = new Matrix(inputGraph.out_neighborhoods,
-      inputGraph.num_nodes,inputGraph.num_edges,
-      &application::myNodeSelection,&application::myEdgeSelection,common::A32BITPACKED);
-  common::startClock();
-  application::queryOver();
-  common::stopClock("A32BITPACKED");
-  application::graph->Matrix::~Matrix(); 
-  cout << "Count: " << application::num_triangles << endl << endl;
-  #endif
-
+  
   return 0;
 }

@@ -45,14 +45,15 @@ int main (int argc, char* argv[]) {
 
   common::startClock();
   cout << "file: " << argv[1] << endl;
-  MutableGraph inputGraph = MutableGraph::undirectedFromEdgeList(argv[1],1); //filename, # of files
+  MutableGraph inputGraph = MutableGraph::directedFromEdgeList(argv[1],1); //filename, # of files
   //for more sophisticated queries this would be used.
   common::stopClock("Reading File");
-  /*
+  
   cout << endl;
   application::graph = new Matrix(inputGraph.out_neighborhoods,inputGraph.in_neighborhoods,
     inputGraph.num_nodes,inputGraph.num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY32);
+  /*
   common::startClock();
   application::queryOver();
   common::stopClock("CSR PAGE RANK");

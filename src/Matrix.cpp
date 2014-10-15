@@ -110,15 +110,11 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
   uint8_t *col_types_in = new uint8_t[matrix_size_in];
   uint8_t *tmp_col_data = new uint8_t[cardinality_in*40]; 
 
-  cout << in_nbrs->at(1)->at(0) << endl;
-
   for(size_t i = 0; i < matrix_size_in; ++i) {
     col_indicies_in[i] = index;
-    cout << nbr_i << " " << in_nbrs->size() <<" " << i << " " << in_nbrs->at(nbr_i)->at(0) << endl;
     if(nbr_i < in_nbrs->size() && in_nbrs->at(nbr_i)->at(0) == i){
-      cout << "incrementer" << endl;
       nbr_i++;
-      vector<unsigned int> *hood = out_nbrs->at(i);
+      vector<unsigned int> *hood = in_nbrs->at(i);
       size_t node = hood->at(0);
       if(nodeFilter(node)){
         unsigned int *filtered_hood = new unsigned int[hood->size()-1];

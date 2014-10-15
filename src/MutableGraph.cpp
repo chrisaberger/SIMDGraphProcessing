@@ -1,13 +1,6 @@
 #include "MutableGraph.hpp"
 
 //this is a functor
-bool sortPairs(pair<unsigned int,unsigned int> i,pair<unsigned int,unsigned int> j) {
-  if(i.first == j.first){
-    return i.second > j.second;
-  } else{
-    return i.first > j.first;
-  }
-}
 struct AdjComparator {
   bool operator()(vector<unsigned int> *i,vector<unsigned int> *j) const { 
     return (i->size() > j->size()); 
@@ -84,7 +77,7 @@ src1 dst0 dst1 dst2 dst3 ...
 ...
 
 */
-MutableGraph MutableGraph::undirectedFromAdjList(const string path,const int num_files) {
+MutableGraph* MutableGraph::undirectedFromAdjList(const string path,const int num_files) {
   vector< vector<unsigned int>* >* *graph_in = new vector< vector<unsigned int>* >*[num_files];
 
   size_t num_edges = 0;
@@ -140,7 +133,7 @@ MutableGraph MutableGraph::undirectedFromAdjList(const string path,const int num
 
   reassign_ids(neighborhoods,extern_ids);
 
-  return MutableGraph(num_nodes,num_edges,true,extern_ids,neighborhoods,neighborhoods); 
+  return new MutableGraph(num_nodes,num_edges,true,extern_ids,neighborhoods,neighborhoods); 
   //stopClock("Reassigning ids");
 }
 
@@ -155,7 +148,7 @@ dst1 src0
 ...
 
 */
-MutableGraph MutableGraph::undirectedFromEdgeList(const string path,const int num_files) {
+MutableGraph* MutableGraph::undirectedFromEdgeList(const string path,const int num_files) {
   ////////////////////////////////////////////////////////////////////////////////////
   //Place graph into vector of vectors then decide how you want to
   //store the graph.
@@ -197,6 +190,7 @@ MutableGraph MutableGraph::undirectedFromEdgeList(const string path,const int nu
   fclose(pFile);
   free(buffer);
 
+  //TODO: try using a set and see if this if faster.
   sort(edges->begin(),edges->end());
   edges->erase(unique(edges->begin(),edges->begin()+edges->size()),edges->end());
   //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -211,8 +205,6 @@ MutableGraph MutableGraph::undirectedFromEdgeList(const string path,const int nu
   num_nodes = neighborhoods->size();
   delete edges;
 
-  cout << "num nodes: " << num_nodes << " num_edges: " << num_edges << endl;
-
   //order by degree
   std::sort(neighborhoods->begin(),neighborhoods->end(),AdjComparator());
 
@@ -223,7 +215,7 @@ MutableGraph MutableGraph::undirectedFromEdgeList(const string path,const int nu
   //reassign ID's
   reassign_ids(neighborhoods,extern_ids);
 
-  return MutableGraph(num_nodes,num_edges,true,extern_ids,neighborhoods,neighborhoods); 
+  return new MutableGraph(num_nodes,num_edges,true,extern_ids,neighborhoods,neighborhoods); 
 }
 /*
 File format
@@ -233,7 +225,7 @@ src1 dst1
 ...
 
 */
-MutableGraph MutableGraph::directedFromEdgeList(const string path,const int num_files) {
+MutableGraph* MutableGraph::directedFromEdgeList(const string path,const int num_files) {
   size_t num_edges = 0;
   size_t num_nodes = 0;
   
@@ -260,8 +252,6 @@ MutableGraph MutableGraph::directedFromEdgeList(const string path,const int num_
   size_t result = fread (buffer,1,lSize,pFile);
   if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
 
-  printf ("%s\n",buffer);
-
   char *test = strtok(buffer," \t\n");
   
   while(test != NULL){
@@ -273,7 +263,6 @@ MutableGraph MutableGraph::directedFromEdgeList(const string path,const int num_
     sscanf(test,"%u",&dst);
     test = strtok(NULL," \t\n");
 
-    cout << src << " " << dst << endl;
     edges->push_back(make_pair(src,dst));
   }
   // terminate
@@ -282,40 +271,43 @@ MutableGraph MutableGraph::directedFromEdgeList(const string path,const int num_
 
 
   num_edges = edges->size();
-  unordered_map<unsigned int,unsigned int> *extern_ids = new unordered_map<unsigned int,unsigned int>();
-
   ////////////////////////////////////////////////////////////////////
   //out edges
-  std::sort(edges->begin(),edges->end(),SrcPairComparator()); //sets us up for flat map operation
+  std::sort(edges->begin(),edges->end(),SrcPairComparator()); //sets us up to remove duplicate sources
 
   //go from edge list to vector of vectors
   vector< vector<unsigned int>*  > *out_neighborhoods = new vector< vector<unsigned int>* >();
   build_out_neighborhoods(out_neighborhoods,edges); //does flat map
 
-  //Build hash map
-  build_hash(out_neighborhoods,extern_ids);
-
   ////////////////////////////////////////////////////////////////////
   //in edges
-  std::sort(edges->begin(),edges->end(),DstPairComparator()); //sets us up for flat map operation
+  std::sort(edges->begin(),edges->end(),DstPairComparator()); //sets us up to remove duplicate destinations
 
   //go from edge list to vector of vectors
   vector< vector<unsigned int>*  > *in_neighborhoods = new vector< vector<unsigned int>* >();
   build_in_neighborhoods(in_neighborhoods,edges); //does flat map
 
+  //order by degree
+  std::sort(in_neighborhoods->begin(),in_neighborhoods->end(),AdjComparator());
+
+  cout << in_neighborhoods->at(0)->size() << endl;
   //Build hash map
-  build_hash(in_neighborhoods,extern_ids);
+  unordered_map<unsigned int,unsigned int> *extern_ids = new unordered_map<unsigned int,unsigned int>();
+  build_hash(in_neighborhoods,extern_ids); //send this in first to assign it's ID's first
+  build_hash(out_neighborhoods,extern_ids);
 
   //reassign ID's
   reassign_ids(out_neighborhoods,extern_ids);
   reassign_ids(in_neighborhoods,extern_ids);
 
-  std::sort(in_neighborhoods->begin(),in_neighborhoods->end(),NeighborhoodComparator()); //sort by degree
+  std::sort(in_neighborhoods->begin(),in_neighborhoods->end(),NeighborhoodComparator()); //so that we can flatten easily
   std::sort(out_neighborhoods->begin(),out_neighborhoods->end(),NeighborhoodComparator());
 
+  cout << in_neighborhoods->at(0)->size() << endl;
+
+
   num_nodes = extern_ids->size();
-  cout << "num nodes: " << num_nodes << " num edges: " << num_edges << endl;
   delete edges;
 
-  return MutableGraph(num_nodes,num_edges,false,extern_ids,out_neighborhoods,in_neighborhoods); 
+  return new MutableGraph(num_nodes,num_edges,false,extern_ids,out_neighborhoods,in_neighborhoods); 
 }

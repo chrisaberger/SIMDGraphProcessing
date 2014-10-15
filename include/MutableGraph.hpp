@@ -25,29 +25,22 @@ struct MutableGraph {
     out_neighborhoods(out_neighborhoods_in),
     in_neighborhoods(in_neighborhoods_in){}
   ~MutableGraph(){
-    delete external_ids;
     for(size_t i = 0; i < out_neighborhoods->size(); ++i) {
-      vector<unsigned int> *hood = out_neighborhoods->at(i);
-      hood->clear();
-      delete hood;
+      delete out_neighborhoods->at(i);
     }
-    out_neighborhoods->erase(out_neighborhoods->begin(),out_neighborhoods->end());
     delete out_neighborhoods;
 
     if(!symmetric){
       for(size_t i = 0; i < in_neighborhoods->size(); ++i) {
-        vector<unsigned int> *hood = in_neighborhoods->at(i);
-        hood->clear();
-        delete hood;
+        delete in_neighborhoods->at(i);
       }
-      in_neighborhoods->erase(in_neighborhoods->begin(),in_neighborhoods->end());
       delete in_neighborhoods;
     }
   }
 
-  static MutableGraph undirectedFromAdjList(const string path,const int num_files);
-  static MutableGraph undirectedFromEdgeList(const string path,const int num_files);
-  static MutableGraph directedFromEdgeList(const string path,const int num_files);
+  static MutableGraph* undirectedFromAdjList(const string path,const int num_files);
+  static MutableGraph* undirectedFromEdgeList(const string path,const int num_files);
+  static MutableGraph* directedFromEdgeList(const string path,const int num_files);
 
 };
 

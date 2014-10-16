@@ -53,7 +53,7 @@ void build_hash(vector< vector<unsigned int>* > *neighborhoods,unordered_map<uns
   for(size_t i = 0; i < neighborhoods->size(); ++i) {
     vector<unsigned int> *hood = neighborhoods->at(i);
     if(extern_ids->find(hood->at(0)) == extern_ids->end()){
-      extern_ids->insert(make_pair(hood->at(0),i));
+      extern_ids->insert(make_pair(hood->at(0),extern_ids->size()));
     }
   }
 }
@@ -234,7 +234,6 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path,const int num
 
   vector<pair<unsigned int,unsigned int>> *edges = new vector<pair<unsigned int,unsigned int>>(); //guess a size
 
-  cout << path << endl;
   FILE *pFile = fopen(path.c_str(),"r");
   if (pFile==NULL) {fputs ("File error",stderr); exit (1);}
 
@@ -290,7 +289,6 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path,const int num
   //order by degree
   std::sort(in_neighborhoods->begin(),in_neighborhoods->end(),AdjComparator());
 
-  cout << in_neighborhoods->at(0)->size() << endl;
   //Build hash map
   unordered_map<unsigned int,unsigned int> *extern_ids = new unordered_map<unsigned int,unsigned int>();
   build_hash(in_neighborhoods,extern_ids); //send this in first to assign it's ID's first
@@ -303,10 +301,8 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path,const int num
   std::sort(in_neighborhoods->begin(),in_neighborhoods->end(),NeighborhoodComparator()); //so that we can flatten easily
   std::sort(out_neighborhoods->begin(),out_neighborhoods->end(),NeighborhoodComparator());
 
-  cout << in_neighborhoods->at(0)->size() << endl;
-
-
   num_nodes = extern_ids->size();
+  
   delete edges;
 
   return new MutableGraph(num_nodes,num_edges,false,extern_ids,out_neighborhoods,in_neighborhoods); 

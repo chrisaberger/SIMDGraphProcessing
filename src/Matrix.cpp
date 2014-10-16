@@ -1,7 +1,7 @@
 #include "Matrix.hpp"
 //Undirected Graphs
 Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_t cardinality_in, 
-  bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in){
+  bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), unordered_map<unsigned int,unsigned int> *external_ids_in, common::type t_in){
   array16::prepare_shuffling_dictionary16();
 
   size_t *row_indicies_in = new size_t[matrix_size_in+1];
@@ -48,6 +48,7 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
   row_types = row_types_in;
   
   symmetric = true;
+  external_ids = external_ids_in;
 
   column_indicies = row_indicies_in;
   column_lengths = row_lengths_in;
@@ -58,7 +59,7 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
 }
 //Directed Graph
 Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigned int>*  > *in_nbrs, size_t matrix_size_in, size_t cardinality_in, 
-  bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in){
+  bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), unordered_map<unsigned int,unsigned int> *external_ids_in, common::type t_in){
   array16::prepare_shuffling_dictionary16();
 
   size_t *row_indicies_in = new size_t[matrix_size_in+1];
@@ -73,7 +74,7 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
   for(size_t i = 0; i < matrix_size_in; ++i) {
     row_indicies_in[i] = index;
     if(nbr_i < out_nbrs->size() && out_nbrs->at(nbr_i)->at(0) == i){
-      vector<unsigned int> *hood = out_nbrs->at(i);
+      vector<unsigned int> *hood = out_nbrs->at(nbr_i);
       size_t node = hood->at(0);
       if(nodeFilter(node)){
         unsigned int *filtered_hood = new unsigned int[hood->size()-1];
@@ -134,7 +135,7 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
           } 
         }
 
-        cout << "Node: " << i << " num_hit: " << num_hit << " deg: " << filter_index << endl;
+        //cout << "Node: " << i << " num_hit: " << num_hit << " deg: " << filter_index << endl;
 
         col_lengths_in[i] = filter_index;
         const common::type col_type = Matrix::get_array_type(t_in,filtered_hood,filter_index,matrix_size_in); //depends on above array being set
@@ -163,6 +164,7 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
   row_types = row_types_in;
 
   symmetric = false;
+  external_ids = external_ids_in;
 
   column_indicies = col_indicies_in;
   column_lengths = col_lengths_in;
@@ -196,7 +198,7 @@ void Matrix::print_data(string filename){
   //Printing out neighbors
   cout << "Writing matrix row_data to file: " << filename << endl;
 	for(size_t i = 0; i < matrix_size; i++){
-		myfile << "ROW: " << i << endl;
+		myfile << "ROW: " << i <<  " LEN: " << row_lengths[i] << endl;
 		size_t start = row_indicies[i];
 		size_t end = row_indicies[i+1];
     size_t card = row_lengths[i];
@@ -208,7 +210,7 @@ void Matrix::print_data(string filename){
   //Printing in neighbors
   if(!symmetric){
     for(size_t i = 0; i < matrix_size; i++){
-      myfile << "COLUMN: " << i << endl;
+      myfile << "COLUMN: " << i << " LEN: " << column_lengths[i] << endl;
       size_t start = column_indicies[i];
       size_t end = column_indicies[i+1];
       size_t card = column_lengths[i];

@@ -28,15 +28,20 @@ class Matrix{
 
     vector< vector<unsigned int>*  > *n2x;    
     vector< vector<unsigned int>*  > *n2x_counts;
+    unordered_map<unsigned int,unsigned int> *external_ids;
 
     void createN2X();
 
+    //Constructor symmetric 
     Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_t cardinality_in, 
-      bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in);
+      bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), 
+      unordered_map<unsigned int,unsigned int> *external_ids_in,common::type t_in);
 
-    Matrix(vector< vector<unsigned int>*  > *out_nbrs,
-      vector< vector<unsigned int>*  > *in_nbrs, size_t matrix_size_in, size_t cardinality_in, 
-      bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in);
+    //Constructor asymmetric 
+    Matrix(vector< vector<unsigned int>*  > *out_nbrs, vector< vector<unsigned int>*  > *in_nbrs, 
+      size_t matrix_size_in, size_t cardinality_in, 
+      bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), 
+      unordered_map<unsigned int,unsigned int> *external_ids_in, common::type t_in);
 
     ~Matrix(){
       delete[] row_indicies;
@@ -51,11 +56,10 @@ class Matrix{
         delete[] column_data;
       }
     }
-    //Constructors
     static Matrix buildAsymetric(vector< vector<unsigned int>*  > *out_nbrs, vector< vector<unsigned int>*  > *in_nbrs, size_t matrix_size_in, size_t cardinality_in, 
-        bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in);
+        bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), unordered_map<unsigned int,unsigned int> *external_ids_in, common::type t_in);
     static Matrix buildSymetric(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_t cardinality_in, 
-        bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in);
+        bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), unordered_map<unsigned int,unsigned int> *external_ids_in, common::type t_in);
     
     //Simple methods to give type of row or column
     static common::type get_array_type(common::type t_stat,unsigned int *r_data, size_t len, size_t m_size);
@@ -179,27 +183,27 @@ T Matrix::sum_over_columns_in_row(unsigned int row,T (*function)(unsigned int,un
 template<typename T> 
 T Matrix::map_columns(T (Matrix::*rowfunction)(unsigned int,T *old_data), T *new_data, T *old_data) {
   T diff = (T) 0;
-  #pragma omp parallel for default(none) shared(rowfunction,new_data,old_data) schedule(static,150) reduction(+:diff) 
+  //#pragma omp parallel for default(none) shared(rowfunction,new_data,old_data) schedule(static,150) reduction(+:diff,+:sum) 
   for(size_t i = 0; i < matrix_size; i++){
-    new_data[i] = (this->*rowfunction)(i,old_data);
+    new_data[i] = (this->*rowfunction)(i,old_data)+0.15f;
     diff += new_data[i]-old_data[i];
   }
   return diff;
 }
 
 template<typename T> 
-T Matrix::sum_over_rows_in_column(unsigned int row,T *old_data){
-  size_t start = column_indicies[row];
-  size_t end = column_indicies[row+1];
-  size_t card = column_lengths[row];
+T Matrix::sum_over_rows_in_column(unsigned int col,T *old_data){
+  size_t start = column_indicies[col];
+  size_t end = column_indicies[col+1];
+  size_t card = column_lengths[col];
 
   #if HYBRID_LAYOUT == 1
-  const common::type row_type = (common::type) row_types[row];
+  const common::type col_type = (common::type) column_types[col];
   #else
-  const common::type row_type = (common::type) t;
+  const common::type col_type = (common::type) t;
   #endif
   
-  T result = uint_array::sum(row_data+start,end-start,card,row_type,old_data,row_lengths);
+  T result = uint_array::sum(column_data+start,end-start,card,col_type,old_data,row_lengths);
 
   return result;
 }

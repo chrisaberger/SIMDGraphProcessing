@@ -71,10 +71,14 @@ class Matrix{
     //Some accessors.  Right now these are for rows but the same thing can be done for columns.
     //Currently out neighbors but easy to apply to in neighbors.
     void print_rows(unsigned int i, unsigned int j, string filename);
+    template<typename T> T map_columns_pr(T (Matrix::*rowfunction)(unsigned int,T*), T *mapped_data, T *old_data);
+    template<typename T> T sum_over_rows_in_column_pr(unsigned int c, T *old_data);
+
     template<typename T> T map_columns(T (Matrix::*rowfunction)(unsigned int,T*), T *mapped_data, T *old_data);
-    template<typename T> T sum_over_rows(T (Matrix::*function)(unsigned int,T (*f)(unsigned int,unsigned int,unsigned int*)), T (*f)(unsigned int,unsigned int,unsigned int*));
-    template<typename T> T sum_over_columns_in_row(unsigned int c,T (*function)(unsigned int,unsigned int,unsigned int*));
     template<typename T> T sum_over_rows_in_column(unsigned int c, T *old_data);
+
+    template<typename T> T sum_over_rows(T (Matrix::*function)(unsigned int,T (*f)(unsigned int,unsigned int,unsigned int*)), T (*f)(unsigned int,unsigned int,unsigned int*));
+    template<typename T> T sum_over_columns_in_row(unsigned int c,T (*function)(unsigned int,unsigned int,unsigned int*));        
     size_t row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a);
 };
 
@@ -185,7 +189,7 @@ T Matrix::map_columns(T (Matrix::*rowfunction)(unsigned int,T *old_data), T *new
   T diff = (T) 0;
   //#pragma omp parallel for default(none) shared(rowfunction,new_data,old_data) schedule(static,150) reduction(+:diff,+:sum) 
   for(size_t i = 0; i < matrix_size; i++){
-    new_data[i] = (this->*rowfunction)(i,old_data)+0.15f;
+    new_data[i] = ((this->*rowfunction)(i,old_data));
     diff += new_data[i]-old_data[i];
   }
   return diff;
@@ -204,6 +208,34 @@ T Matrix::sum_over_rows_in_column(unsigned int col,T *old_data){
   #endif
   
   T result = uint_array::sum(column_data+start,end-start,card,col_type,old_data,row_lengths);
+
+  return result;
+}
+
+template<typename T> 
+T Matrix::map_columns_pr(T (Matrix::*rowfunction)(unsigned int,T *old_data), T *new_data, T *old_data) {
+  T diff = (T) 0;
+  //#pragma omp parallel for default(none) shared(rowfunction,new_data,old_data) schedule(static,150) reduction(+:diff,+:sum) 
+  for(size_t i = 0; i < matrix_size; i++){
+    new_data[i] = 0.85*((this->*rowfunction)(i,old_data))+(0.15f/matrix_size);
+    diff += new_data[i]-old_data[i];
+  }
+  return diff;
+}
+
+template<typename T> 
+T Matrix::sum_over_rows_in_column_pr(unsigned int col,T *old_data){
+  size_t start = column_indicies[col];
+  size_t end = column_indicies[col+1];
+  size_t card = column_lengths[col];
+
+  #if HYBRID_LAYOUT == 1
+  const common::type col_type = (common::type) column_types[col];
+  #else
+  const common::type col_type = (common::type) t;
+  #endif
+  
+  T result = uint_array::sum_pr(column_data+start,end-start,card,col_type,old_data,row_lengths);
 
   return result;
 }

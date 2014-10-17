@@ -120,7 +120,6 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
       if(nodeFilter(node)){
         unsigned int *filtered_hood = new unsigned int[hood->size()-1];
         size_t filter_index = 0;
-
         size_t prev = 10000000000;
         size_t num_hit = 0;
 
@@ -134,9 +133,7 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
             prev = hood->at(j);
           } 
         }
-
         //cout << "Node: " << i << " num_hit: " << num_hit << " deg: " << filter_index << endl;
-
         col_lengths_in[i] = filter_index;
         const common::type col_type = Matrix::get_array_type(t_in,filtered_hood,filter_index,matrix_size_in); //depends on above array being set
         col_types_in[i] = col_type;

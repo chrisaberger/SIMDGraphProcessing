@@ -21,11 +21,42 @@ namespace application{
   inline void print_pr_data(){
     ofstream myfile;
     myfile.open("pr.txt");
-    for(size_t i = 0; i < graph->matrix_size; i++){
-      myfile << "Node: " << graph->external_ids->at(i) << " PR: " << pr_data[i] << endl;
+    cout << graph->external_ids->size() << endl;
+    for (auto iter = graph->external_ids->begin(); iter != graph->external_ids->end(); iter++){
+      myfile << "Node: " << iter->first << " PR: " << pr_data[iter->second] << endl;
     }
   }
-
+  inline void queryOverNew(){
+    float *scaling_array = new float[graph->matrix_size];
+    float *new_pr_data = new float[graph->matrix_size];
+    pr_data = new float[graph->matrix_size];
+    float init_val = 1.0f/graph->matrix_size;
+    for(size_t i = 0; i < graph->matrix_size; i++){
+      pr_data[i] = init_val;
+      scaling_array[i] = graph->row_lengths[i]*0.85+0.0000001; //to avoid non-zero #'s
+    }    
+    size_t num_iterations = 0;
+    while(num_iterations < max_iterations){
+      
+      size_t st_a = (graph->matrix_size / 8) * 8;
+      size_t pr_i = 0;
+      while(pr_i < st_a){
+        _mm256_storeu_ps(&pr_data[pr_i],_mm256_div_ps(_mm256_loadu_ps(&pr_data[pr_i]),_mm256_loadu_ps(&scaling_array[pr_i])));
+        pr_i += 8;
+      }
+      while(pr_i < graph->matrix_size){
+        pr_data[pr_i] = pr_data[pr_i]/scaling_array[pr_i];
+        pr_i++;
+      }
+      
+      //returns the sum of the difference of new and old for all arrays.
+      float diff = graph->map_columns(&Matrix::sum_over_rows_in_column,new_pr_data,pr_data);
+      float *tmp = pr_data;
+      pr_data = new_pr_data;
+      new_pr_data = tmp;
+      num_iterations++;
+    }
+  }
   inline void queryOver(){
     float *scaling_array = new float[graph->matrix_size];
     float *new_pr_data = new float[graph->matrix_size];
@@ -37,19 +68,7 @@ namespace application{
     }    
     size_t num_iterations = 0;
     while(num_iterations < max_iterations){
-      size_t st_a = (graph->matrix_size / 8) * 8;
-      size_t pr_i = 0;
-      while(pr_i < st_a){
-        _mm256_storeu_ps(&pr_data[pr_i],_mm256_div_ps(_mm256_loadu_ps(&pr_data[pr_i]),_mm256_loadu_ps(&scaling_array[pr_i])));
-        pr_i += 8;
-      }
-      while(pr_i < graph->matrix_size){
-        pr_data[pr_i] = pr_data[pr_i]/scaling_array[pr_i];
-        pr_i++;
-      }
-
-      //returns the sum of the difference of new and old for all arrays.
-      float diff = graph->map_columns(&Matrix::sum_over_rows_in_column,new_pr_data,pr_data);
+      float diff = graph->map_columns_pr(&Matrix::sum_over_rows_in_column_pr,new_pr_data,pr_data);
       float *tmp = pr_data;
       pr_data = new_pr_data;
       new_pr_data = tmp;
@@ -71,7 +90,6 @@ int main (int argc, char* argv[]) {
   application::max_iterations = atoi(argv[3]);
 
   common::startClock();
-  cout << "file: " << argv[1] << endl;
   MutableGraph *inputGraph = MutableGraph::directedFromEdgeList(argv[1],1); //filename, # of files
   //for more sophisticated queries this would be used.
   common::stopClock("Reading File");
@@ -84,9 +102,14 @@ int main (int argc, char* argv[]) {
     inputGraph->external_ids,common::ARRAY32);
   //application::graph->print_data("matrix.txt");
   
+  
   common::startClock();
   application::queryOver();
   common::stopClock("CSR PAGE RANK");
+
+  common::startClock();
+  application::queryOverNew();
+  common::stopClock("NEW CSR PAGE RANK");
   application::graph->Matrix::~Matrix(); 
 
   //application::print_pr_data();

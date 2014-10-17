@@ -72,6 +72,32 @@ namespace uint_array{
         break;
     }
   } 
+  template<typename T> 
+  inline T sum_pr(uint8_t *data,size_t length, size_t card,common::type t, T *old_data, unsigned int *lengths){
+    card = card;
+    switch(t){
+      case common::ARRAY32:
+        return array32::sum_pr((unsigned int*)data,length/4,old_data,lengths);
+        break;
+        /*
+      case common::ARRAY16:
+        return array16::sum((unsigned short*)data,length/2,old_data,lengths);
+        break;
+      case common::BITSET:
+        return bitset::sum((unsigned short*)data,length/2,old_data,lengths);
+        break;
+      case common::A32BITPACKED:
+        return a32bitpacked::sum(data,card,old_data,lengths);
+        break;
+      case common::VARIANT:
+        return variant::sum(data,card,old_data,lengths);
+        break;
+        */
+      default:
+        return 0.0;
+        break;
+    }
+  } 
   inline size_t intersect(uint8_t *R, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b, 
     unsigned int card_a, unsigned int card_b, common::type t,unsigned int *outputA){
     size_t count = 0;

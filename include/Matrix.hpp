@@ -190,7 +190,7 @@ T Matrix::map_columns(T (Matrix::*rowfunction)(unsigned int,T *old_data), T *new
   //#pragma omp parallel for default(none) shared(rowfunction,new_data,old_data) schedule(static,150) reduction(+:diff,+:sum) 
   for(size_t i = 0; i < matrix_size; i++){
     new_data[i] = ((this->*rowfunction)(i,old_data));
-    diff += new_data[i]-old_data[i];
+    //diff += new_data[i]-old_data[i];
   }
   return diff;
 }

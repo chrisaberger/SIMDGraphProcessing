@@ -15,7 +15,6 @@ class Matrix{
     */
   	size_t *row_indicies; 
     unsigned int *row_lengths;
-    uint8_t *row_types;
   	uint8_t *row_data; 
 
     /*
@@ -23,7 +22,6 @@ class Matrix{
     */
     size_t *column_indicies;
     unsigned int *column_lengths;
-    uint8_t *column_types;
     uint8_t *column_data;
 
     vector< vector<unsigned int>*  > *n2x;    
@@ -46,13 +44,11 @@ class Matrix{
     ~Matrix(){
       delete[] row_indicies;
       delete[] row_lengths;
-      delete[] row_types;
       delete[] row_data;
 
       if(!symmetric){
         delete[] column_indicies;
         delete[] column_lengths;
-        delete[] column_types;
         delete[] column_data;
       }
     }
@@ -97,18 +93,7 @@ inline size_t Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j, 
   card_b = row_lengths[j];
   #endif
 
-  long ncount;
-  #if HYBRID_LAYOUT == 1
-  const common::type t1 = (common::type) row_types[i];
-  const common::type t2 = (common::type) row_types[j];
-  if(t1 == t2){
-    ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t1,decoded_a);
-  } else{
-    ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,t1,t2,card_a,card_b,decoded_a);
-  }
-  #else 
-    ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t,decoded_a);
-  #endif
+  long ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t,decoded_a);
 
   return ncount;
 }
@@ -162,20 +147,15 @@ template<typename T>
 T Matrix::sum_over_columns_in_row(unsigned int row,T (*function)(unsigned int,unsigned int,unsigned int*)){
   size_t start = row_indicies[row];
   size_t end = row_indicies[row+1];
-  size_t card = row_lengths[row];
-  
+  size_t card = 0;
+
   unsigned int *decoded_a = row_lengths;
   #if COMPRESSION == 1
+  card = row_lengths[row];
   decoded_a = new unsigned int[card];
   #endif
-
-  #if HYBRID_LAYOUT == 1
-  const common::type row_type = (common::type) row_types[row];
-  #else
-  const common::type row_type = (common::type) t;
-  #endif
   
-  T result = uint_array::sum_decoded(function,row,row_data+start,end-start,card,row_type,decoded_a);
+  T result = uint_array::sum_decoded(function,row,row_data+start,end-start,card,t,decoded_a);
 
   #if COMPRESSION == 1
   delete[] decoded_a;
@@ -197,17 +177,16 @@ T Matrix::map_columns(T (Matrix::*rowfunction)(unsigned int,T *old_data), T *new
 
 template<typename T> 
 T Matrix::sum_over_rows_in_column(unsigned int col,T *old_data){
-  size_t start = column_indicies[col];
-  size_t end = column_indicies[col+1];
-  size_t card = column_lengths[col];
+  const size_t start = column_indicies[col];
+  const size_t end = column_indicies[col+1];
 
-  #if HYBRID_LAYOUT == 1
-  const common::type col_type = (common::type) column_types[col];
-  #else
-  const common::type col_type = (common::type) t;
+  #if COMPRESSION == 1
+  const size_t card = column_lengths[col];
+  #else 
+  const size_t card = 0;
   #endif
   
-  T result = uint_array::sum(column_data+start,end-start,card,col_type,old_data,row_lengths);
+  T result = uint_array::sum(column_data+start,end-start,card,t,old_data,row_lengths);
 
   return result;
 }
@@ -225,17 +204,17 @@ T Matrix::map_columns_pr(T (Matrix::*rowfunction)(unsigned int,T *old_data), T *
 
 template<typename T> 
 T Matrix::sum_over_rows_in_column_pr(unsigned int col,T *old_data){
-  size_t start = column_indicies[col];
-  size_t end = column_indicies[col+1];
-  size_t card = column_lengths[col];
+  const size_t start = column_indicies[col];
+  const size_t end = column_indicies[col+1];
 
-  #if HYBRID_LAYOUT == 1
-  const common::type col_type = (common::type) column_types[col];
-  #else
-  const common::type col_type = (common::type) t;
+  #if COMPRESSION == 1
+  const size_t card = column_lengths[col];
+  #else 
+  const size_t card = 0;
   #endif
+
   
-  T result = uint_array::sum_pr(column_data+start,end-start,card,col_type,old_data,row_lengths);
+  T result = uint_array::sum_pr(column_data+start,end-start,card,t,old_data,row_lengths);
 
   return result;
 }

@@ -6,7 +6,6 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
 
   size_t *row_indicies_in = new size_t[matrix_size_in+1];
   unsigned int *row_lengths_in = new unsigned int[matrix_size_in];
-  uint8_t *row_types_in = new uint8_t[matrix_size_in];
   uint8_t *tmp_row_data = new uint8_t[cardinality_in*40]; 
 
   size_t new_cardinality = 0;
@@ -26,8 +25,6 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
       }
       row_lengths_in[i] = filter_index;
       const common::type row_type = Matrix::get_array_type(t_in,filtered_hood,filter_index,matrix_size_in); //depends on above array being set
-      row_types_in[i] = row_type;
-
       index = uint_array::preprocess(tmp_row_data,index,filtered_hood,filter_index,row_type);
       delete[] filtered_hood;
     }
@@ -45,14 +42,12 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
   row_indicies = row_indicies_in;
   row_lengths = row_lengths_in;
   row_data = row_data_in;
-  row_types = row_types_in;
   
   symmetric = true;
   external_ids = external_ids_in;
 
   column_indicies = row_indicies_in;
   column_lengths = row_lengths_in;
-  column_types = row_types_in;
   column_data = row_data_in;
 
   //return Matrix(matrix_size_in,new_cardinality,t_in,row_indicies_in,row_lengths_in,row_types_in,row_data_in);
@@ -64,7 +59,6 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
 
   size_t *row_indicies_in = new size_t[matrix_size_in+1];
   unsigned int *row_lengths_in = new unsigned int[matrix_size_in];
-  uint8_t *row_types_in = new unsigned char[matrix_size_in];
   uint8_t *tmp_row_data = new uint8_t[cardinality_in*40]; 
 
   size_t new_cardinality = 0;
@@ -88,14 +82,12 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
 
         row_lengths_in[i] = filter_index;
         const common::type row_type = Matrix::get_array_type(t_in,filtered_hood,filter_index,matrix_size_in); //depends on above array being set
-        row_types_in[i] = row_type;
         index = uint_array::preprocess(tmp_row_data,index,filtered_hood,filter_index,row_type);
         delete[] filtered_hood;
       }
       nbr_i++;
     } else{
       row_lengths_in[i] = 0;
-      row_types_in[i] = common::ARRAY32;
     } 
   }
 
@@ -108,7 +100,6 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
   nbr_i = 0;
   size_t *col_indicies_in = new size_t[matrix_size_in+1];
   unsigned int *col_lengths_in = new unsigned int[matrix_size_in];
-  uint8_t *col_types_in = new uint8_t[matrix_size_in];
   uint8_t *tmp_col_data = new uint8_t[cardinality_in*40]; 
 
   for(size_t i = 0; i < matrix_size_in; ++i) {
@@ -136,13 +127,11 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
         //cout << "Node: " << i << " num_hit: " << num_hit << " deg: " << filter_index << endl;
         col_lengths_in[i] = filter_index;
         const common::type col_type = Matrix::get_array_type(t_in,filtered_hood,filter_index,matrix_size_in); //depends on above array being set
-        col_types_in[i] = col_type;
         index = uint_array::preprocess(tmp_col_data,index,filtered_hood,filter_index,col_type);
         delete[] filtered_hood;
       }
     } else{
       col_lengths_in[i] = 0;
-      col_types_in[i] = common::ARRAY32;
     } 
   }
 
@@ -158,14 +147,12 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
   row_indicies = row_indicies_in;
   row_lengths = row_lengths_in;
   row_data = row_data_in;
-  row_types = row_types_in;
 
   symmetric = false;
   external_ids = external_ids_in;
 
   column_indicies = col_indicies_in;
   column_lengths = col_lengths_in;
-  column_types = col_types_in;
   column_data = col_data_in;
 }
 
@@ -177,15 +164,13 @@ void Matrix::print_rows(unsigned int i, unsigned int j, string filename){
   size_t start = row_indicies[i];
   size_t end = row_indicies[i+1];
   size_t card = row_lengths[i];
-  common::type row_type = (common::type) row_types[i];
-  uint_array::print_data(row_data+start,end-start,card,row_type,myfile);
+  uint_array::print_data(row_data+start,end-start,card,t,myfile);
 
   myfile << "ROW: " << j << endl;
   start = row_indicies[j];
   end = row_indicies[j+1];
   card = row_lengths[j];
-  row_type = (common::type) row_types[j];
-  uint_array::print_data(row_data+start,end-start,card,row_type,myfile);
+  uint_array::print_data(row_data+start,end-start,card,t,myfile);
 }
 
 void Matrix::print_data(string filename){
@@ -199,9 +184,8 @@ void Matrix::print_data(string filename){
 		size_t start = row_indicies[i];
 		size_t end = row_indicies[i+1];
     size_t card = row_lengths[i];
-    const common::type row_type = (common::type) row_types[i];
 
-		uint_array::print_data(row_data+start,end-start,card,row_type,myfile);
+		uint_array::print_data(row_data+start,end-start,card,t,myfile);
 	}
   myfile << endl;
   //Printing in neighbors
@@ -211,14 +195,13 @@ void Matrix::print_data(string filename){
       size_t start = column_indicies[i];
       size_t end = column_indicies[i+1];
       size_t card = column_lengths[i];
-      const common::type col_type = (common::type) column_types[i];
-      uint_array::print_data(column_data+start,end-start,card,col_type,myfile);
+      uint_array::print_data(column_data+start,end-start,card,t,myfile);
     }
   }
 
   myfile.close();
 }
-
+/*
 void Matrix::createN2X(){
   n2x = new vector< vector<unsigned int>*  >(matrix_size);
   //n2x_counts = new vector< vector<unsigned int>*  >(matrix_size);
@@ -256,7 +239,6 @@ void Matrix::createN2X(){
     
     ///count up how many times it appears
     //this isn't right actually need back edges to list it.
-    /*
     vector<unsigned int> *un_count = new vector<unsigned int>(union_data,union_data+union_size);
     for(size_t j = 0; j < card; j++){
       unsigned int nbr = neighbors[j];
@@ -287,8 +269,6 @@ void Matrix::createN2X(){
         notFinished = notFinished && i_a < s_a;
       }
     }
-    */
-
     vector<unsigned int> *un = new vector<unsigned int>(union_data,union_data+union_size);
     n2x->at(i) = un;
     //n2x_counts->at(i) = un_count;
@@ -296,3 +276,4 @@ void Matrix::createN2X(){
   }
   //intersect n2x across all sets and take output of each +1 in incrementer array
 }
+*/

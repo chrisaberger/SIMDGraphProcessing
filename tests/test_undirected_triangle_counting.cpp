@@ -15,47 +15,58 @@ namespace application{
   inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
     return nbr < node;
   }
-  inline long edgeApply(unsigned int src, unsigned int dst){
-    //cout << "src: " << src << " dst: " << dst << endl;
-    long count = graph->row_intersect(result,src,dst);
-    //cout << count << endl;
-    return count;
-  }
-  inline void queryOver(){
-    num_triangles = graph->reduce_row(&Matrix::reduce_column_in_row,&edgeApply);
-  }
 }
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
-  if(argc != 3){
+  if(argc != 4){
     cout << "Please see usage below: " << endl;
-    cout << "\t./main <adjacency list file/folder> <# of threads>" << endl;
+    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp>" << endl;
     exit(0);
   }
 
   cout << endl << "Number of threads: " << atoi(argv[2]) << endl;
   omp_set_num_threads(atoi(argv[2]));        
 
-  common::startClock();
-  MutableGraph inputGraph = MutableGraph::undirectedFromAdjList(argv[1],1); //filename, # of files
-  application::result = new uint8_t[inputGraph.num_nodes]; //we don't actually use this for just a count
-    //for more sophisticated queries this would be used.
-  common::stopClock("Reading File");
-  
-  
-  unsigned int n1 = 9;
-  unsigned int n2 = 8;
+  std::string input_layout = argv[3];
 
-  application::graph = new Matrix(inputGraph.out_neighborhoods,
-    inputGraph.num_nodes,inputGraph.num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY32);
-  application::graph->print_rows(n1,n2,"a32.txt");
-  application::num_triangles = application::graph->row_intersect(application::result,n1,n2);
+  common::type layout;
+  if(input_layout.compare("a32") == 0){
+    layout = common::ARRAY32;
+  } else if(input_layout.compare("a16") == 0){
+    layout = common::ARRAY16;
+  } else if(input_layout.compare("hybrid") == 0){
+    layout = common::HYBRID;
+  } else if(input_layout.compare("v") == 0){
+    layout = common::VARIANT;
+  } else if(input_layout.compare("bp") == 0){
+    layout = common::A32BITPACKED;
+  } else{
+    cout << "No valid layout entered." << endl;
+    exit(0);
+  }
+
+  common::startClock();
+  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1],1); //filename, # of files
+  application::result = new uint8_t[inputGraph->num_nodes]; //we don't actually use this for just a count
+  common::stopClock("Reading File");
+
+  cout << endl;
+
+  application::graph = new Matrix(inputGraph->out_neighborhoods,
+    inputGraph->num_nodes,inputGraph->num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,inputGraph->external_ids,layout);
+  inputGraph->MutableGraph::~MutableGraph(); 
+  
+  unsigned int n1 = 139;
+  unsigned int n2 = 5;
+  application::graph->print_rows(n1,n2,"a32_w.txt");
+  unsigned int *dumb;
+  application::num_triangles = application::graph->row_intersect(application::result,n1,n2,dumb);
   application::graph->Matrix::~Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
 
-  
+  /*
   application::graph = new Matrix(inputGraph.out_neighborhoods,
       inputGraph.num_nodes,inputGraph.num_edges,
       &application::myNodeSelection,&application::myEdgeSelection,common::VARIANT);
@@ -63,7 +74,7 @@ int main (int argc, char* argv[]) {
   application::num_triangles = application::graph->row_intersect(application::result,n1,n2);
   application::graph->Matrix::~Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
-  
+  */
   
   /*
   application::graph = new Matrix(inputGraph.out_neighborhoods,

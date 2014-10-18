@@ -149,6 +149,7 @@ dst1 src0
 
 */
 MutableGraph* MutableGraph::undirectedFromEdgeList(const string path,const int num_files) {
+  (void) num_files; //one day this will be in parallel
   ////////////////////////////////////////////////////////////////////////////////////
   //Place graph into vector of vectors then decide how you want to
   //store the graph.
@@ -226,6 +227,8 @@ src1 dst1
 
 */
 MutableGraph* MutableGraph::directedFromEdgeList(const string path,const int num_files) {
+  (void) num_files; //one day this will be in parallel
+
   size_t num_edges = 0;
   size_t num_nodes = 0;
   

@@ -2,6 +2,10 @@
 
 namespace uint_array{
   inline size_t preprocess(uint8_t *data, size_t index, unsigned int *data_in, size_t length_in, common::type t){
+    #if HYBRID_LAYOUT == 1
+    data[index++] = t;
+    #endif
+
     switch(t){
       case common::ARRAY32:
         index += array32::preprocess((unsigned int*)(data+index),data_in,length_in);
@@ -25,6 +29,11 @@ namespace uint_array{
   }
   template<typename T> 
   inline T sum_decoded(T (*function)(unsigned int,unsigned int,unsigned int*),unsigned int col,uint8_t *data,size_t length, size_t card,common::type t,unsigned int *outputA){
+    #if HYBRID_LAYOUT == 1
+    t = (common::type) data[0];
+    data++;
+    #endif
+
     switch(t){
       case common::ARRAY32:
         return array32::sum_decoded(function,col,(unsigned int*)data,length/4,outputA);
@@ -51,6 +60,12 @@ namespace uint_array{
   template<typename T> 
   inline T sum(uint8_t *data,size_t length, size_t card,common::type t, T *old_data, unsigned int *lengths){
     card = card;
+
+    #if HYBRID_LAYOUT == 1
+    t = (common::type) data[0];
+    data++; //integer division cuts off length
+    #endif
+
     switch(t){
       case common::ARRAY32:
         return array32::sum((unsigned int*)data,length/4,old_data,lengths);
@@ -75,6 +90,12 @@ namespace uint_array{
   template<typename T> 
   inline T sum_pr(uint8_t *data,size_t length, size_t card,common::type t, T *old_data, unsigned int *lengths){
     card = card;
+
+    #if HYBRID_LAYOUT == 1
+    t = (common::type) data[0];
+    data++;
+    #endif 
+
     switch(t){
       case common::ARRAY32:
         return array32::sum_pr((unsigned int*)data,length/4,old_data,lengths);
@@ -97,11 +118,12 @@ namespace uint_array{
         return 0.0;
         break;
     }
-  } 
-  inline size_t intersect(uint8_t *R, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b, 
+  }
+  inline size_t intersect_homogeneous(uint8_t *R, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b, 
     unsigned int card_a, unsigned int card_b, common::type t,unsigned int *outputA){
     size_t count = 0;
     unsigned int *outputB;
+
     switch(t){
       case common::ARRAY32:
         count = array32::intersect((unsigned int*)R,(unsigned int*)A,(unsigned int*)B,s_a/4,s_b/4);
@@ -130,8 +152,9 @@ namespace uint_array{
     return count;
   }
 
-  inline size_t intersect(uint8_t *R, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b, 
-    common::type t1, common::type t2, unsigned int card_a, unsigned int card_b, unsigned int *outputA){
+  inline size_t intersect_heterogenous(uint8_t *R, uint8_t *A, uint8_t *B,
+    size_t s_a, size_t s_b, unsigned int card_a, unsigned int card_b,
+    common::type t1, common::type t2, unsigned int *outputA){
     size_t count = 0;
     if(t1 == common::ARRAY32){
       if(t2 == common::ARRAY16){
@@ -225,10 +248,34 @@ namespace uint_array{
         count = hybrid::intersect_a32_bs((unsigned int*)R,outputA,(unsigned short*)B,card_a,s_b/2);
       } 
     }
+    #else
+    (void) card_a; (void) card_b; (void) outputA;
     #endif
+
     return count;
   }
+  inline size_t intersect(uint8_t *R, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b, 
+    unsigned int card_a, unsigned int card_b, common::type t, unsigned int *outputA){
+
+    #if HYBRID_LAYOUT == 1
+    (void) t;
+    const common::type t1 = (common::type) A[0];
+    const common::type t2 = (common::type) B[0];
+    if(t1 == t2){
+      return uint_array::intersect_homogeneous(R,++A,++B,s_a,s_b,card_a,card_b,t1,outputA);
+    } else{
+      return uint_array::intersect_heterogenous(R,++A,++B,s_a,s_b,card_a,card_b,t1,t2,outputA);
+    }
+    #else 
+    return uint_array::intersect_homogeneous(R,A,B,s_a,s_b,card_a,card_b,t,outputA);
+    #endif
+  }
   inline void get_a32(unsigned int *result, uint8_t *data, size_t length, size_t cardinality, common::type t){
+    #if HYBRID_LAYOUT == 1
+    t = (common::type) data[0];
+    data++;
+    #endif
+
     switch(t){
       case common::ARRAY32:
         std::copy((unsigned int*)data,(unsigned int*)data+(length/4),result);
@@ -250,6 +297,11 @@ namespace uint_array{
     }
   }
   inline void print_data(uint8_t *data, size_t length, size_t cardinality, common::type t, std::ofstream &file){
+    #if HYBRID_LAYOUT == 1
+    t = (common::type) data[0];
+    data++;
+    #endif
+
     switch(t){
       case common::ARRAY32:
         array32::print_data((unsigned int*)data,length/4,file);

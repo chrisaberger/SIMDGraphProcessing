@@ -64,8 +64,10 @@ int main (int argc, char* argv[]) {
 
   application::graph = new Matrix(inputGraph->out_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,layout);
+    &application::myNodeSelection,&application::myEdgeSelection,inputGraph->external_ids,layout);
   inputGraph->MutableGraph::~MutableGraph(); 
+  
+  //application::graph->print_data("out.txt");
   
   common::startClock();
   application::queryOver();

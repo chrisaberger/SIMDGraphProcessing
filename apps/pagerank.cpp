@@ -71,7 +71,6 @@ namespace application{
       __m256 diff_sse = _mm256_setzero_ps();
       for(; pr_i<st_a;pr_i+=8){
         __m256 new_vals = _mm256_add_ps(_mm256_loadu_ps(&new_pr_data[pr_i]),add_reg);
-        __m256 old_data = _mm256_loadu_ps(&pr_data[pr_i]);
         new_vals = _mm256_div_ps(new_vals,_mm256_loadu_ps(&scaling_array[pr_i]));
         new_vals = _mm256_mul_ps(k_reg,new_vals);
         _mm256_storeu_ps(&pr_data[pr_i],new_vals);
@@ -116,6 +115,7 @@ namespace application{
     size_t num_iterations = 0;
     while(num_iterations < max_iterations){
       float diff = graph->map_columns_pr(&Matrix::sum_over_rows_in_column_pr,new_pr_data,pr_data);
+      diff = diff;
       float *tmp = pr_data;
       pr_data = new_pr_data;
       new_pr_data = tmp;
@@ -158,7 +158,7 @@ int main (int argc, char* argv[]) {
   common::startClock();
   application::queryOver();
   common::stopClock("CSR PAGE RANK");
-  application::graph->Matrix::~Matrix(); 
+    application::graph->Matrix::~Matrix(); 
 
   //application::print_pr_data("pr1.txt");
 

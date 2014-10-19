@@ -94,9 +94,9 @@ inline size_t Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j, 
   #endif
 
   long ncount = 0;
-  //if((i_end-i_start) > 0 && (j_end-j_start) > 0){
+  if((i_end-i_start) > 0 && (j_end-j_start) > 0){
     ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t,decoded_a);
-  //}
+  }
 
   return ncount;
 }

@@ -141,63 +141,35 @@ int main (int argc, char* argv[]) {
   //for more sophisticated queries this would be used.
   common::stopClock("Reading File");
   
-
   cout << endl;
+  
   application::graph = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,
     inputGraph->external_ids,common::ARRAY32);
   //application::graph->print_data("matrix.txt");
   
+  common::startClock();
+  application::queryOverNew();
+  common::stopClock("CSR PAGE RANK");
+  application::graph->Matrix::~Matrix(); 
+  
+  application::print_pr_data("pr2.txt");
+  cout << endl;
+
+  application::graph = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
+    inputGraph->num_nodes,inputGraph->num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,
+    inputGraph->external_ids,common::ARRAY16);
+
+  //application::graph->sum_over_rows_in_column(370346,application::pr_data);
   
   common::startClock();
   application::queryOverNew();
   common::stopClock("NEW CSR PAGE RANK");
-  //application::print_pr_data("pr2.txt");
+  application::graph->Matrix::~Matrix();
+  
+  application::print_pr_data("pr1.txt");
 
-  common::startClock();
-  application::queryOver();
-  common::stopClock("CSR PAGE RANK");
-    application::graph->Matrix::~Matrix(); 
-
-  //application::print_pr_data("pr1.txt");
-
-  /*
-  cout << endl;
-  application::graph = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
-    inputGraph->num_nodes,inputGraph->num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY16);
-  common::startClock();
-  application::queryOver();
-  common::stopClock("ARRAY16 PAGE RANK");
-  application::graph->Matrix::~Matrix(); 
-
-    cout << endl;
-  application::graph = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
-    inputGraph->num_nodes,inputGraph->num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,common::HYBRID);
-  common::startClock();
-  application::queryOver();
-  common::stopClock("HYBRID PAGE RANK");
-  application::graph->Matrix::~Matrix(); 
-
-    cout << endl;
-  application::graph = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
-    inputGraph->num_nodes,inputGraph->num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,common::VARIANT);
-  common::startClock();
-  application::queryOver();
-  common::stopClock("VARIANT PAGE RANK");
-  application::graph->Matrix::~Matrix(); 
-
-  cout << endl;
-  application::graph = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
-    inputGraph->num_nodes,inputGraph->num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,common::A32BITPACKED);
-  common::startClock();
-  application::queryOver();
-  common::stopClock("A32BITPACKED PAGE RANK");
-  application::graph->Matrix::~Matrix(); 
-  */
   return 0;
 }

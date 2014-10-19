@@ -4,7 +4,119 @@
 #include "a32bitpacked.hpp"
 
 namespace hybrid {
-  //untested
+  static __m256i load_mask_runs[256];
+  static __m256i permutation_mask_runs[256];
+
+  static inline int getBitH(unsigned int value, unsigned int position) {
+    return ( ( value & (1 << position) ) >> position);
+  }
+  static inline void prepare_shuffling_dictionary() {
+    //Number of bits that can possibly be set are the lower 8
+    for(unsigned int i = 0; i < 256; i++) { // 2^8 possibilities we need to store masks for
+      unsigned int counter = 0;
+      unsigned int back_counter = 7;
+      unsigned int permutation[8];
+      unsigned int load_permutation[8];
+
+      memset(load_permutation, 0, sizeof(load_permutation));
+      for(unsigned int b = 0; b < 8; b++) { //Check each possible bit that can be set 1-by-1
+        if(getBitH(i, b)) {
+          load_permutation[b] = 0xf0000000;
+          permutation[counter++] = b;
+        } else{
+          permutation[back_counter--] = b;
+        }
+      }
+      __m256i load_mask = _mm256_loadu_si256((const __m256i*)load_permutation);
+      load_mask_runs[i] = load_mask;
+      __m256i mask = _mm256_loadu_si256((const __m256i*)permutation);
+      permutation_mask_runs[i] = mask;
+    }
+  }
+
+  inline size_t preprocess(uint8_t *result_in, unsigned int *data_in, size_t length, size_t mat_size){
+    size_t threshold = 4;
+    size_t data_i = 0;
+    size_t result_i = 4;
+    unsigned int num_dense = 0;
+    unsigned int *sparse_set = new unsigned int[length];
+    size_t sparse_i = 0;
+
+    while(data_i < length){
+      //loop
+      size_t start = data_i;
+      unsigned int cur = data_in[data_i];
+      uint8_t box_mask = 0;
+      unsigned int num_in_box = 0;
+      unsigned int dist = 0;
+      while(dist < 8 && data_i < length && (cur+8 <= mat_size)){
+        dist = (data_in[data_i]-cur);
+        if(dist < 8){
+          num_in_box++;
+          box_mask |= (1 << dist);
+          data_i += (dist < 8); 
+        }
+
+      }
+
+      if(num_in_box >= threshold){
+        //place in dense
+        result_in[result_i++] = (uint8_t)((cur & 0xff000000) >> 24);
+        result_in[result_i++] = (uint8_t)((cur & 0x00ff0000) >> 16);
+        result_in[result_i++] = (uint8_t)((cur & 0x0000ff00) >> 8);
+        result_in[result_i++] = (uint8_t)(cur & 0x000000ff);
+
+        result_in[result_i++] = box_mask;
+        num_dense++;
+      } else{
+        //place in sparse
+        sparse_set[sparse_i++] = cur;
+        data_i = start+1;
+      }
+    }
+
+    uint8_t *sparse_set_bytes = (uint8_t *) sparse_set; 
+    std::copy(&sparse_set_bytes[0],&sparse_set_bytes[sparse_i*4],&result_in[result_i]);
+    result_i += (sparse_i*4);
+    delete[] sparse_set;
+
+    unsigned int *num_dense_pointer = (unsigned int*) result_in;
+    num_dense_pointer[0] = num_dense;
+
+    return result_i;
+  }
+  inline float sum(uint8_t *data, size_t length, size_t cardinality,float *old_data, unsigned int *lengths){
+    (void) lengths; (void) cardinality;
+    unsigned int *num_dense_pointer = (unsigned int*) data;
+    const unsigned int num_dense = num_dense_pointer[0];
+    size_t data_i = 4;
+    size_t num_dense_processed = 0;
+
+    float result = 0.0;
+    __m256 avx_result = _mm256_set1_ps(0);
+    while(num_dense_processed < num_dense){
+      unsigned int cur = ((unsigned int)data[data_i] << 24) | ((unsigned int)data[data_i+1] << 16) | ((unsigned int)data[data_i+2] << 8) | (unsigned int)data[data_i+3];
+      __m256 my_data = _mm256_maskload_ps(&old_data[cur],load_mask_runs[(unsigned int)data[data_i+4]]);
+      
+      //common::_mm256_print_ps(my_data);
+      //common::_mm256i_print(load_mask_runs[(unsigned int)data[data_i+4]]);
+
+      avx_result = _mm256_add_ps(my_data,avx_result);
+      //my_data = _mm256_permutevar_ps(my_data,permutation_mask_runs[204]);
+      //cout << "loaded" << endl;
+      data_i += 5;
+      num_dense_processed++;
+    }
+    result = common::_mm256_reduce_add_ps(avx_result);
+
+    unsigned int *data_32 = (unsigned int*) &data[data_i];
+    size_t sparse_i = 0;
+    while(data_i < length){
+      data_i += 4;
+      result += old_data[data_32[sparse_i++]];
+    }
+    return result;
+  }
   inline size_t intersect_a16_bs(unsigned int *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     (void)C;
     (void)s_b;

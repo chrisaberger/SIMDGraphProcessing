@@ -6,7 +6,7 @@ UnsignedIntegerArray::UnsignedIntegerArray(unsigned int *data_in, size_t length_
   data = new uint8_t[length_in*10*4];
   cardinality = length_in;
 
-  length = uint_array::preprocess(data,0,data_in,length_in,t);
+  length = uint_array::preprocess(data,0,data_in,length_in,0xffffffff,t);
 
   /*
   data = new uint8_t[length];

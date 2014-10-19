@@ -93,7 +93,10 @@ inline size_t Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j, 
   card_b = row_lengths[j];
   #endif
 
-  long ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t,decoded_a);
+  long ncount = 0;
+  //if((i_end-i_start) > 0 && (j_end-j_start) > 0){
+    ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t,decoded_a);
+  //}
 
   return ncount;
 }
@@ -136,7 +139,7 @@ inline common::type Matrix::get_hybrid_array_type(unsigned int *r_data, size_t r
 template<typename T> 
 T Matrix::sum_over_rows(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,unsigned int,unsigned int*)), T (*f)(unsigned int,unsigned int,unsigned int*)) {
   T reducer = (T) 0;
-  #pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
+  //#pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
   for(size_t i = 0; i < matrix_size; i++){
     reducer += (this->*rowfunction)(i,f);
   }
@@ -155,7 +158,10 @@ T Matrix::sum_over_columns_in_row(unsigned int row,T (*function)(unsigned int,un
   decoded_a = new unsigned int[card];
   #endif
   
-  T result = uint_array::sum_decoded(function,row,row_data+start,end-start,card,t,decoded_a);
+  T result = (T) 0;
+  if((end-start) > 0){
+    result = uint_array::sum_decoded(function,row,row_data+start,end-start,card,t,decoded_a);
+  }
 
   #if COMPRESSION == 1
   delete[] decoded_a;
@@ -185,8 +191,11 @@ T Matrix::sum_over_rows_in_column(unsigned int col,T *old_data){
   #else 
   const size_t card = 0;
   #endif
-  
-  T result = uint_array::sum(column_data+start,end-start,card,t,old_data,row_lengths);
+
+  T result = (T) 0;
+  if((end-start) > 0){
+    result = uint_array::sum(column_data+start,end-start,card,t,old_data,row_lengths);
+  }
 
   return result;
 }
@@ -212,9 +221,11 @@ T Matrix::sum_over_rows_in_column_pr(unsigned int col,T *old_data){
   #else 
   const size_t card = 0;
   #endif
-
   
-  T result = uint_array::sum_pr(column_data+start,end-start,card,t,old_data,row_lengths);
+  T result = (T) 0;
+  if((end-start) > 0){
+    result = uint_array::sum_pr(column_data+start,end-start,card,t,old_data,row_lengths);
+  }
 
   return result;
 }

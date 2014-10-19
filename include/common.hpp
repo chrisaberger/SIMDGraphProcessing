@@ -34,6 +34,22 @@ namespace common{
   static double t2;
   static struct timeval tim;  
 
+  static void _mm256_print_ps(__m256 x) {
+    float *data = new float[8];
+    _mm256_storeu_ps(&data[0],x);
+    for(size_t i =0 ; i < 8; i++){
+      cout << "Data[" << i << "]: " << data[i] << endl;
+    }
+    delete[] data;
+  }
+  static void _mm256i_print(__m256i x) {
+    int *data = new int[8];
+    _mm256_storeu_si256((__m256i*)&data[0],x);
+    for(size_t i =0 ; i < 8; i++){
+      cout << "Data[" << i << "]: " << data[i] << endl;
+    }
+    delete[] data;
+  }
   //Thanks stack overflow.
   static inline float _mm256_reduce_add_ps(__m256 x) {
     /* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */
@@ -80,7 +96,9 @@ namespace common{
     ARRAY32 = 2,
     HYBRID = 3,
     A32BITPACKED = 4,
-    VARIANT = 5
+    VARIANT = 5,
+    DENSE_RUNS = 6,
+    EMPTY = 7
   };
   
 }

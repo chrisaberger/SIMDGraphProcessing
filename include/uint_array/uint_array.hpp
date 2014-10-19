@@ -1,7 +1,7 @@
 #include "hybrid.hpp"
 
 namespace uint_array{
-  inline size_t preprocess(uint8_t *data, size_t index, unsigned int *data_in, size_t length_in, common::type t){
+  inline size_t preprocess(uint8_t *data, size_t index, unsigned int *data_in, size_t length_in, size_t mat_size, common::type t){
     #if HYBRID_LAYOUT == 1
     data[index++] = t;
     #endif
@@ -22,6 +22,8 @@ namespace uint_array{
       case common::VARIANT:
         index += variant::preprocess((data+index),data_in,length_in);
         break;
+      case common::DENSE_RUNS:
+        index += hybrid::preprocess((data+index),data_in,length_in,mat_size);
       default:
         break;
     }
@@ -32,6 +34,7 @@ namespace uint_array{
     #if HYBRID_LAYOUT == 1
     t = (common::type) data[0];
     data++;
+    length--;
     #endif
 
     switch(t){
@@ -64,6 +67,7 @@ namespace uint_array{
     #if HYBRID_LAYOUT == 1
     t = (common::type) data[0];
     data++; //integer division cuts off length
+    length--;
     #endif
 
     switch(t){
@@ -82,6 +86,9 @@ namespace uint_array{
       case common::VARIANT:
         return variant::sum(data,card,old_data,lengths);
         break;
+      case common::DENSE_RUNS:
+        return hybrid::sum(data,length,card,old_data,lengths);
+        break;
       default:
         return 0.0;
         break;
@@ -94,6 +101,7 @@ namespace uint_array{
     #if HYBRID_LAYOUT == 1
     t = (common::type) data[0];
     data++;
+    length--;
     #endif 
 
     switch(t){
@@ -261,6 +269,7 @@ namespace uint_array{
     (void) t;
     const common::type t1 = (common::type) A[0];
     const common::type t2 = (common::type) B[0];
+    s_a--; s_b--;
     if(t1 == t2){
       return uint_array::intersect_homogeneous(R,++A,++B,s_a,s_b,card_a,card_b,t1,outputA);
     } else{
@@ -274,6 +283,7 @@ namespace uint_array{
     #if HYBRID_LAYOUT == 1
     t = (common::type) data[0];
     data++;
+    length--;
     #endif
 
     switch(t){
@@ -300,6 +310,7 @@ namespace uint_array{
     #if HYBRID_LAYOUT == 1
     t = (common::type) data[0];
     data++;
+    length--;
     #endif
 
     switch(t){
@@ -317,6 +328,9 @@ namespace uint_array{
         break;
       case common::VARIANT:
         variant::print_data(data,length,cardinality,file);
+        break;
+      case common::DENSE_RUNS:
+        //hybrid::print_data(data,length,cardinality,file);
         break;
       default:
         break;

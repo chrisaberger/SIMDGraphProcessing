@@ -57,8 +57,8 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
 Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigned int>*  > *in_nbrs, size_t matrix_size_in, size_t cardinality_in, 
   bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), unordered_map<unsigned int,unsigned int> *external_ids_in, common::type t_in){
   array16::prepare_shuffling_dictionary16();
-  hybrid::prepare_shuffling_dictionary();
-  
+  hybrid::prepare_shuffling_dictionary();  
+
   size_t *row_indicies_in = new size_t[matrix_size_in+1];
   unsigned int *row_lengths_in = new unsigned int[matrix_size_in];
   uint8_t *tmp_row_data = new uint8_t[cardinality_in*40]; 
@@ -171,6 +171,17 @@ void Matrix::print_rows(unsigned int i, unsigned int j, string filename){
   end = row_indicies[j+1];
   card = row_lengths[j];
   uint_array::print_data(row_data+start,end-start,card,t,myfile);
+}
+
+void Matrix::print_column(unsigned int i, string filename){
+  ofstream myfile;
+  myfile.open(filename);
+
+  myfile << "COL: " << i << endl;
+  size_t start = column_indicies[i];
+  size_t end = column_indicies[i+1];
+  size_t card = column_lengths[i];
+  uint_array::print_data(column_data+start,end-start,card,t,myfile);
 }
 
 void Matrix::print_data(string filename){

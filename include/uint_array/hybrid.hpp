@@ -29,6 +29,7 @@ namespace hybrid {
       }
       __m256i load_mask = _mm256_loadu_si256((const __m256i*)load_permutation);
       load_mask_runs[i] = load_mask;
+
       __m256i mask = _mm256_loadu_si256((const __m256i*)permutation);
       permutation_mask_runs[i] = mask;
     }
@@ -56,15 +57,13 @@ namespace hybrid {
           box_mask |= (1 << dist);
           data_i += (dist < 8); 
         }
-
       }
 
       if(num_in_box >= threshold){
         //place in dense
-        result_in[result_i++] = (uint8_t)((cur & 0xff000000) >> 24);
-        result_in[result_i++] = (uint8_t)((cur & 0x00ff0000) >> 16);
-        result_in[result_i++] = (uint8_t)((cur & 0x0000ff00) >> 8);
-        result_in[result_i++] = (uint8_t)(cur & 0x000000ff);
+        unsigned int *dense_start = (unsigned int*)&result_in[result_i];
+        dense_start[0] = cur;
+        result_i += 4;
 
         result_in[result_i++] = box_mask;
         num_dense++;
@@ -85,34 +84,93 @@ namespace hybrid {
 
     return result_i;
   }
-  inline float sum(uint8_t *data, size_t length, size_t cardinality,float *old_data, unsigned int *lengths){
-    (void) lengths; (void) cardinality;
-    unsigned int *num_dense_pointer = (unsigned int*) data;
-    const unsigned int num_dense = num_dense_pointer[0];
+  inline float print_data(uint8_t *data, size_t length, size_t cardinality,ofstream &file){
+    (void) cardinality;
     size_t data_i = 4;
-    size_t num_dense_processed = 0;
 
     float result = 0.0;
+    
+    unsigned int *num_dense_pointer = (unsigned int*) data;
+    const unsigned int num_dense = num_dense_pointer[0];
+
     __m256 avx_result = _mm256_set1_ps(0);
-    while(num_dense_processed < num_dense){
-      unsigned int cur = ((unsigned int)data[data_i] << 24) | ((unsigned int)data[data_i+1] << 16) | ((unsigned int)data[data_i+2] << 8) | (unsigned int)data[data_i+3];
-      __m256 my_data = _mm256_maskload_ps(&old_data[cur],load_mask_runs[(unsigned int)data[data_i+4]]);
+    for(size_t num_dense_processed = 0;num_dense_processed<num_dense;num_dense_processed++){
+      unsigned int *cur_pointer = (unsigned int*) &data[data_i];
+      unsigned int cur = cur_pointer[0];
       
-      //common::_mm256_print_ps(my_data);
-      //common::_mm256i_print(load_mask_runs[(unsigned int)data[data_i+4]]);
+      file << "Dense data: " << cur << endl;
+      file << "Mask: " << hex << (unsigned int)data[data_i+4] << dec << endl;
 
-      avx_result = _mm256_add_ps(my_data,avx_result);
-      //my_data = _mm256_permutevar_ps(my_data,permutation_mask_runs[204]);
-      //cout << "loaded" << endl;
       data_i += 5;
-      num_dense_processed++;
     }
-    result = common::_mm256_reduce_add_ps(avx_result);
 
+    result = common::_mm256_reduce_add_ps(avx_result);
+  
     unsigned int *data_32 = (unsigned int*) &data[data_i];
     size_t sparse_i = 0;
-    while(data_i < length){
-      data_i += 4;
+    for(;data_i<length;data_i+=4){
+      file << "Sparse data: " << data_32[sparse_i++] << endl;
+    }
+    return result;
+  }
+  inline float sum_pr(uint8_t *data, size_t length, size_t cardinality,float *old_data, unsigned int *lengths){    
+    (void) lengths; (void) cardinality;
+    size_t data_i = 4;
+
+    float result = 0.0;
+    
+    unsigned int *num_dense_pointer = (unsigned int*) data;
+    const unsigned int num_dense = num_dense_pointer[0];
+
+    __m256 avx_result = _mm256_set1_ps(0);
+    for(size_t num_dense_processed = 0;num_dense_processed<num_dense;num_dense_processed++){
+      unsigned int *cur_pointer = (unsigned int*) &data[data_i];
+      unsigned int cur = cur_pointer[0];
+      
+      __m256 my_data = _mm256_maskload_ps(&old_data[cur],load_mask_runs[(unsigned int)data[data_i+4]]);
+      __m256 divisor = _mm256_cvtepi32_ps(_mm256_loadu_si256((__m256i*)&lengths[cur]));
+      my_data = _mm256_div_ps(my_data,divisor);
+      avx_result = _mm256_add_ps(my_data,avx_result);
+      
+      //my_data = _mm256_permutevar_ps(my_data,permutation_mask_runs[204]);
+      data_i += 5;
+    }
+
+    result = common::_mm256_reduce_add_ps(avx_result);
+  
+    unsigned int *data_32 = (unsigned int*) &data[data_i];
+    size_t sparse_i = 0;
+    for(;data_i<length;data_i+=4){
+      result += old_data[data_32[sparse_i++]];
+    }
+    return result;
+  }
+  inline float sum(uint8_t *data, size_t length, size_t cardinality,float *old_data, unsigned int *lengths){    
+    (void) lengths; (void) cardinality;
+    size_t data_i = 4;
+
+    float result = 0.0;
+    
+    unsigned int *num_dense_pointer = (unsigned int*) data;
+    const unsigned int num_dense = num_dense_pointer[0];
+
+    __m256 avx_result = _mm256_set1_ps(0);
+    for(size_t num_dense_processed = 0;num_dense_processed<num_dense;num_dense_processed++){
+      unsigned int *cur_pointer = (unsigned int*) &data[data_i];
+      unsigned int cur = cur_pointer[0];
+      
+      __m256 my_data = _mm256_maskload_ps(&old_data[cur],load_mask_runs[(unsigned int)data[data_i+4]]);
+      avx_result = _mm256_add_ps(my_data,avx_result);
+      
+      //my_data = _mm256_permutevar_ps(my_data,permutation_mask_runs[204]);
+      data_i += 5;
+    }
+
+    result = common::_mm256_reduce_add_ps(avx_result);
+  
+    unsigned int *data_32 = (unsigned int*) &data[data_i];
+    size_t sparse_i = 0;
+    for(;data_i<length;data_i+=4){
       result += old_data[data_32[sparse_i++]];
     }
     return result;

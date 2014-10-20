@@ -235,6 +235,8 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path,const int num
   //Place graph into vector of vectors then decide how you want to
   //store the graph.
 
+  cout << "starting to read" << endl;
+
   vector<pair<unsigned int,unsigned int>> *edges = new vector<pair<unsigned int,unsigned int>>(); //guess a size
 
   FILE *pFile = fopen(path.c_str(),"r");
@@ -255,12 +257,11 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path,const int num
   if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
 
   char *test = strtok(buffer," \t\n");
-  
   while(test != NULL){
     unsigned int src;
     sscanf(test,"%u",&src);
     test = strtok(NULL," \t\n");
-    
+
     unsigned int dst;
     sscanf(test,"%u",&dst);
     test = strtok(NULL," \t\n");
@@ -270,7 +271,6 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path,const int num
   // terminate
   fclose(pFile);
   free(buffer);
-
 
   num_edges = edges->size();
   ////////////////////////////////////////////////////////////////////

@@ -21,7 +21,6 @@ namespace application{
   inline void print_pr_data(string file){
     ofstream myfile;
     myfile.open(file);
-    cout << graph->external_ids->size() << endl;
     for (auto iter = graph->external_ids->begin(); iter != graph->external_ids->end(); iter++){
       myfile << "Node: " << iter->first <<"(" << iter->second << ")" << " PR: " << pr_data[iter->second] << endl;
     }
@@ -131,6 +130,8 @@ int main (int argc, char* argv[]) {
     cout << "\t./main <adjacency list file/folder> <# of threads> <# iterations>" << endl;
     exit(0);
   }
+  array16::prepare_shuffling_dictionary16();
+  hybrid::prepare_shuffling_dictionary();
 
   cout << endl << "Number of threads: " << atoi(argv[2]) << endl;
   omp_set_num_threads(atoi(argv[2]));        
@@ -142,34 +143,44 @@ int main (int argc, char* argv[]) {
   common::stopClock("Reading File");
   
   cout << endl;
-  
+
   application::graph = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,
-    inputGraph->external_ids,common::ARRAY32);
-  //application::graph->print_data("matrix.txt");
-  
+    inputGraph->external_ids,common::DENSE_RUNS);
+
+  //application::graph->sum_over_rows_in_column(370346,application::pr_data);
+  //application::graph->print_column(4030,"col.txt");
+
+  common::startClock();
+  application::queryOver();
+  common::stopClock("SIMD NEW");
   common::startClock();
   application::queryOverNew();
-  common::stopClock("CSR PAGE RANK");
-  application::graph->Matrix::~Matrix(); 
+  common::stopClock("NEW");
+  application::graph->Matrix::~Matrix();
+
+  //application::print_pr_data("pr2.txt");
   
-  application::print_pr_data("pr2.txt");
   cout << endl;
 
   application::graph = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,
-    inputGraph->external_ids,common::ARRAY16);
+    inputGraph->external_ids,common::ARRAY32);
 
-  //application::graph->sum_over_rows_in_column(370346,application::pr_data);
+  //application::graph->print_data("matrix.txt"); 
+  //application::graph->print_column(4030,"col_correct.txt");
   
   common::startClock();
   application::queryOverNew();
-  common::stopClock("NEW CSR PAGE RANK");
-  application::graph->Matrix::~Matrix();
+  common::stopClock("SIMD CSR");
+  common::startClock();
+  application::queryOver();
+  common::stopClock("CSR");
+  application::graph->Matrix::~Matrix(); 
   
-  application::print_pr_data("pr1.txt");
+  //application::print_pr_data("pr1.txt");
 
   return 0;
 }

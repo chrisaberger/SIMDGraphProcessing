@@ -63,10 +63,11 @@ class Matrix{
 
     //Mainly for debug
     void print_data(string filename);
+    void print_rows(unsigned int i, unsigned int j, string filename);
+    void print_column(unsigned int i, string filename);
 
     //Some accessors.  Right now these are for rows but the same thing can be done for columns.
     //Currently out neighbors but easy to apply to in neighbors.
-    void print_rows(unsigned int i, unsigned int j, string filename);
     template<typename T> T map_columns_pr(T (Matrix::*rowfunction)(unsigned int,T*), T *mapped_data, T *old_data);
     template<typename T> T sum_over_rows_in_column_pr(unsigned int c, T *old_data);
 
@@ -94,9 +95,9 @@ inline size_t Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j, 
   #endif
 
   long ncount = 0;
-  if((i_end-i_start) > 0 && (j_end-j_start) > 0){
+  //if((i_end-i_start) > 0 && (j_end-j_start) > 0){
     ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t,decoded_a);
-  }
+  //}
 
   return ncount;
 }

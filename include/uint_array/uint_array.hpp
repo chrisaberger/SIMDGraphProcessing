@@ -122,6 +122,9 @@ namespace uint_array{
         return variant::sum(data,card,old_data,lengths);
         break;
         */
+      case common::DENSE_RUNS:
+        return hybrid::sum_pr(data,length,card,old_data,lengths);
+        break;
       default:
         return 0.0;
         break;
@@ -330,7 +333,7 @@ namespace uint_array{
         variant::print_data(data,length,cardinality,file);
         break;
       case common::DENSE_RUNS:
-        //hybrid::print_data(data,length,cardinality,file);
+        hybrid::print_data(data,length,cardinality,file);
         break;
       default:
         break;

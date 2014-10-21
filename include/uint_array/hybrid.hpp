@@ -36,7 +36,7 @@ namespace hybrid {
   }
 
   inline size_t preprocess(uint8_t *result_in, unsigned int *data_in, size_t length, size_t mat_size){
-    size_t threshold = 4;
+    size_t threshold = 6;
     size_t data_i = 0;
     size_t result_i = 4;
     unsigned int num_dense = 0;
@@ -128,6 +128,7 @@ namespace hybrid {
       unsigned int cur = cur_pointer[0];
       
       __m256 my_data = _mm256_maskload_ps(&old_data[cur],load_mask_runs[(unsigned int)data[data_i+4]]);
+     // my_data = _mm256_mul_ps(my_data,_mm256_set1_ps(2.25));
       __m256 divisor = _mm256_cvtepi32_ps(_mm256_loadu_si256((__m256i*)&lengths[cur]));
       my_data = _mm256_div_ps(my_data,divisor);
       avx_result = _mm256_add_ps(my_data,avx_result);
@@ -141,7 +142,8 @@ namespace hybrid {
     unsigned int *data_32 = (unsigned int*) &data[data_i];
     size_t sparse_i = 0;
     for(;data_i<length;data_i+=4){
-      result += old_data[data_32[sparse_i++]];
+      result += (old_data[data_32[sparse_i]]/lengths[data_32[sparse_i]]);
+      sparse_i++;
     }
     return result;
   }
@@ -160,6 +162,7 @@ namespace hybrid {
       unsigned int cur = cur_pointer[0];
       
       __m256 my_data = _mm256_maskload_ps(&old_data[cur],load_mask_runs[(unsigned int)data[data_i+4]]);
+      //my_data = _mm256_mul_ps(my_data,_mm256_set1_ps(2.25));
       avx_result = _mm256_add_ps(my_data,avx_result);
       
       //my_data = _mm256_permutevar_ps(my_data,permutation_mask_runs[204]);

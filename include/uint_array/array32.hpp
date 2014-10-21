@@ -448,7 +448,7 @@ namespace array32 {
     (void) lengths;
     T result = 0.0;
     for(size_t i = 0; i < length; i++){
-      result += old_data[data[i]];
+      result += (old_data[data[i]]);
     } 
     return result;
   }
@@ -456,7 +456,7 @@ namespace array32 {
   inline T sum_pr(unsigned int *data, size_t length, T *old_data, unsigned int *lengths){
     T result = 0.0;
     for(size_t i = 0; i < length; i++){
-      result += old_data[data[i]]/lengths[data[i]];
+      result += (old_data[data[i]]/lengths[data[i]]);
     } 
     return result;
   }

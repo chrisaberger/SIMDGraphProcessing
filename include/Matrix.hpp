@@ -104,7 +104,14 @@ inline size_t Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j, 
 
 inline common::type Matrix::get_array_type(common::type t_stat,unsigned int *r_data, size_t len, size_t size){
   #if HYBRID_LAYOUT == 1
-  if(t_stat == common::HYBRID){
+  if(t_stat == common::DENSE_RUNS){
+    if(len < 8){
+      return common::ARRAY32;
+    } else{
+      return common::DENSE_RUNS;
+    }
+  }
+  else if(t_stat == common::HYBRID){
     return Matrix::get_hybrid_array_type(r_data,len,size);
   } else{
     return t_stat;
@@ -174,7 +181,7 @@ T Matrix::sum_over_columns_in_row(unsigned int row,T (*function)(unsigned int,un
 template<typename T> 
 T Matrix::map_columns(T (Matrix::*rowfunction)(unsigned int,T *old_data), T *new_data, T *old_data) {
   T diff = (T) 0;
-  //#pragma omp parallel for default(none) shared(rowfunction,new_data,old_data) schedule(static,150) reduction(+:diff,+:sum) 
+  #pragma omp parallel for default(none) shared(rowfunction,new_data,old_data) schedule(static,150)
   for(size_t i = 0; i < matrix_size; i++){
     new_data[i] = ((this->*rowfunction)(i,old_data));
     //diff += new_data[i]-old_data[i];
@@ -204,7 +211,7 @@ T Matrix::sum_over_rows_in_column(unsigned int col,T *old_data){
 template<typename T> 
 T Matrix::map_columns_pr(T (Matrix::*rowfunction)(unsigned int,T *old_data), T *new_data, T *old_data) {
   T diff = (T) 0;
-  //#pragma omp parallel for default(none) shared(rowfunction,new_data,old_data) schedule(static,150) reduction(+:diff,+:sum) 
+  #pragma omp parallel for default(none) shared(rowfunction,new_data,old_data) schedule(static,150) reduction(+:diff) 
   for(size_t i = 0; i < matrix_size; i++){
     new_data[i] = 0.85*((this->*rowfunction)(i,old_data))+(0.15f/matrix_size);
     diff += new_data[i]-old_data[i];

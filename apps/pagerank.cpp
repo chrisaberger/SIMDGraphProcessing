@@ -141,9 +141,11 @@ int main (int argc, char* argv[]) {
   MutableGraph *inputGraph = MutableGraph::directedFromEdgeList(argv[1],1); //filename, # of files
   //for more sophisticated queries this would be used.
   common::stopClock("Reading File");
-  
-  cout << endl;
 
+  cout << "Reordering." << endl;
+  inputGraph->reorder_runs();  
+
+  cout << endl;
   application::graph = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,
@@ -154,16 +156,49 @@ int main (int argc, char* argv[]) {
 
   common::startClock();
   application::queryOver();
-  common::stopClock("SIMD NEW");
+  common::stopClock("SIMD");
   common::startClock();
   application::queryOverNew();
-  common::stopClock("NEW");
+  common::stopClock("SIMD FISION");
+  application::graph->Matrix::~Matrix();
+
+  cout << endl;
+  application::graph = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
+    inputGraph->num_nodes,inputGraph->num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,
+    inputGraph->external_ids,common::VARIANT);
+
+  //application::graph->sum_over_rows_in_column(370346,application::pr_data);
+  //application::graph->print_column(4030,"col.txt");
+
+  common::startClock();
+  application::queryOver();
+  common::stopClock("V");
+  common::startClock();
+  application::queryOverNew();
+  common::stopClock("V FISION");
+  application::graph->Matrix::~Matrix();
+
+  cout << endl;
+  application::graph = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
+    inputGraph->num_nodes,inputGraph->num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,
+    inputGraph->external_ids,common::A32BITPACKED);
+
+  //application::graph->sum_over_rows_in_column(370346,application::pr_data);
+  //application::graph->print_column(4030,"col.txt");
+
+  common::startClock();
+  application::queryOver();
+  common::stopClock("BPD");
+  common::startClock();
+  application::queryOverNew();
+  common::stopClock("BPD FISION");
   application::graph->Matrix::~Matrix();
 
   //application::print_pr_data("pr2.txt");
   
   cout << endl;
-
   application::graph = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,
@@ -173,11 +208,12 @@ int main (int argc, char* argv[]) {
   //application::graph->print_column(4030,"col_correct.txt");
   
   common::startClock();
-  application::queryOverNew();
-  common::stopClock("SIMD CSR");
-  common::startClock();
   application::queryOver();
   common::stopClock("CSR");
+  common::startClock();
+  application::queryOverNew();
+  common::stopClock("CSR FISION");
+
   application::graph->Matrix::~Matrix(); 
   
   //application::print_pr_data("pr1.txt");

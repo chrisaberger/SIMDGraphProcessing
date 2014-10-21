@@ -12,6 +12,9 @@ struct MutableGraph {
   vector< vector<unsigned int>*  > *out_neighborhoods;
   vector< vector<unsigned int>*  > *in_neighborhoods;
 
+  void reorder_runs();
+
+
   MutableGraph(  size_t num_nodes_in, 
       size_t num_edges_in,
       bool symmetric_in,

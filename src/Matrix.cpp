@@ -106,8 +106,7 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
   for(size_t i = 0; i < matrix_size_in; ++i) {
     col_indicies_in[i] = index;
     if(nbr_i < in_nbrs->size() && in_nbrs->at(nbr_i)->at(0) == i){
-      nbr_i++;
-      vector<unsigned int> *hood = in_nbrs->at(i);
+      vector<unsigned int> *hood = in_nbrs->at(nbr_i);
       size_t node = hood->at(0);
       if(nodeFilter(node)){
         unsigned int *filtered_hood = new unsigned int[hood->size()-1];
@@ -130,6 +129,7 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
         index = uint_array::preprocess(tmp_col_data,index,filtered_hood,filter_index,matrix_size_in,col_type);
         delete[] filtered_hood;
       }
+      nbr_i++;
     } else{
       col_lengths_in[i] = 0;
     } 

@@ -115,13 +115,13 @@ namespace uint_array{
       case common::BITSET:
         return bitset::sum((unsigned short*)data,length/2,old_data,lengths);
         break;
+        */
       case common::A32BITPACKED:
-        return a32bitpacked::sum(data,card,old_data,lengths);
+        return a32bitpacked::sum_pr(data,card,old_data,lengths);
         break;
       case common::VARIANT:
-        return variant::sum(data,card,old_data,lengths);
+        return variant::sum_pr(data,card,old_data,lengths);
         break;
-        */
       case common::DENSE_RUNS:
         return hybrid::sum_pr(data,length,card,old_data,lengths);
         break;

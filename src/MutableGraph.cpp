@@ -66,6 +66,36 @@ void reassign_ids(vector< vector<unsigned int>* > *neighborhoods,unordered_map<u
     sort(hood->begin()+1,hood->end());
   }
 }
+void add_ids(vector<unsigned int> *neighborhoods, unordered_map<unsigned int,unsigned int> *reorder_ids, unordered_map<unsigned int,unsigned int> *extern_ids){
+  (void) extern_ids;
+  //#pragma omp parallel for default(none) shared(neighborhoods,extern_ids)
+  for(size_t i = 0; i < neighborhoods->size(); ++i) {
+    if(reorder_ids->find(neighborhoods->at(i)) == reorder_ids->end()){
+      //extern_ids->at(neighborhoods->at(i)) = reorder_ids->size(); //update old map to external vals
+      reorder_ids->insert(make_pair(neighborhoods->at(i),reorder_ids->size())); //update new map so we can reassign
+    }
+  }
+}
+void MutableGraph::reorder_runs(){
+  unordered_map<unsigned int,unsigned int> *reorder_ids = new unordered_map<unsigned int,unsigned int>();
+  reorder_ids->reserve(num_nodes);
+  for(size_t i = 0; i < in_neighborhoods->size(); ++i) {
+    vector<unsigned int> *hood = in_neighborhoods->at(i);
+    add_ids(hood,reorder_ids,external_ids);
+  }
+  for(size_t i = 0; i < out_neighborhoods->size(); ++i) {
+    vector<unsigned int> *hood = out_neighborhoods->at(i);
+    add_ids(hood,reorder_ids,external_ids);
+  }
+  reassign_ids(out_neighborhoods,reorder_ids);
+  reassign_ids(in_neighborhoods,reorder_ids);
+
+  delete reorder_ids;
+
+  std::sort(in_neighborhoods->begin(),in_neighborhoods->end(),NeighborhoodComparator()); //so that we can flatten easily
+  std::sort(out_neighborhoods->begin(),out_neighborhoods->end(),NeighborhoodComparator()); //so that we can flatten easily
+}
+
 /*
 File format
 
@@ -235,8 +265,6 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path,const int num
   //Place graph into vector of vectors then decide how you want to
   //store the graph.
 
-  cout << "starting to read" << endl;
-
   vector<pair<unsigned int,unsigned int>> *edges = new vector<pair<unsigned int,unsigned int>>(); //guess a size
 
   FILE *pFile = fopen(path.c_str(),"r");
@@ -290,7 +318,7 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path,const int num
   build_in_neighborhoods(in_neighborhoods,edges); //does flat map
 
   //order by degree
-  std::sort(in_neighborhoods->begin(),in_neighborhoods->end(),AdjComparator());
+  std::sort(out_neighborhoods->begin(),out_neighborhoods->end(),AdjComparator());
 
   //Build hash map
   unordered_map<unsigned int,unsigned int> *extern_ids = new unordered_map<unsigned int,unsigned int>();
@@ -302,7 +330,7 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path,const int num
   reassign_ids(in_neighborhoods,extern_ids);
 
   std::sort(in_neighborhoods->begin(),in_neighborhoods->end(),NeighborhoodComparator()); //so that we can flatten easily
-  std::sort(out_neighborhoods->begin(),out_neighborhoods->end(),NeighborhoodComparator());
+  std::sort(out_neighborhoods->begin(),out_neighborhoods->end(),NeighborhoodComparator()); //so that we can flatten easily
 
   num_nodes = extern_ids->size();
   

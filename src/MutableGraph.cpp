@@ -53,6 +53,27 @@ void reassign_ids(vector< vector<unsigned int>* > *neighborhoods,unordered_map<u
     sort(hood->begin()+1,hood->end());
   }
 }
+
+bool parse_u_int(const char** str, unsigned int* out) {
+   unsigned int result = 0;
+   const char* current = *str;
+
+   while(*current < '0' || *current > '9') {
+      if(*current == '\0')
+         return false;
+      current++;
+   }
+
+   while(*current >= '0' && *current <= '9') {
+      result *= 10;
+      result += *current - '0';
+      current++;
+   }
+   *str = current + 1;
+   *out = result;
+   return true;
+}
+
 /*
 File format
 
@@ -85,11 +106,16 @@ MutableGraph MutableGraph::undirectedFromAdjList(const string path,const int num
       while ( getline (myfile,line) ){
         vector<unsigned int> *cur = new vector<unsigned int>(); //guess a size
         cur->reserve(line.length());
-        istringstream iss(line);
+        /*istringstream iss(line);
 
         unsigned int sub;
         while(iss >> sub)
-          cur->push_back(sub);
+          cur->push_back(sub);*/
+        const char* line_str = line.c_str();
+        unsigned int sub = 0;
+        while(parse_u_int(&line_str, &sub)) {
+           cur->push_back(sub);
+        }
         cur->resize(cur->size());
         num_edges += cur->size()-1;
         num_nodes++;

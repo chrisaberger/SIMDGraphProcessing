@@ -1,7 +1,7 @@
 UNAME := $(shell uname)
 
 ifeq ($(UNAME), Linux)
-	LIBS=-lnuma
+	LIBS=-Llib -lnuma
 endif
 
 # replace the CXX variable with a path to a C++11 compatible compiler.
@@ -43,7 +43,7 @@ $(APPS_EXES): $(OBJECTS) $(APP_SOURCES) $(EXEDIR)
 	$(CXX) $(CXXFLAGS) $(@:bin%=apps%.cpp) $(OBJECTS) $(LIBS) -o $@ -Iinclude 
 
 $(OBJECTS): $(SOURCES) $(HEADERS) $(OBJDIR)
-	$(CXX) $(CXXFLAGS) -Iinclude $(LIB_INCS) -o $@ -c $(@:build%.o=src%.cpp) 
+	$(CXX) $(CXXFLAGS) -Iinclude $(LIB_INCS) -o $@ -c $(@:build%.o=src%.cpp) $(LIBS)
 
 clean:
 	rm -rf $(OBJDIR) $(EXEDIR)

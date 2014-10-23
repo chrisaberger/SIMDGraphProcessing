@@ -1,6 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+//#include "numa_alloc.hpp"
 #include <x86intrin.h>
 #include <omp.h>
 #include <unordered_map>
@@ -18,6 +19,7 @@
 #include <fcntl.h>    /* For O_RDWR */
 #include <unistd.h>   /* For open(), creat() */
 #include <math.h>
+#include <unistd.h>
 
 #define VECTORIZE 1
 #define HYBRID_LAYOUT 0
@@ -42,6 +44,7 @@
 #define numa_max_node() 0
 #define numa_run_on_node(X) 0
 #define numa_set_localalloc() 0
+#define numa_available() -1
 #endif
 
 using namespace std;
@@ -56,10 +59,11 @@ namespace common{
     t1=tim.tv_sec+(tim.tv_usec/1000000.0); 
   }
 
-  static void stopClock(string in){
+  static double stopClock(string in){
     gettimeofday(&tim, NULL);  
     t2=tim.tv_sec+(tim.tv_usec/1000000.0); 
     std::cout << "Time["+in+"]: " << t2-t1 << " s" << std::endl;
+    return t2 - t1;
   }
 
   static void allocateStack(){
@@ -87,6 +91,25 @@ namespace common{
     A32BITPACKED = 4,
     VARIANT = 5
   };
-  
+
+  static void* allocate_local(size_t num, size_t size, int node) {
+     size_t total_size = num * size;
+     return numa_alloc_onnode(total_size, node);
+     //return calloc(num, size);
+  }
+
+  static void free_local(void* start, size_t num, size_t size) {
+     size_t total_size = num * size;
+     numa_free(start, total_size);
+     //free(start);
+  }
+
+  static int find_memory_node_for_addr(void* ptr) {
+    // See: http://stackoverflow.com/questions/7986903/can-i-get-the-numa-node-from-a-pointer-address-in-c-on-linux
+    int numa_node = -1;
+    if(get_mempolicy(&numa_node, NULL, 0, ptr, MPOL_F_NODE | MPOL_F_ADDR) < 0)
+       cout << "WARNING: get_mempolicy failed" << endl;
+    return numa_node;
+  }
 }
 #endif

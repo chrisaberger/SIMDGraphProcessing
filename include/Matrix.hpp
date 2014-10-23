@@ -5,45 +5,66 @@
 
 class Matrix {
 public:
-  	size_t matrix_size;  //number of nodes, number of columns = number of rows
-  	size_t cardinality;  //number of edges
-  	common::type t; //representation of matrix
-    bool symmetric; //undirected?
+   size_t matrix_size;  //number of nodes, number of columns = number of rows
+   size_t cardinality;  //number of edges
+   common::type t; //representation of matrix
+   bool symmetric; //undirected?
 
-    /*
-    Stores out neighbors.
-    */
-  	size_t *row_indicies; 
-    unsigned int *row_lengths;
-    uint8_t *row_types;
-  	uint8_t *row_data; 
+   /*
+      Stores out neighbors.
+   */
+   size_t *row_indicies;
+   unsigned int *row_lengths;
+   uint8_t *row_types;
+   uint8_t *row_data;
 
-    /*
-    Stores in neighbors.
-    */
-    size_t *column_indicies;
-    unsigned int *column_lengths;
-    uint8_t *column_types;
-    uint8_t *column_data;
+   /*
+      Stores in neighbors.
+   */
+   size_t *column_indicies;
+   unsigned int *column_lengths;
+   uint8_t *column_types;
+   uint8_t *column_data;
 
+  static void* operator new(std::size_t sz) {
+    return ::operator new(sz);
+  }
+
+  static void* operator new(std::size_t sz, int32_t node) {
+    numa_set_preferred(node);
+    return numa_alloc_onnode(sz, node);
+  }
+
+  static void operator delete(void* ptr) {
+  }
    //Undirected Graphs
-   Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_t cardinality_in, 
+   Matrix(int node, vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_t cardinality_in, 
      bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), common::type t_in){
      array16::prepare_shuffling_dictionary16();
 
-     size_t *row_indicies_in = new size_t[matrix_size_in+1];
-     unsigned int *row_lengths_in = new unsigned int[matrix_size_in];
-     uint8_t *row_types_in = new uint8_t[matrix_size_in];
-     uint8_t *tmp_row_data = new uint8_t[cardinality_in*40]; 
+     /*
+     size_t *row_indicies_in = (size_t*) common::allocate_local(matrix_size_in + 1, sizeof(size_t), node);
+     unsigned int *row_lengths_in = (unsigned int*) common::allocate_local(matrix_size_in, sizeof(unsigned int), node);
+     uint8_t *row_types_in = (uint8_t*) common::allocate_local(matrix_size_in, sizeof(uint8_t), node);
+     */
+
+     void* data = common::allocate_local(matrix_size_in + 1, sizeof(size_t) + sizeof(unsigned int) + sizeof(uint8_t), node);
+     size_t *row_indicies_in = (size_t*)data;
+     unsigned int *row_lengths_in = (unsigned int*)(row_indicies_in + matrix_size_in + 1);
+     uint8_t *row_types_in = (uint8_t*)(row_lengths_in + matrix_size_in + 1);
+ 
+     uint8_t *tmp_row_data = (uint8_t*) calloc(cardinality_in*40, sizeof(uint8_t));
 
      size_t new_cardinality = 0;
      size_t index = 0;
 
+     row_indicies_in[0] = 5;
      for(size_t i = 0; i < matrix_size_in; ++i) {
        if(nodeFilter(i)){
          row_indicies_in[i] = index;
          vector<unsigned int> *hood = g->at(i);
-         unsigned int *filtered_hood = new unsigned int[hood->size()-1];
+         size_t filtered_hood_size = hood->size() - 1;
+         unsigned int *filtered_hood = (unsigned int*) calloc(filtered_hood_size, sizeof(unsigned int)); //(unsigned int*) common::allocate_local(filtered_hood_size, sizeof(unsigned int), node);
          size_t filter_index = 0;
          for(size_t j = 1; j < hood->size(); ++j) {
            if(nodeFilter(hood->at(j)) && edgeFilter(i,hood->at(j))){
@@ -56,11 +77,12 @@ public:
          row_types_in[i] = row_type;
 
          index = uint_array::preprocess(tmp_row_data,index,filtered_hood,filter_index,row_type);
-         delete[] filtered_hood;
+         //common::free_local(filtered_hood, filtered_hood_size, sizeof(unsigned int));
+         free(filtered_hood);
        }
      }
 
-     uint8_t *row_data_in = new uint8_t[index];
+     uint8_t *row_data_in = (uint8_t*) common::allocate_local(index, sizeof(uint8_t), node);
      cout << "ROW DATA SIZE (Bytes): " << index << endl;
      std::copy(tmp_row_data,tmp_row_data+index,row_data_in);
      row_indicies_in[matrix_size_in] = index;
@@ -80,6 +102,13 @@ public:
      column_lengths = row_lengths_in;
      column_types = row_types_in;
      column_data = row_data_in;
+
+     cout << "-----" << node << "------" << endl;
+     cout << common::find_memory_node_for_addr(row_indicies_in) << endl;
+     cout << common::find_memory_node_for_addr(row_lengths) << endl;
+     cout << common::find_memory_node_for_addr(this) << endl;
+     cout << "----" << endl;
+
 
      //return Matrix(matrix_size_in,new_cardinality,t_in,row_indicies_in,row_lengths_in,row_types_in,row_data_in);
    }
@@ -315,6 +344,22 @@ public:
 
    template<typename T> 
    T reduce_column_in_row(
+         unsigned int row,
+         std::function<T(unsigned int,unsigned int)> f) {
+     size_t start = row_indicies[row];
+     size_t end = row_indicies[row+1];
+     size_t card = row_lengths[row];
+
+     #if HYBRID_LAYOUT == 1
+     const common::type row_type = (common::type) row_types[row];
+     #else
+     const common::type row_type = (common::type) t;
+     #endif
+     return uint_array::reduce(f,row,row_data+start,end-start,card,row_type);
+   }
+
+   template<typename T> 
+   T part_reduce_column_in_row(
          unsigned int row,
          std::function<T(unsigned int,unsigned int)> f) {
      size_t start = row_indicies[row];

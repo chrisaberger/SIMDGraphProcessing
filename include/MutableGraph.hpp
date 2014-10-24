@@ -3,6 +3,7 @@
 
 #include "common.hpp"
 #include <sstream>
+#include <unordered_set>
 
 struct MutableGraph {
   size_t num_nodes;
@@ -12,7 +13,10 @@ struct MutableGraph {
   vector< vector<unsigned int>*  > *out_neighborhoods;
   vector< vector<unsigned int>*  > *in_neighborhoods;
 
-  void reorder_runs();
+  void reorder_random();
+  void reorder_strong_run();
+  void reorder_by_rev_degree();
+  void reorder_by_degree();
   void writeUndirectedToBinary(const string path);
 
   MutableGraph(  size_t num_nodes_in, 
@@ -41,8 +45,8 @@ struct MutableGraph {
     }
   }
   static MutableGraph* undirectedFromBinary(const string path);
+  static MutableGraph* undirectedFromEdgeList(const string path);
   static MutableGraph* undirectedFromAdjList(const string path,const int num_files);
-  static MutableGraph* undirectedFromEdgeList(const string path,const int num_files);
   static MutableGraph* directedFromEdgeList(const string path,const int num_files);
 };
 

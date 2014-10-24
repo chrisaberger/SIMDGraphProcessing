@@ -15,9 +15,9 @@ namespace application{
   inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
     return nbr < node;
   }
-  inline long edgeApply(unsigned int src, unsigned int dst, unsigned int *decodedA){
+  inline long edgeApply(unsigned int src, unsigned int dst, unsigned int *src_nbrhood){
     //cout << "src: " << src << " dst: " << dst << endl;
-    long count = graph->row_intersect(result,src,dst,decodedA);
+    long count = graph->row_intersect(result,src,dst,src_nbrhood);
     //cout << count << endl;
     return count;
   }
@@ -58,15 +58,18 @@ int main (int argc, char* argv[]) {
   common::startClock();
   MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
   application::result = new uint8_t[inputGraph->num_nodes]; //we don't actually use this for just a count
+  inputGraph->reorder_strong_run();
   common::stopClock("Reading File");
 
   cout << endl;
 
+  common::startClock();
   application::graph = new Matrix(inputGraph->out_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,inputGraph->external_ids,layout);
+  common::stopClock("Freezing Graph");
   inputGraph->MutableGraph::~MutableGraph(); 
-  
+
   //application::graph->print_data("out.txt");
   
   common::startClock();

@@ -52,7 +52,7 @@ class Matrix{
         delete[] column_data;
       }
     }
-    
+
     //Simple methods to give type of row or column
     static common::type get_array_type(common::type t_stat,unsigned int *r_data, size_t len, size_t m_size);
     static common::type get_hybrid_array_type(unsigned int *r_data, size_t len, size_t m_size);
@@ -76,24 +76,17 @@ class Matrix{
 };
 
 inline size_t Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a){
-  size_t i_start = row_indicies[i];
-  size_t i_end = row_indicies[i+1];
-
-  size_t j_start = row_indicies[j];
-  size_t j_end = row_indicies[j+1];
-
-  size_t card_a = 0;
-  size_t card_b = 0;
-
-  #if COMPRESSION == 1
-  card_a = row_lengths[i];
-  card_b = row_lengths[j];
-  #endif
-
+  size_t card_a = row_lengths[i];
+  size_t card_b = row_lengths[j];
   long ncount = 0;
-  //if((i_end-i_start) > 0 && (j_end-j_start) > 0){
+
+  if(card_a > 0 && card_b > 0){
+    size_t i_start = row_indicies[i];
+    size_t i_end = row_indicies[i+1];
+    size_t j_start = row_indicies[j];
+    size_t j_end = row_indicies[j+1];
     ncount = uint_array::intersect(R,row_data+i_start,row_data+j_start,i_end-i_start,j_end-j_start,card_a,card_b,t,decoded_a);
-  //}
+  }
 
   return ncount;
 }
@@ -143,7 +136,7 @@ inline common::type Matrix::get_hybrid_array_type(unsigned int *r_data, size_t r
 template<typename T> 
 T Matrix::sum_over_rows(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,unsigned int,unsigned int*)), T (*f)(unsigned int,unsigned int,unsigned int*)) {
   T reducer = (T) 0;
-  //#pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
+  #pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
   for(size_t i = 0; i < matrix_size; i++){
     reducer += (this->*rowfunction)(i,f);
   }
@@ -152,25 +145,23 @@ T Matrix::sum_over_rows(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned in
 
 template<typename T> 
 T Matrix::sum_over_columns_in_row(unsigned int row,T (*function)(unsigned int,unsigned int,unsigned int*)){
-  size_t start = row_indicies[row];
-  size_t end = row_indicies[row+1];
-  size_t card = 0;
-
-  unsigned int *decoded_a = row_lengths;
-  #if COMPRESSION == 1
-  card = row_lengths[row];
-  decoded_a = new unsigned int[card];
-  #endif
-  
   T result = (T) 0;
-  if((end-start) > 0){
+  size_t card = row_lengths[row];
+  if(card > 0){
+    size_t start = row_indicies[row];
+    size_t end = row_indicies[row+1];
+
+    unsigned int *decoded_a = row_lengths;
+    #if COMPRESSION == 1
+    decoded_a = new unsigned int[card];
+    #endif
+    
     result = uint_array::sum_decoded(function,row,row_data+start,end-start,card,t,decoded_a);
+
+    #if COMPRESSION == 1
+    delete[] decoded_a;
+    #endif
   }
-
-  #if COMPRESSION == 1
-  delete[] decoded_a;
-  #endif
-
   return result;
 }
 

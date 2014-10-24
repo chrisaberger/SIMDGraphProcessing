@@ -14,15 +14,5 @@ int main (int argc, char* argv[]) {
   
   inputGraph->writeUndirectedToBinary(argv[2]);
   
-  /*
-  inputGraph = MutableGraph::undirectedFromBinary("output.bin");
-  cout << "Loaded edge list" << endl;
-  
-  Matrix *m = new Matrix(inputGraph->out_neighborhoods,
-    inputGraph->num_nodes,inputGraph->num_edges,
-    &myNodeSelection,&myEdgeSelection,inputGraph->external_ids,common::ARRAY32);
-  
-  m->print_data("output.txt");
-  */
   return 0;
 }

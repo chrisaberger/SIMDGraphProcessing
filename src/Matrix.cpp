@@ -27,9 +27,13 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
         } 
       }
       row_lengths_in[i] = new_size;
-      const common::type row_type = Matrix::get_array_type(t_in,selected_row,new_size,matrix_size_in); //depends on above array being set
-      index = uint_array::preprocess(tmp_row_data,index,selected_row,new_size,matrix_size_in,row_type);
+      if(new_size > 0){
+        const common::type row_type = Matrix::get_array_type(t_in,selected_row,new_size,matrix_size_in);
+        index = uint_array::preprocess(tmp_row_data,index,selected_row,new_size,matrix_size_in,row_type);
+      }
       delete[] selected_row;
+    } else{
+      row_lengths_in[i] = 0;
     }
   }
 
@@ -192,21 +196,24 @@ void Matrix::print_data(string filename){
   cout << "Writing matrix row_data to file: " << filename << endl;
 	for(size_t i = 0; i < matrix_size; i++){
 		myfile << "ROW: " << i <<  " LEN: " << row_lengths[i] << endl;
-		size_t start = row_indicies[i];
-		size_t end = row_indicies[i+1];
     size_t card = row_lengths[i];
-
-		uint_array::print_data(row_data+start,end-start,card,t,myfile);
+    if(card > 0){
+      size_t start = row_indicies[i];
+      size_t end = row_indicies[i+1];
+      uint_array::print_data(row_data+start,end-start,card,t,myfile);
+    }
 	}
   myfile << endl;
   //Printing in neighbors
   if(!symmetric){
     for(size_t i = 0; i < matrix_size; i++){
       myfile << "COLUMN: " << i << " LEN: " << column_lengths[i] << endl;
-      size_t start = column_indicies[i];
-      size_t end = column_indicies[i+1];
       size_t card = column_lengths[i];
-      uint_array::print_data(column_data+start,end-start,card,t,myfile);
+      if(card > 0){
+        size_t start = column_indicies[i];
+        size_t end = column_indicies[i+1];
+        uint_array::print_data(column_data+start,end-start,card,t,myfile);
+      }
     }
   }
 

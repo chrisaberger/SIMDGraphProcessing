@@ -13,7 +13,7 @@ struct MutableGraph {
   vector< vector<unsigned int>*  > *in_neighborhoods;
 
   void reorder_runs();
-
+  void writeUndirectedToBinary(const string path);
 
   MutableGraph(  size_t num_nodes_in, 
       size_t num_edges_in,
@@ -40,11 +40,10 @@ struct MutableGraph {
       delete in_neighborhoods;
     }
   }
-
+  static MutableGraph* undirectedFromBinary(const string path);
   static MutableGraph* undirectedFromAdjList(const string path,const int num_files);
   static MutableGraph* undirectedFromEdgeList(const string path,const int num_files);
   static MutableGraph* directedFromEdgeList(const string path,const int num_files);
-
 };
 
 #endif

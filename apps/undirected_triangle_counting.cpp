@@ -56,7 +56,7 @@ int main (int argc, char* argv[]) {
   }
 
   common::startClock();
-  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1],1); //filename, # of files
+  MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
   application::result = new uint8_t[inputGraph->num_nodes]; //we don't actually use this for just a count
   common::stopClock("Reading File");
 

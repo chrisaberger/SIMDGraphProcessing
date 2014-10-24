@@ -1,7 +1,9 @@
 #include "Matrix.hpp"
 //Undirected Graphs
 Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_t cardinality_in, 
-  bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), unordered_map<unsigned int,unsigned int> *external_ids_in, common::type t_in){
+  bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), 
+  unordered_map<unsigned int,unsigned int> *external_ids_in, common::type t_in){
+  
   array16::prepare_shuffling_dictionary16();
   hybrid::prepare_shuffling_dictionary();
 
@@ -15,24 +17,24 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
   for(size_t i = 0; i < matrix_size_in; ++i){
     if(nodeFilter(i)){
       row_indicies_in[i] = index;
-      vector<unsigned int> *hood = g->at(i);
-      unsigned int *filtered_hood = new unsigned int[hood->size()-1];
-      size_t filter_index = 0;
-      for(size_t j = 1; j < hood->size(); ++j) {
-        if(nodeFilter(hood->at(j)) && edgeFilter(i,hood->at(j))){
+      vector<unsigned int> *row = g->at(i);
+      unsigned int *selected_row = new unsigned int[row->size()];
+      size_t new_size = 0;
+      for(size_t j = 0; j < row->size(); ++j) {
+        if(nodeFilter(row->at(j)) && edgeFilter(i,row->at(j))){
           new_cardinality++;
-          filtered_hood[filter_index++] = hood->at(j);
+          selected_row[new_size++] = row->at(j);
         } 
       }
-      row_lengths_in[i] = filter_index;
-      const common::type row_type = Matrix::get_array_type(t_in,filtered_hood,filter_index,matrix_size_in); //depends on above array being set
-      index = uint_array::preprocess(tmp_row_data,index,filtered_hood,filter_index,matrix_size_in,row_type);
-      delete[] filtered_hood;
+      row_lengths_in[i] = new_size;
+      const common::type row_type = Matrix::get_array_type(t_in,selected_row,new_size,matrix_size_in); //depends on above array being set
+      index = uint_array::preprocess(tmp_row_data,index,selected_row,new_size,matrix_size_in,row_type);
+      delete[] selected_row;
     }
   }
 
-  uint8_t *row_data_in = new uint8_t[index];
   cout << "ROW DATA SIZE (Bytes): " << index << endl;
+  uint8_t *row_data_in = new uint8_t[index];
   std::copy(tmp_row_data,tmp_row_data+index,row_data_in);
   row_indicies_in[matrix_size_in] = index;
 
@@ -50,8 +52,6 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
   column_indicies = row_indicies_in;
   column_lengths = row_lengths_in;
   column_data = row_data_in;
-
-  //return Matrix(matrix_size_in,new_cardinality,t_in,row_indicies_in,row_lengths_in,row_types_in,row_data_in);
 }
 //Directed Graph
 Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigned int>*  > *in_nbrs, size_t matrix_size_in, size_t cardinality_in, 

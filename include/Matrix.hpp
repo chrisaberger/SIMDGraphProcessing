@@ -309,7 +309,7 @@ public:
          std::function<T(unsigned int, std::function<T(unsigned int,unsigned int)>)> rowfunction,
          std::function<T(unsigned int,unsigned int)> f) {
      T reducer = (T) 0;
-     //#pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
+     #pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
      for(size_t i = 0; i < matrix_size; i++){
        reducer += rowfunction(i,f);
      }
@@ -374,7 +374,4 @@ public:
      return uint_array::reduce(f,row,row_data+start,end-start,card,row_type);
    }
 };
-
-
-
 #endif

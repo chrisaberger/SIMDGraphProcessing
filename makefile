@@ -40,9 +40,11 @@ UNAME := $(shell uname)
 
 OBJECTS= $(OBJDIR)/Matrix.o $(OBJDIR)/MutableGraph.o $(OBJDIR)/UnsignedIntegerArray.o
 
-edgeListToBinary: tools/edgeListToBinary.cpp
-	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/edgeListToBinary tools/edgeListToBinary.cpp  $(OBJECTS) -Iinclude
+undirectedEdgeListToBinary: tools/undirectedEdgeListToBinary.cpp
+	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/undirectedEdgeListToBinary tools/undirectedEdgeListToBinary.cpp  $(OBJECTS) -Iinclude
 
+directedEdgeListToBinary: tools/directedEdgeListToBinary.cpp
+	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/directedEdgeListToBinary tools/directedEdgeListToBinary.cpp  $(OBJECTS) -Iinclude
 
 test_undirected_triangle_counting: tests/test_undirected_triangle_counting.cpp
 	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/test_undirected_triangle_counting tests/test_undirected_triangle_counting.cpp  $(OBJECTS) -Iinclude

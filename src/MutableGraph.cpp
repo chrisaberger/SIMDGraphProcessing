@@ -364,6 +364,69 @@ MutableGraph* MutableGraph::undirectedFromEdgeList(const string path) {
 
   return new MutableGraph(neighborhoods->size(),num_edges,true,extern_ids,neighborhoods,neighborhoods); 
 }
+
+void MutableGraph::writeDirectedToBinary(const string path) {
+  ofstream outfile;
+  outfile.open(path, ios::binary | ios::out);
+
+  size_t osize = out_neighborhoods->size();
+  outfile.write((char *)&osize, sizeof(osize)); 
+  cout << osize << endl;
+  for(size_t i = 0; i < out_neighborhoods->size(); ++i){
+    vector<unsigned int> *row = out_neighborhoods->at(i);
+    size_t rsize = row->size();
+    outfile.write((char *)&rsize, sizeof(rsize)); 
+    outfile.write((char *)row->data(),sizeof(unsigned int)*rsize);
+  }
+  for(size_t i = 0; i < in_neighborhoods->size(); ++i){
+    vector<unsigned int> *row = in_neighborhoods->at(i);
+    size_t rsize = row->size();
+    outfile.write((char *)&rsize, sizeof(rsize)); 
+    outfile.write((char *)row->data(),sizeof(unsigned int)*rsize);
+  }
+  outfile.close();
+}
+MutableGraph* MutableGraph::directedFromBinary(const string path) {
+  ifstream infile; 
+  infile.open(path, ios::binary | ios::in); 
+
+  unordered_map<unsigned int,unsigned int> *extern_ids = new unordered_map<unsigned int,unsigned int>();
+  vector< vector<unsigned int>*  > *out_neighborhoods = new vector< vector<unsigned int>* >();
+  vector< vector<unsigned int>*  > *in_neighborhoods = new vector< vector<unsigned int>* >();
+
+  size_t num_edges = 0;
+  size_t num_nodes = 0;
+  infile.read((char *)&num_nodes, sizeof(num_nodes)); 
+  cout << num_nodes << endl;
+  for(size_t i = 0; i < num_nodes; ++i){
+    size_t row_size = 0;
+    infile.read((char *)&row_size, sizeof(row_size)); 
+    cout << "r: " << row_size << endl;
+    num_edges += row_size;
+
+    vector<unsigned int> *row = new vector<unsigned int>();
+    row->reserve(row_size);
+    unsigned int *tmp_data = new unsigned int[row_size];
+    infile.read((char *)&tmp_data[0], sizeof(unsigned int)*row_size); 
+    row->assign(&tmp_data[0],&tmp_data[row_size]);
+    out_neighborhoods->push_back(row);
+  }
+  for(size_t i = 0; i < num_nodes; ++i){
+    size_t row_size = 0;
+    infile.read((char *)&row_size, sizeof(row_size)); 
+    num_edges += row_size;
+
+    vector<unsigned int> *row = new vector<unsigned int>();
+    row->reserve(row_size);
+    unsigned int *tmp_data = new unsigned int[row_size];
+    infile.read((char *)&tmp_data[0], sizeof(unsigned int)*row_size); 
+    row->assign(&tmp_data[0],&tmp_data[row_size]);
+    in_neighborhoods->push_back(row);
+  }
+  infile.close();
+
+  return new MutableGraph(out_neighborhoods->size(),num_edges,true,extern_ids,out_neighborhoods,in_neighborhoods); 
+} 
 /*
 File format
 

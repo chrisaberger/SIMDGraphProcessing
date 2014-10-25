@@ -18,7 +18,9 @@ struct MutableGraph {
   void reorder_strong_run();
   void reorder_by_rev_degree();
   void reorder_by_degree();
+
   void writeUndirectedToBinary(const string path);
+  void writeDirectedToBinary(const string path);
 
   MutableGraph(  size_t num_nodes_in, 
       size_t num_edges_in,
@@ -45,6 +47,7 @@ struct MutableGraph {
       delete in_neighborhoods;
     }
   }
+  static MutableGraph* directedFromBinary(const string path);
   static MutableGraph* undirectedFromBinary(const string path);
   static MutableGraph* directedFromEdgeList(const string path);
   static MutableGraph* undirectedFromEdgeList(const string path);

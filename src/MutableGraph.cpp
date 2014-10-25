@@ -48,10 +48,15 @@ void MutableGraph::reorder_bfs(){
   size_t num_added = 0;
   unsigned int *cur_level = new unsigned int[num_nodes];
   size_t cur_level_size = 1;
-  cur_level[0] = tmp_new2old_ids[0];
+  size_t bfs_i = 0;
+  cur_level[bfs_i] = tmp_new2old_ids[bfs_i];
+  new2old_ids[num_added++] = bfs_i;
+  visited->insert(bfs_i);
+  bfs_i++;
 
   unsigned int *next_level = new unsigned int[num_nodes];
   while(num_added != neighborhoods->size()){
+    //cout << "here: " << num_added << " " << neighborhoods->size() << endl;
     size_t cur_level_i = 0;
     size_t next_level_size = 0;
     while(cur_level_i < cur_level_size){
@@ -64,11 +69,24 @@ void MutableGraph::reorder_bfs(){
         }
       }
     }
+    //cout << num_added << endl;
+    if(next_level_size == 0 && num_added < neighborhoods->size()){
+      next_level_size = 1;
+      while(visited->find(bfs_i) != visited->end()){
+        bfs_i++;
+      }
+      cur_level[bfs_i] = tmp_new2old_ids[bfs_i];
+      new2old_ids[num_added++] = bfs_i;
+      visited->insert(bfs_i);
+      bfs_i++;
+    }
     unsigned int *tmp = cur_level;
     cur_level = next_level;
     next_level = tmp;
     cur_level_size = next_level_size;
   }
+
+  cout << "exiting" << endl;
   delete visited;
   delete[] cur_level;
   delete[] next_level;

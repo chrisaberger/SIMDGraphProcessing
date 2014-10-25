@@ -28,7 +28,7 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
       }
       row_lengths_in[i] = new_size;
       if(new_size > 0){
-        const common::type row_type = Matrix::get_array_type(t_in,selected_row,new_size,matrix_size_in);
+        common::type row_type = Matrix::get_array_type(t_in,selected_row,new_size,matrix_size_in);
         index = uint_array::preprocess(tmp_row_data,index,selected_row,new_size,matrix_size_in,row_type);
       }
       delete[] selected_row;

@@ -58,7 +58,7 @@ int main (int argc, char* argv[]) {
   common::startClock();
   MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
   application::result = new uint8_t[inputGraph->num_nodes]; //we don't actually use this for just a count
-  inputGraph->reorder_strong_run();
+  inputGraph->reorder_bfs();
   common::stopClock("Reading File");
 
   cout << endl;
@@ -70,7 +70,7 @@ int main (int argc, char* argv[]) {
   common::stopClock("Freezing Graph");
   inputGraph->MutableGraph::~MutableGraph(); 
 
-  //application::graph->print_data("out.txt");
+  //application::graph->print_data("hybrid.txt");
   
   common::startClock();
   application::queryOver();

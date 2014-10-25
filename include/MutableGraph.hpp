@@ -13,6 +13,7 @@ struct MutableGraph {
   vector< vector<unsigned int>*  > *out_neighborhoods;
   vector< vector<unsigned int>*  > *in_neighborhoods;
 
+  void reorder_bfs();
   void reorder_random();
   void reorder_strong_run();
   void reorder_by_rev_degree();

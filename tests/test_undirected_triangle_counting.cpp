@@ -47,7 +47,7 @@ int main (int argc, char* argv[]) {
   }
 
   common::startClock();
-  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1],1); //filename, # of files
+  MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
   application::result = new uint8_t[inputGraph->num_nodes]; //we don't actually use this for just a count
   common::stopClock("Reading File");
 
@@ -56,25 +56,23 @@ int main (int argc, char* argv[]) {
   application::graph = new Matrix(inputGraph->out_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,inputGraph->external_ids,layout);
-  inputGraph->MutableGraph::~MutableGraph(); 
   
-  unsigned int n1 = 139;
-  unsigned int n2 = 5;
+  unsigned int n1 = 1098;
+  unsigned int n2 = 1075;
   application::graph->print_rows(n1,n2,"a32_w.txt");
   unsigned int *dumb;
   application::num_triangles = application::graph->row_intersect(application::result,n1,n2,dumb);
   application::graph->Matrix::~Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
-
-  /*
-  application::graph = new Matrix(inputGraph.out_neighborhoods,
-      inputGraph.num_nodes,inputGraph.num_edges,
-      &application::myNodeSelection,&application::myEdgeSelection,common::VARIANT);
-  application::graph->print_rows(n1,n2,"v.txt");
-  application::num_triangles = application::graph->row_intersect(application::result,n1,n2);
+  
+  application::graph = new Matrix(inputGraph->out_neighborhoods,
+      inputGraph->num_nodes,inputGraph->num_edges,
+      &application::myNodeSelection,&application::myEdgeSelection,inputGraph->external_ids,common::HYBRID);
+  application::graph->print_rows(n1,n2,"hybrid.txt");
+  application::num_triangles = application::graph->row_intersect(application::result,n1,n2,dumb);
   application::graph->Matrix::~Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
-  */
+  
   
   /*
   application::graph = new Matrix(inputGraph.out_neighborhoods,

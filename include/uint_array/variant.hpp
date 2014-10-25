@@ -110,7 +110,6 @@ namespace variant {
       //cout << "starting variant decode at: " << data_i << endl;
       while(num_decoded < cardinality){
         //cout << "\tdata_i: " << data_i << endl;
-        file << "Data_i: " << data_i << endl;
         unsigned int cur = variant::variant_decode(data,data_i);
         //cout << "cur[" << num_decoded << "]" << cur << endl;
         cur += prev;

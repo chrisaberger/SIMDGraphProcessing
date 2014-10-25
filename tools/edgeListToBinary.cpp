@@ -9,7 +9,7 @@ int main (int argc, char* argv[]) {
     cout << "\t./main <adjacency list file/folder> <input edgeList> <output file>" << endl;
     exit(0);
   }
-  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1],1);
+  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]);
   cout << "Loaded edge list" << endl;
   
   inputGraph->writeUndirectedToBinary(argv[2]);

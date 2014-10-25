@@ -179,9 +179,6 @@ namespace hybrid {
     return result;
   }
   inline size_t intersect_a16_bs(unsigned int *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
-    (void)C;
-    (void)s_b;
-
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       unsigned int prefix = (A[i] << 16);
@@ -191,7 +188,7 @@ namespace hybrid {
       size_t inner_end = i+size;
       while(i < inner_end){
         unsigned int cur = prefix | A[i];
-        if(bitset::is_set(cur,B)){
+        if(bitset::word_index(cur) < s_b && bitset::is_set(cur,B)){
           #if WRITE_VECTOR == 1
           C[count] = cur;
           #endif
@@ -205,14 +202,10 @@ namespace hybrid {
   }
   //untested
   inline size_t intersect_a32_bs(unsigned int *C, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
-    (void)C;
-    (void)s_b;
-    
-    //cout << "32 & BS" << endl;
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       unsigned int cur = A[i];
-      if(bitset::is_set(cur,B)){
+      if(bitset::word_index(cur) < s_b && bitset::is_set(cur,B)){
         #if WRITE_VECTOR == 1
         C[count] = cur;
         #endif

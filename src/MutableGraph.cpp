@@ -30,6 +30,67 @@ void reassign_ids(vector< vector<unsigned int>* > *neighborhoods,vector< vector<
     new_neighborhoods->push_back(hood);
   }
 }
+void MutableGraph::reorder_bfs(){
+  //Pull out what you are going to reorder.
+  vector< vector<unsigned int>*  > *neighborhoods = new vector< vector<unsigned int>* >();
+  neighborhoods = out_neighborhoods;
+
+  unsigned int *tmp_new2old_ids = new unsigned int[num_nodes];
+  for(size_t i = 0; i < num_nodes; i++){
+    tmp_new2old_ids[i] = i;
+  }
+
+  std::sort(&tmp_new2old_ids[0],&tmp_new2old_ids[num_nodes],OrderNeighborhoodByDegree(neighborhoods));
+  
+  unsigned int *new2old_ids = new unsigned int[num_nodes];
+  std::unordered_set<unsigned int> *visited = new unordered_set<unsigned int>();
+  
+  size_t num_added = 0;
+  unsigned int *cur_level = new unsigned int[num_nodes];
+  size_t cur_level_size = 1;
+  cur_level[0] = tmp_new2old_ids[0];
+
+  unsigned int *next_level = new unsigned int[num_nodes];
+  while(num_added != neighborhoods->size()){
+    size_t cur_level_i = 0;
+    size_t next_level_size = 0;
+    while(cur_level_i < cur_level_size){
+      vector<unsigned int> *hood = neighborhoods->at(cur_level[cur_level_i++]);
+      for(size_t j = 0; j < hood->size(); ++j) {
+        if(visited->find(hood->at(j)) == visited->end()){
+          new2old_ids[num_added++] = hood->at(j);
+          visited->insert(hood->at(j));
+          next_level[next_level_size++] = hood->at(j);
+        }
+      }
+    }
+    unsigned int *tmp = cur_level;
+    cur_level = next_level;
+    next_level = tmp;
+    cur_level_size = next_level_size;
+  }
+  delete visited;
+  delete[] cur_level;
+  delete[] next_level;
+  delete[] tmp_new2old_ids;
+
+  unsigned int *old2new_ids = new unsigned int[num_nodes];
+  for(size_t i = 0; i < num_nodes; i++){
+    old2new_ids[new2old_ids[i]] = i;
+  }
+
+  vector< vector<unsigned int>*  > *new_neighborhoods = new vector< vector<unsigned int>* >();
+  new_neighborhoods->reserve(num_nodes);
+  reassign_ids(neighborhoods,new_neighborhoods,new2old_ids,old2new_ids);
+  
+  delete neighborhoods;
+  delete[] new2old_ids;
+  delete[] old2new_ids;
+
+  //Reassign what you reordered.
+  out_neighborhoods = new_neighborhoods;
+  in_neighborhoods = new_neighborhoods;
+}
 void MutableGraph::reorder_strong_run(){
   //Pull out what you are going to reorder.
   vector< vector<unsigned int>*  > *neighborhoods = new vector< vector<unsigned int>* >();
@@ -66,6 +127,7 @@ void MutableGraph::reorder_strong_run(){
   reassign_ids(neighborhoods,new_neighborhoods,new2old_ids,old2new_ids);
   
   delete neighborhoods;
+  delete visited;
   delete[] new2old_ids;
   delete[] old2new_ids;
 

@@ -66,83 +66,60 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
   size_t *row_indicies_in = new size_t[matrix_size_in+1];
   unsigned int *row_lengths_in = new unsigned int[matrix_size_in];
   uint8_t *tmp_row_data = new uint8_t[cardinality_in*40]; 
-
-  size_t new_cardinality = 0;
-  size_t index = 0;
-  size_t nbr_i = 0;
-
-  for(size_t i = 0; i < matrix_size_in; ++i) {
-    row_indicies_in[i] = index;
-    if(nbr_i < out_nbrs->size() && out_nbrs->at(nbr_i)->at(0) == i){
-      vector<unsigned int> *hood = out_nbrs->at(nbr_i);
-      size_t node = hood->at(0);
-      if(nodeFilter(node)){
-        unsigned int *filtered_hood = new unsigned int[hood->size()-1];
-        size_t filter_index = 0;
-        for(size_t j = 1; j < hood->size(); ++j) {
-          if(nodeFilter(hood->at(j)) && edgeFilter(i,hood->at(j))){
-            new_cardinality++;
-            filtered_hood[filter_index++] = hood->at(j);
-          } 
-        }
-        row_lengths_in[i] = filter_index;
-        const common::type row_type = Matrix::get_array_type(t_in,filtered_hood,filter_index,matrix_size_in); //depends on above array being set
-        index = uint_array::preprocess(tmp_row_data,index,filtered_hood,filter_index,matrix_size_in,row_type);
-        delete[] filtered_hood;
-      }
-      nbr_i++;
-    } else{
-      row_lengths_in[i] = 0;
-    } 
-  }
-
-  uint8_t *row_data_in = new uint8_t[index];
-  cout << "ROW DATA SIZE (Bytes): " << index << endl;
-  std::copy(tmp_row_data,tmp_row_data+index,row_data_in);
-  row_indicies_in[matrix_size_in] = index;
-
-  index = 0;
-  nbr_i = 0;
   size_t *col_indicies_in = new size_t[matrix_size_in+1];
   unsigned int *col_lengths_in = new unsigned int[matrix_size_in];
   uint8_t *tmp_col_data = new uint8_t[cardinality_in*40]; 
 
-  for(size_t i = 0; i < matrix_size_in; ++i) {
-    col_indicies_in[i] = index;
-    if(nbr_i < in_nbrs->size() && in_nbrs->at(nbr_i)->at(0) == i){
-      vector<unsigned int> *hood = in_nbrs->at(nbr_i);
-      size_t node = hood->at(0);
-      if(nodeFilter(node)){
-        unsigned int *filtered_hood = new unsigned int[hood->size()-1];
-        size_t filter_index = 0;
-        size_t prev = 10000000000;
-        size_t num_hit = 0;
+  size_t new_cardinality = 0;
+  size_t index_o = 0;
+  size_t index_i = 0;
 
-        for(size_t j = 1; j < hood->size(); ++j) {
-          if(nodeFilter(hood->at(j)) && edgeFilter(i,hood->at(j))){
-            new_cardinality++;
-            if(prev >= (hood->at(j)-3)){
-              num_hit++;
-            }
-            filtered_hood[filter_index++] = hood->at(j);
-            prev = hood->at(j);
-          } 
-        }
-        col_lengths_in[i] = filter_index;
-        const common::type col_type = Matrix::get_array_type(t_in,filtered_hood,filter_index,matrix_size_in); //depends on above array being set
-        index = uint_array::preprocess(tmp_col_data,index,filtered_hood,filter_index,matrix_size_in,col_type);
-        delete[] filtered_hood;
+  for(size_t i = 0; i < matrix_size_in; ++i) {
+    row_indicies_in[i] = index_o;
+    col_indicies_in[i] = index_i;
+
+    vector<unsigned int> *row = out_nbrs->at(i);
+    vector<unsigned int> *col = in_nbrs->at(i);
+    if(nodeFilter(i)){
+      unsigned int *filtered_row = new unsigned int[row->size()];      
+      size_t new_row_size = 0;
+      for(size_t j = 0; j < row->size(); ++j) {
+        if(nodeFilter(row->at(j)) && edgeFilter(i,row->at(j))){
+          new_cardinality++;
+          filtered_row[new_row_size++] = row->at(j);
+        } 
       }
-      nbr_i++;
-    } else{
-      col_lengths_in[i] = 0;
-    } 
+
+      row_lengths_in[i] = new_row_size;
+      const common::type row_type = Matrix::get_array_type(t_in,filtered_row,new_row_size,matrix_size_in); //depends on above array being set
+      index_o = uint_array::preprocess(tmp_row_data,index_o,filtered_row,new_row_size,matrix_size_in,row_type);
+      delete[] filtered_row;
+
+      unsigned int *filtered_col = new unsigned int[col->size()];
+      size_t new_col_size = 0;
+      for(size_t j = 0; j < col->size(); ++j) {
+        if(nodeFilter(col->at(j)) && edgeFilter(i,col->at(j))){
+          new_cardinality++;
+          filtered_col[new_col_size++] = col->at(j);
+        } 
+      }
+
+      col_lengths_in[i] = new_col_size;
+      const common::type col_type = Matrix::get_array_type(t_in,filtered_col,new_col_size,matrix_size_in); //depends on above array being set
+      index_i = uint_array::preprocess(tmp_col_data,index_i,filtered_col,new_col_size,matrix_size_in,col_type);
+      delete[] filtered_col;
+    }
   }
 
-  uint8_t *col_data_in = new uint8_t[index];
-  cout << "COLUMN DATA SIZE (Bytes): " << index << endl;
-  std::copy(tmp_col_data,tmp_col_data+index,col_data_in);
-  col_indicies_in[matrix_size_in] = index;
+  uint8_t *row_data_in = new uint8_t[index_o];
+  cout << "ROW DATA SIZE (Bytes): " << index_o << endl;
+  std::copy(tmp_row_data,tmp_row_data+index_o,row_data_in);
+  row_indicies_in[matrix_size_in] = index_o;
+
+  uint8_t *col_data_in = new uint8_t[index_i];
+  cout << "COLUMN DATA SIZE (Bytes): " << index_i << endl;
+  std::copy(tmp_col_data,tmp_col_data+index_i,col_data_in);
+  col_indicies_in[matrix_size_in] = index_i;
 
   matrix_size = matrix_size_in;
   cardinality = cardinality_in;

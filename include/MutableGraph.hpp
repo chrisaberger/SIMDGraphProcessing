@@ -46,9 +46,9 @@ struct MutableGraph {
     }
   }
   static MutableGraph* undirectedFromBinary(const string path);
+  static MutableGraph* directedFromEdgeList(const string path);
   static MutableGraph* undirectedFromEdgeList(const string path);
   static MutableGraph* undirectedFromAdjList(const string path,const int num_files);
-  static MutableGraph* directedFromEdgeList(const string path,const int num_files);
 };
 
 #endif

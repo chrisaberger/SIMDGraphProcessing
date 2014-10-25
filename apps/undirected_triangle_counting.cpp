@@ -58,7 +58,7 @@ int main (int argc, char* argv[]) {
   common::startClock();
   MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
   application::result = new uint8_t[inputGraph->num_nodes]; //we don't actually use this for just a count
-  inputGraph->reorder_by_degree();
+  inputGraph->reorder_strong_run();
   common::stopClock("Reading File");
 
   cout << endl;

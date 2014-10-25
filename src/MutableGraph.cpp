@@ -367,6 +367,93 @@ MutableGraph* MutableGraph::undirectedFromEdgeList(const string path) {
 /*
 File format
 
+src0 dst0
+src1 dst1
+...
+
+*/
+MutableGraph* MutableGraph::directedFromEdgeList(const string path) {  
+  //Place graph into vector of vectors then decide how you want to
+  //store the graph.
+  size_t num_edges = 0;
+
+  unordered_map<unsigned int,unsigned int> *extern_ids = new unordered_map<unsigned int,unsigned int>();
+  vector< vector<unsigned int>*  > *in_neighborhoods = new vector< vector<unsigned int>* >();
+  vector< vector<unsigned int>*  > *out_neighborhoods = new vector< vector<unsigned int>* >();
+
+  FILE *pFile = fopen(path.c_str(),"r");
+  if (pFile==NULL) {fputs ("File error",stderr); exit (1);}
+
+  // obtain file size:
+  fseek(pFile,0,SEEK_END);
+  size_t lSize = ftell(pFile);
+  rewind(pFile);
+
+  // allocate memory to contain the whole file:
+  char *buffer = (char*) malloc (sizeof(char)*lSize);
+  if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
+
+  // copy the file into the buffer:
+  size_t result = fread (buffer,1,lSize,pFile);
+  if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
+
+  char *test = strtok(buffer," \t\nA");
+  while(test != NULL){
+    unsigned int src;
+    sscanf(test,"%u",&src);
+    test = strtok(NULL," \t\nA");
+    
+    unsigned int dst;
+    sscanf(test,"%u",&dst);
+    test = strtok(NULL," \t\nA");
+
+    num_edges++;
+
+    vector<unsigned int> *src_row;
+    if(extern_ids->find(src) == extern_ids->end()){
+      extern_ids->insert(make_pair(src,extern_ids->size()));
+      src_row = new vector<unsigned int>();
+      vector<unsigned int> *new_row = new vector<unsigned int>();
+      in_neighborhoods->push_back(new_row);
+      out_neighborhoods->push_back(src_row);
+    } else{
+      src_row = out_neighborhoods->at(extern_ids->at(src));
+    }
+
+    vector<unsigned int> *dst_row;
+    if(extern_ids->find(dst) == extern_ids->end()){
+      extern_ids->insert(make_pair(dst,extern_ids->size()));
+      dst_row = new vector<unsigned int>();
+      vector<unsigned int> *new_row = new vector<unsigned int>();
+      out_neighborhoods->push_back(new_row);
+      in_neighborhoods->push_back(dst_row);
+    } else{
+      dst_row = in_neighborhoods->at(extern_ids->at(dst));
+    }
+
+    src_row->push_back(extern_ids->at(dst));
+    dst_row->push_back(extern_ids->at(src));
+  }
+  // terminate
+  fclose(pFile);
+  free(buffer);
+
+  for(size_t i = 0; i < in_neighborhoods->size(); i++){
+    vector<unsigned int> *row = in_neighborhoods->at(i);
+    std::sort(row->begin(),row->end());
+    row->erase(unique(row->begin(),row->begin()+row->size()),row->end());
+  }
+  for(size_t i = 0; i < out_neighborhoods->size(); i++){
+    vector<unsigned int> *row = out_neighborhoods->at(i);
+    std::sort(row->begin(),row->end());
+    row->erase(unique(row->begin(),row->begin()+row->size()),row->end());
+  }
+
+  return new MutableGraph(in_neighborhoods->size(),num_edges,false,extern_ids,out_neighborhoods,in_neighborhoods); 
+}
+/*
+File format
+
 Edges must be duplicated.  If you have edge (0,1) you must
 also have (1,0) listed.
 
@@ -434,97 +521,5 @@ MutableGraph* MutableGraph::undirectedFromAdjList(const string path,const int nu
 
   return new MutableGraph(num_nodes,num_edges,true,extern_ids,neighborhoods,neighborhoods); 
   //stopClock("Reassigning ids");
-}
-*/
-/*
-File format
-
-src0 dst0
-src1 dst1
-...
-
-*/
-/*
-MutableGraph* MutableGraph::directedFromEdgeList(const string path,const int num_files) {
-  (void) num_files; //one day this will be in parallel
-
-  size_t num_edges = 0;
-  size_t num_nodes = 0;
-  
-  //Place graph into vector of vectors then decide how you want to
-  //store the graph.
-
-  vector<pair<unsigned int,unsigned int>> *edges = new vector<pair<unsigned int,unsigned int>>(); //guess a size
-
-  FILE *pFile = fopen(path.c_str(),"r");
-  if (pFile==NULL) {fputs ("File error",stderr); exit (1);}
-
-  // obtain file size:
-  fseek(pFile,0,SEEK_END);
-  size_t lSize = ftell(pFile);
-  rewind(pFile);
-
-  // allocate memory to contain the whole file:
-  char *buffer = (char*) malloc (sizeof(char)*lSize);
-  edges->reserve(lSize/4);
-  if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
-
-  // copy the file into the buffer:
-  size_t result = fread (buffer,1,lSize,pFile);
-  if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
-
-  char *test = strtok(buffer," \t\n");
-  while(test != NULL){
-    unsigned int src;
-    sscanf(test,"%u",&src);
-    test = strtok(NULL," \t\n");
-
-    unsigned int dst;
-    sscanf(test,"%u",&dst);
-    test = strtok(NULL," \t\n");
-
-    edges->push_back(make_pair(src,dst));
-  }
-  // terminate
-  fclose(pFile);
-  free(buffer);
-
-  num_edges = edges->size();
-  ////////////////////////////////////////////////////////////////////
-  //out edges
-  std::sort(edges->begin(),edges->end(),SrcPairComparator()); //sets us up to remove duplicate sources
-
-  //go from edge list to vector of vectors
-  vector< vector<unsigned int>*  > *out_neighborhoods = new vector< vector<unsigned int>* >();
-  build_out_neighborhoods(out_neighborhoods,edges); //does flat map
-
-  ////////////////////////////////////////////////////////////////////
-  //in edges
-  std::sort(edges->begin(),edges->end(),DstPairComparator()); //sets us up to remove duplicate destinations
-
-  //go from edge list to vector of vectors
-  vector< vector<unsigned int>*  > *in_neighborhoods = new vector< vector<unsigned int>* >();
-  build_in_neighborhoods(in_neighborhoods,edges); //does flat map
-
-  //order by degree
-  std::sort(out_neighborhoods->begin(),out_neighborhoods->end(),AdjComparator());
-
-  //Build hash map
-  unordered_map<unsigned int,unsigned int> *extern_ids = new unordered_map<unsigned int,unsigned int>();
-  build_hash(in_neighborhoods,extern_ids); //send this in first to assign it's ID's first
-  build_hash(out_neighborhoods,extern_ids);
-
-  //reassign ID's
-  reassign_ids(out_neighborhoods,extern_ids);
-  reassign_ids(in_neighborhoods,extern_ids);
-
-  std::sort(in_neighborhoods->begin(),in_neighborhoods->end(),NeighborhoodComparator()); //so that we can flatten easily
-  std::sort(out_neighborhoods->begin(),out_neighborhoods->end(),NeighborhoodComparator()); //so that we can flatten easily
-
-  num_nodes = extern_ids->size();
-  
-  delete edges;
-
-  return new MutableGraph(num_nodes,num_edges,false,extern_ids,out_neighborhoods,in_neighborhoods); 
 }
 */

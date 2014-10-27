@@ -51,11 +51,14 @@ int main (int argc, char* argv[]) {
   application::graph = allocated_graph;
   common::stopClock("Building Graph");
 
-  common::startClock();
-  application::queryOver();
-  common::stopClock("CSR TRIANGLE COUNTING");
-
-  cout << "Count: " << application::num_triangles << endl << endl;
+  for(int i = 36; i <= 36; i += 4) {
+     omp_set_num_threads(i);
+     std::cout << "Threads: " << i << endl;
+     common::startClock();
+     application::queryOver();
+     common::stopClock("CSR TRIANGLE COUNTING");
+     cout << "Count: " << application::num_triangles << endl << endl;
+  }
 
   return 0;
 }

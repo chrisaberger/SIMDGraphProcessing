@@ -94,14 +94,22 @@ namespace common{
 
   static void* allocate_local(size_t num, size_t size, int node) {
      size_t total_size = num * size;
+
+#ifdef NUMA_ALLOC
      return numa_alloc_onnode(total_size, node);
-     //return calloc(num, size);
+#else
+     return calloc(num, size);
+#endif
   }
 
   static void free_local(void* start, size_t num, size_t size) {
      size_t total_size = num * size;
+
+#ifdef NUMA_ALLOC
      numa_free(start, total_size);
-     //free(start);
+#else
+     free(start);
+#endif
   }
 
   static int find_memory_node_for_addr(void* ptr) {

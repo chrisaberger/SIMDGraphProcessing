@@ -1,75 +1,65 @@
-.SUFFIXES:
-#
-.SUFFIXES: .cpp .o .c .hpp
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Linux)
+	LIBS=-lnuma
+endif
+
 # replace the CXX variable with a path to a C++11 compatible compiler.
 ifeq ($(INTEL), 1)
 # if you wish to use the Intel compiler, please do "make INTEL=1".
     CXX ?= /opt/intel/bin/icpc
 ifeq ($(DEBUG),1)
-    override CXXFLAGS += -std=c++0x -O3 -Wall -Wno-conversion -ansi -fopenmp -xAVX -DDEBUG=1 -D_GLIBCXX_DEBUG   -ggdb
+    override CXXFLAGS += -std=c++0x -O3 -Wall -ansi -fopenmp -xAVX -DDEBUG=1 -D_GLIBCXX_DEBUG   -ggdb
 else
-    override CXXFLAGS += -std=c++0x -O3 -Wall -ansi -fopenmp -xAVX -DNDEBUG=1  -ggdb -Wno-conversion
+    override CXXFLAGS += -std=c++0x -O3 -Wall -ansi -fopenmp -xAVX -DNDEBUG=1  -ggdb
 endif # debug
 else #intel
     CXX ?= g++-4.7
 ifeq ($(DEBUG),1)
-    override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -ggdb -DDEBUG=1 -Wno-conversion -D_GLIBCXX_DEBUG -Wall -Wextra  -Wcast-align  
+    override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -ggdb -DDEBUG=1 -D_GLIBCXX_DEBUG -Wall -Wextra  -Wcast-align
 else
-    override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -O3 -Wall -Wextra -Wno-conversion  -Wcast-align  
+    override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -O3 -Wall -Wextra  -Wcast-align
 endif #debug
 endif #intel
 
-all: UnsignedIntegerArray.o Matrix.o MutableGraph.o 
-HEADERS= $(shell ls include/*hpp)
 OBJDIR=build
 EXEDIR=bin
+HEADERS=$(wildcard include/*hpp)
+SOURCES=$(wildcard src/*cpp)
+OBJECTS=$(SOURCES:src/%.cpp=$(OBJDIR)/%.o)
 
-$(shell mkdir -p $(OBJDIR))
-$(shell mkdir -p $(EXEDIR))
+APPS_SOURCES=$(shell ls apps)
+TOOLS_SOURCES=$(shell ls tools)
+TESTS_SOURCES=$(shell ls tests)
 
-MutableGraph.o: include/MutableGraph.hpp src/MutableGraph.cpp
-	$(CXX) $(CXXFLAGS) -c src/MutableGraph.cpp -Iinclude -o $(OBJDIR)/$@
+APPS=$(APPS_SOURCES:.cpp=)
+TOOLS=$(TOOLS_SOURCES:.cpp=)
+TESTS=$(TESTS_SOURCES:.cpp=)
 
-UnsignedIntegerArray.o: include/UnsignedIntegerArray.hpp src/UnsignedIntegerArray.cpp
-	$(CXX) $(CXXFLAGS) -c src/UnsignedIntegerArray.cpp -Iinclude -o $(OBJDIR)/$@
+APPS_EXES=$(APPS:%=$(EXEDIR)/%)
+TOOLS_EXES=$(TOOLS:%=$(EXEDIR)/%)
+TESTS_EXES=$(TESTS:%=$(EXEDIR)/%)
 
-Matrix.o: include/Matrix.hpp src/Matrix.cpp
-	$(CXX) $(CXXFLAGS) -c src/Matrix.cpp -Iinclude -o $(OBJDIR)/$@
+all: $(APPS_EXES) $(TOOLS_EXES)
 
-UNAME := $(shell uname)
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
 
-OBJECTS= $(OBJDIR)/Matrix.o $(OBJDIR)/MutableGraph.o $(OBJDIR)/UnsignedIntegerArray.o
+$(EXEDIR):
+	mkdir -p $(EXEDIR)
 
-undirectedEdgeListToBinary: tools/undirectedEdgeListToBinary.cpp
-	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/undirectedEdgeListToBinary tools/undirectedEdgeListToBinary.cpp  $(OBJECTS) -Iinclude
+$(APPS_EXES): $(OBJECTS) $(APP_SOURCES) $(EXEDIR)
+	$(CXX) $(CXXFLAGS) $(@:bin%=apps%.cpp) $(OBJECTS) $(LIBS) -o $@ -Iinclude 
 
-directedEdgeListToBinary: tools/directedEdgeListToBinary.cpp
-	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/directedEdgeListToBinary tools/directedEdgeListToBinary.cpp  $(OBJECTS) -Iinclude
+$(TOOLS_EXES): $(OBJECTS) $(EXEDIR)
+	$(CXX) $(CXXFLAGS) $(@:bin%=tools%.cpp) $(OBJECTS) $(LIBS) -o $@ -Iinclude 
 
-test_undirected_triangle_counting: tests/test_undirected_triangle_counting.cpp
-	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/test_undirected_triangle_counting tests/test_undirected_triangle_counting.cpp  $(OBJECTS) -Iinclude
+$(TESTS_EXES): $(OBJECTS) $(EXEDIR)
+	$(CXX) $(CXXFLAGS) $(@:bin%=tests%.cpp) $(OBJECTS) $(LIBS) -o $@ -Iinclude 
 
-test_synthetic_perf: tests/test_synthetic_perf.cpp
-	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/test_synthetic_perf tests/test_synthetic_perf.cpp  $(OBJECTS) -Iinclude
+$(OBJECTS): $(SOURCES) $(HEADERS) $(OBJDIR)
+	$(CXX) $(CXXFLAGS) -Iinclude $(LIB_INCS) -o $@ -c $(@:build%.o=src%.cpp) 
 
-test_compression_simple: tests/test_compression_simple.cpp
-	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/test_compression_simple tests/test_compression_simple.cpp  $(OBJECTS) -Iinclude
-
-test_input_loader: tests/test_input_loader.cpp
-	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/test_input_loader tests/test_input_loader.cpp  $(OBJECTS) -Iinclude
-
-test_primitives: tests/test_primitives.cpp
-	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/test_primitives tests/test_primitives.cpp  $(OBJECTS) -Iinclude
-
-test_pagerank: tests/test_pagerank.cpp
-	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/test_pagerank tests/test_pagerank.cpp  $(OBJECTS) -Iinclude
-
-test_matrix_multiply: tests/test_matrix_multiply.cpp
-	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/test_matrix_multiply tests/test_matrix_multiply.cpp  $(OBJECTS) -Iinclude
-
-.DEFAULT:  apps/$@.cpp
-	$(CXX) $(CXXFLAGS)  -o $(EXEDIR)/$@ apps/$@.cpp  $(OBJECTS) -Iinclude
-
-clean: 
+clean:
 	rm -rf $(OBJDIR) $(EXEDIR)
 

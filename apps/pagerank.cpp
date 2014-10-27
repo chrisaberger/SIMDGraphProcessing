@@ -138,12 +138,12 @@ int main (int argc, char* argv[]) {
   application::max_iterations = atoi(argv[3]);
 
   common::startClock();
-  MutableGraph *inputGraph = MutableGraph::directedFromEdgeList(argv[1],1); //filename, # of files
+  MutableGraph *inputGraph = MutableGraph::directedFromEdgeList(argv[1]); //filename, # of files
   //for more sophisticated queries this would be used.
   common::stopClock("Reading File");
 
   cout << "Reordering." << endl;
-  inputGraph->reorder_runs();  
+  inputGraph->reorder_strong_run();  
 
   cout << endl;
   application::graph = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,

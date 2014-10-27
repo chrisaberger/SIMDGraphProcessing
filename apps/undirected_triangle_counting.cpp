@@ -6,7 +6,6 @@ namespace application{
   Matrix *graph;
   uint8_t *result;
   long num_triangles = 0;
-  common::type graphType = common::A32BITPACKED;
   
   inline bool myNodeSelection(unsigned int node){
     (void)node;
@@ -62,7 +61,6 @@ int main (int argc, char* argv[]) {
   common::startClock();
   inputGraph->reorder_by_degree();
   common::stopClock("Reordering");
-
 
   cout << endl;
 

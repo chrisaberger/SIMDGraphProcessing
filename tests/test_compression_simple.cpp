@@ -38,6 +38,7 @@ int main (int argc, char* argv[]) {
   layout_names.push_back("HYBRID_PERF");
   layout_names.push_back("HYBRID_COMP");
 
+  /*
   inputGraph->reorder_random();
   cout << endl << "RANDOM" << endl;
   for(uint8_t i =1; i < (uint8_t)layout_names.size(); i++){
@@ -49,6 +50,7 @@ int main (int argc, char* argv[]) {
     common::stopClock(layout_names.at(i));
     application::graph->Matrix::~Matrix(); 
   }
+  */
 
   inputGraph->reorder_strong_run();
   cout << endl << "STRONG RUNS" << endl;

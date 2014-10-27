@@ -287,6 +287,7 @@ MutableGraph* MutableGraph::undirectedFromBinary(const string path) {
     unsigned int *tmp_data = new unsigned int[row_size];
     infile.read((char *)&tmp_data[0], sizeof(unsigned int)*row_size); 
     row->assign(&tmp_data[0],&tmp_data[row_size]);
+    delete[] tmp_data;
     //TODO: can you delete row?
     neighborhoods->push_back(row);
   }

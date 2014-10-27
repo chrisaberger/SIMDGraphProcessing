@@ -75,6 +75,15 @@ class Matrix{
     template<typename T> T sum_over_rows(std::function<T(unsigned int, std::function<T(unsigned int,unsigned int,unsigned int*)>)> rowfunction, std::function<T(unsigned int,unsigned int,unsigned int*)> f);
     template<typename T> T sum_over_columns_in_row(unsigned int c,std::function<T(unsigned int,unsigned int,unsigned int*)> f);        
     size_t row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a);
+
+    template<typename T> void sum_over_rows_part(
+        std::function<T(unsigned int, std::function<T(unsigned int,unsigned int,unsigned int*)>)> rowfunction,
+        std::function<T(unsigned int,unsigned int,unsigned int*)> f,
+        int thread_id, int num_threads);
+    template<typename T> void sum_over_rows_part_omp(
+        std::function<T(unsigned int, std::function<T(unsigned int,unsigned int,unsigned int*)>)> rowfunction,
+        std::function<T(unsigned int,unsigned int,unsigned int*)> f,
+        int node_id, int num_nodes);
 };
 
 inline size_t Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a){
@@ -237,6 +246,32 @@ T Matrix::sum_over_rows_in_column_pr(unsigned int col,T *old_data){
   }
 
   return result;
+}
+
+template<typename T> 
+void Matrix::sum_over_rows_part(
+    std::function<T(unsigned int, std::function<T(unsigned int,unsigned int,unsigned int*)>)> rowfunction,
+    std::function<T(unsigned int,unsigned int,unsigned int*)> f,
+    int thread_id, int num_threads) {
+  for(size_t i = thread_id; i < matrix_size; i += num_threads){
+    rowfunction(i,f);
+  }
+}
+
+template<typename T> 
+void Matrix::sum_over_rows_part_omp(
+    std::function<T(unsigned int, std::function<T(unsigned int,unsigned int,unsigned int*)>)> rowfunction,
+    std::function<T(unsigned int,unsigned int,unsigned int*)> f,
+    int node_id, int num_nodes) {
+  size_t work_size = matrix_size / num_nodes;
+  size_t start = node_id * work_size;
+  // Make sure that we process all nodes
+  size_t end = (node_id == num_nodes - 1) ? matrix_size : start + work_size;
+
+#pragma omp parallel for default(none) shared(start,end,f,rowfunction) schedule(dynamic) num_threads(4)
+  for(size_t i = start; i < end; i++){
+    rowfunction(i,f);
+  }
 }
 
 #endif

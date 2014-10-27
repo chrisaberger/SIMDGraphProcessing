@@ -25,7 +25,7 @@ namespace application{
 class Worker {
 private:
   Node* node;
-  Matrix* local_graph;
+  Matrix* graph;
   int num_nodes;
   std::atomic<long> triangles;
   uint8_t *result;
@@ -43,18 +43,25 @@ public:
   static void operator delete(void* ptr) {
   }
 
-  Worker(int node, int num_nodes, MutableGraph* input_graph) {
+  Worker(int node, int num_nodes, MutableGraph* input_graph, common::type layout) {
     numa_run_on_node(node);
     numa_set_preferred(node);
 
     this->node = new Node(node);
-    this->local_graph = new (node) Matrix(
+
+    /*
+    this->graph = new (node) Matrix(
       node,
       input_graph->out_neighborhoods,
       input_graph->num_nodes, input_graph->num_edges,
       &application::myNodeSelection,
       &application::myEdgeSelection,
       application::graphType);
+      */
+
+    new Matrix(input_graph->out_neighborhoods,
+       input_graph->num_nodes,input_graph->num_edges,
+       &application::myNodeSelection,&application::myEdgeSelection,input_graph->external_ids,layout);
     this->num_nodes = num_nodes;
     this->result = new uint8_t[input_graph->num_nodes];
   }
@@ -62,15 +69,15 @@ public:
   Worker(int node, int num_nodes, Matrix* input_graph) {
     this->node = new Node(node);
     this->node->run_on();
-    this->local_graph = input_graph;
+    this->graph = input_graph;
     this->num_nodes = num_nodes;
     this->triangles = 0;
     this->result = new uint8_t[input_graph->matrix_size];
   }
 
-  int edgeApply(unsigned int src, unsigned int dst) {
-    this->triangles += this->local_graph->row_intersect(this->result, src, dst);
-    return 0;
+  int edgeApply(unsigned int src, unsigned int dst, unsigned int *src_nbrhood){
+    long count = graph->row_intersect(result,src,dst,src_nbrhood);
+    return count;
   }
 
   void run(int num_threads) {
@@ -80,10 +87,10 @@ public:
     this->node->run_on();
 
     for(int i = 0; i < num_threads; i++) {
-       auto edge_fun = std::bind(&Worker::edgeApply, this, _1, _2);
-       auto col_fun = std::bind(&Matrix::reduce_column_in_row<int>, this->local_graph, _1, _2);
+       auto edge_fun = std::bind(&Worker::edgeApply, this, _1, _2, _3);
+       auto col_fun = std::bind(&Matrix::sum_over_columns_in_row<int>, this->graph, _1, _2);
        //auto thread_fun = std::bind(&Matrix::part_reduce_row_omp<int>, this->local_graph, std::cref(col_fun), std::cref(edge_fun), this->node->get_id(), this->num_nodes);
-       auto thread_fun = std::bind(&Matrix::part_reduce_row<int>, this->local_graph, std::cref(col_fun), std::cref(edge_fun), i + this->node->get_id() * num_threads, this->num_nodes * num_threads);
+       auto thread_fun = std::bind(&Matrix::sum_over_rows_part<int>, this->graph, std::cref(col_fun), std::cref(edge_fun), i + this->node->get_id() * num_threads, this->num_nodes * num_threads);
        std::thread* worker_thread = new std::thread(thread_fun);
        this->node->add_thread(worker_thread);
     }
@@ -122,30 +129,31 @@ int main (int argc, char* argv[]) {
 
   numa_run_on_node(2);
 
+  common::type layout = common::ARRAY32;
+
   // Allocate memory where the thread is running
   //numa_set_localalloc();
 
-
+  // Read file
   common::startClock();
-  MutableGraph inputGraph = MutableGraph::undirectedFromAdjList(argv[1],1); //filename, # of files
-
+  MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]);
   common::stopClock("Reading File");
 
+ common::startClock();
+  inputGraph->reorder_by_degree();
+  common::stopClock("Reordering");
+
   common::startClock();
 
-  Matrix* mat = new Matrix(
-      0,
-      inputGraph.out_neighborhoods,
-      inputGraph.num_nodes, inputGraph.num_edges,
-      &application::myNodeSelection,
-      &application::myEdgeSelection,
-      application::graphType);
+  Matrix* mat = new Matrix(inputGraph->out_neighborhoods,
+    inputGraph->num_nodes,inputGraph->num_edges,
+    &application::myNodeSelection,&application::myEdgeSelection,inputGraph->external_ids,layout);
 
   cout << "Number of nodes: " << mat->matrix_size << endl;
 
   std::vector<Worker*> nodes;
   for(int32_t i = 0; i < num_nodes; i++) {
-    nodes.push_back(new (i) Worker(i, num_nodes, &inputGraph));
+    nodes.push_back(new (i) Worker(i, num_nodes, inputGraph, layout));
     //nodes.push_back(new Worker(i, num_nodes, mat));
   }
 

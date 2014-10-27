@@ -135,6 +135,8 @@ inline common::type Matrix::get_perf_hybrid_array_type(unsigned int *r_data, siz
   } else if(row_size != 0 && 
     (row_size/((r_data[row_size-1] >> 16) - (r_data[0] >> 16) + 1)) > 12){
     return common::ARRAY16;
+  } else if(row_size > 10 && row_size < 20){
+    return common::VARIANT;
   } else{
     return common::ARRAY32;
   }

@@ -436,7 +436,7 @@ namespace array32 {
     return count;
   }
   template<typename T> 
-  inline T sum_decoded(T (*function)(unsigned int,unsigned int,unsigned int*),unsigned int col,unsigned int *data, size_t length,unsigned int *outputA){
+  inline T sum_decoded(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,unsigned int *data, size_t length,unsigned int *outputA){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
       result += function(col,data[i],outputA);

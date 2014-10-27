@@ -72,8 +72,8 @@ class Matrix{
     template<typename T> T map_columns(T (Matrix::*rowfunction)(unsigned int,T*), T *mapped_data, T *old_data);
     template<typename T> T sum_over_rows_in_column(unsigned int c, T *old_data);
 
-    template<typename T> T sum_over_rows(T (Matrix::*function)(unsigned int,T (*f)(unsigned int,unsigned int,unsigned int*)), T (*f)(unsigned int,unsigned int,unsigned int*));
-    template<typename T> T sum_over_columns_in_row(unsigned int c,T (*function)(unsigned int,unsigned int,unsigned int*));        
+    template<typename T> T sum_over_rows(std::function<T(unsigned int, std::function<T(unsigned int,unsigned int,unsigned int*)>)> rowfunction, std::function<T(unsigned int,unsigned int,unsigned int*)> f);
+    template<typename T> T sum_over_columns_in_row(unsigned int c,std::function<T(unsigned int,unsigned int,unsigned int*)> f);        
     size_t row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a);
 };
 
@@ -154,17 +154,17 @@ inline common::type Matrix::get_compressed_hybrid_array_type(unsigned int *r_dat
 }
 
 template<typename T> 
-T Matrix::sum_over_rows(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,unsigned int,unsigned int*)), T (*f)(unsigned int,unsigned int,unsigned int*)) {
+T Matrix::sum_over_rows(std::function<T(unsigned int, std::function<T(unsigned int,unsigned int,unsigned int*)>)> rowfunction, std::function<T(unsigned int,unsigned int,unsigned int*)> f){
   T reducer = (T) 0;
   #pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,100) reduction(+:reducer) 
   for(size_t i = 0; i < matrix_size; i++){
-    reducer += (this->*rowfunction)(i,f);
+    reducer += (rowfunction)(i,f);
   }
   return reducer;
 }
 
 template<typename T> 
-T Matrix::sum_over_columns_in_row(unsigned int row,T (*function)(unsigned int,unsigned int,unsigned int*)){
+T Matrix::sum_over_columns_in_row(unsigned int row,std::function<T(unsigned int,unsigned int,unsigned int*)> f){    
   T result = (T) 0;
   size_t card = row_lengths[row];
   if(card > 0){
@@ -172,7 +172,7 @@ T Matrix::sum_over_columns_in_row(unsigned int row,T (*function)(unsigned int,un
     size_t end = row_indicies[row+1];
 
     unsigned int *decoded_a = row_lengths;
-    result = uint_array::sum_decoded(function,row,row_data+start,end-start,card,t,decoded_a);
+    result = uint_array::sum_decoded(f,row,row_data+start,end-start,card,t,decoded_a);
   }
   return result;
 }

@@ -21,7 +21,11 @@ namespace application{
     return count;
   }
   inline void queryOver(){
-    num_triangles = graph->sum_over_rows(&Matrix::sum_over_columns_in_row,&edgeApply);
+    using namespace std::placeholders;
+    auto edge_fun = std::bind(&edgeApply, _1, _2, _3);
+    auto row_fun = std::bind(&Matrix::sum_over_columns_in_row<long>, graph, _1, _2);
+
+    num_triangles = graph->sum_over_rows<long>(row_fun,edge_fun);
   }
 }
 

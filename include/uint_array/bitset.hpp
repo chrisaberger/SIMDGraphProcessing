@@ -104,7 +104,7 @@ namespace bitset {
     return result;
   }
 	template<typename T> 
-  inline T reduce(T (*function)(unsigned int,unsigned int,unsigned int*),unsigned int col,unsigned short *data, size_t length,unsigned int *outputA){
+  inline T sum_decoded(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,unsigned short *data, size_t length,unsigned int *outputA){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
     	unsigned short cur_word = data[i];

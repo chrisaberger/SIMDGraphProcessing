@@ -173,7 +173,7 @@ namespace variant {
     return result;
   }
   template<typename T> 
-  inline T reduce(T (*function)(unsigned int,unsigned int),unsigned int col,uint8_t *data, size_t cardinality){
+  inline T sum_decoded(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,uint8_t *data, size_t cardinality){
     T result = (T) 0;
 
     if(cardinality != 0){

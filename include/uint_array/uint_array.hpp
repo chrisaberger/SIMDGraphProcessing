@@ -30,7 +30,7 @@ namespace uint_array{
     return index;
   }
   template<typename T> 
-  inline T sum_decoded(T (*function)(unsigned int,unsigned int,unsigned int*),unsigned int col,uint8_t *data,size_t length, size_t card,common::type t, unsigned int *outputA){
+  inline T sum_decoded(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,uint8_t *data,size_t length, size_t card,common::type t, unsigned int *outputA){
     #if HYBRID_LAYOUT == 1
     t = (common::type) data[0];
     data++;
@@ -43,10 +43,10 @@ namespace uint_array{
         result = array32::sum_decoded(function,col,(unsigned int*)data,length/4,outputA);
         break;
       case common::ARRAY16:
-        result = array16::reduce(function,col,(unsigned short*)data,length/2,outputA);
+        result = array16::sum_decoded(function,col,(unsigned short*)data,length/2,outputA);
         break;
       case common::BITSET:
-        result = bitset::reduce(function,col,(unsigned short*)data,length/2,outputA);
+        result = bitset::sum_decoded(function,col,(unsigned short*)data,length/2,outputA);
         break;
       case common::A32BITPACKED:
         outputA = new unsigned int[card];
@@ -56,7 +56,6 @@ namespace uint_array{
         break;
       case common::VARIANT:
         outputA = new unsigned int[card];
-        a32bitpacked::decode(outputA,data,card);
         variant::decode(outputA,data,card);
         result = array32::sum_decoded(function,col,outputA,card,outputA);
         delete[] outputA;

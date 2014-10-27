@@ -1,62 +1,104 @@
 // class templates
-#include <stdio.h>
-#include <stdlib.h>
-#include "UnsignedIntegerArray.hpp"
-#include <set>
-#include <vector>
+#include "Matrix.hpp"
+#include "MutableGraph.hpp"
 
-//sparsity = length/max
-void create_synthetic_array(unsigned int *data, size_t length, unsigned int max){
-  cout << "creating synthetic array" << endl;
-  if(length > 0){
-    set<unsigned int> x;
-    x.insert(max);
-    for(size_t data_i = 1; data_i < length; data_i++){
-      unsigned int rand_num = rand() % max;
-      while(x.find(rand_num) != x.end()){
-        rand_num = rand() % max;
-      }
-      x.insert(rand_num);
-    }
-    size_t data_i = 0;
-    for(set<unsigned int>::iterator iter=x.begin(); iter!=x.end();++iter) {    
-      data[data_i++] = (*iter);
-    }
+namespace application{
+  Matrix *graph;
+  
+  inline bool myNodeSelection(unsigned int node){
+    (void)node;
+    return true;
+  }
+  inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
+    return true;
   }
 }
 
-
-int main (int argc, char* argv[]) {
-  size_t a_size = 10340;
-  hybrid::prepare_shuffling_dictionary();
-  unsigned int *data = new unsigned int[a_size];
-  unsigned int max_size = 4000000; 
-  
-  create_synthetic_array(data,a_size,max_size);
-
-  /*
-  ofstream myfile;
-  myfile.open("reference.txt");
-  for(size_t i = 0; i < a_size; i++){
-    cout << " Data: " << data[i] << endl;
-  }
-  */
-
-  uint8_t *result = new uint8_t[a_size*40];
-  size_t length = hybrid::preprocess(result,data,a_size,max_size);
-
-  float *compute_data = new float[max_size+1];
-  for(size_t i = 0; i < max_size+1; i++){
-    compute_data[i] = 1.0;
+//Ideally the user shouldn't have to concern themselves with what happens down here.
+int main (int argc, char* argv[]) { 
+  if(argc != 3){
+    cout << "Please see usage below: " << endl;
+    cout << "\t./main <adjacency list file/folder> <# of threads>" << endl;
+    exit(0);
   }
 
-  float sum = hybrid::sum(result,length,a_size,compute_data,(unsigned int *)result);
-  cout << sum << endl;
-  //uint32_t *tt = (uint32_t*) &data_register;
-  //cout << "RRLOADING Values: " << (void *) my_data->data << endl;
+  cout << endl << "Number of threads: " << atoi(argv[2]) << endl;
+  omp_set_num_threads(atoi(argv[2]));        
 
-  //a32bitpacked::print_incremental(my_data->data,my_data->length,my_data->cardinality);
+  common::startClock();
+  MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
+  common::stopClock("Reading File");
 
+  vector<string> layout_names;
+  layout_names.push_back("BITSET");
+  layout_names.push_back("ARRAY16");
+  layout_names.push_back("ARRAY32");
+  layout_names.push_back("A32BITPACKED");
+  layout_names.push_back("VARIANT");
+  layout_names.push_back("HYBRID_PERF");
+  layout_names.push_back("HYBRID_COMP");
 
+  inputGraph->reorder_random();
+  cout << endl << "RANDOM" << endl;
+  for(uint8_t i =1; i < (uint8_t)layout_names.size(); i++){
+    common::type layout = (common::type) i;
+    common::startClock();
+    application::graph = new Matrix(inputGraph->out_neighborhoods,
+      inputGraph->num_nodes,inputGraph->num_edges,
+      &application::myNodeSelection,&application::myEdgeSelection,inputGraph->external_ids,layout);
+    common::stopClock(layout_names.at(i));
+    application::graph->Matrix::~Matrix(); 
+  }
+
+  inputGraph->reorder_strong_run();
+  cout << endl << "STRONG RUNS" << endl;
+  for(uint8_t i =1; i < (uint8_t)layout_names.size(); i++){
+    common::type layout = (common::type) i;
+    common::startClock();
+    application::graph = new Matrix(inputGraph->out_neighborhoods,
+      inputGraph->num_nodes,inputGraph->num_edges,
+      &application::myNodeSelection,&application::myEdgeSelection,inputGraph->external_ids,layout);
+    common::stopClock(layout_names.at(i));
+    application::graph->Matrix::~Matrix(); 
+  }
+
+  inputGraph->reorder_by_rev_degree();
+  cout << endl << "REV DEGREE" << endl;
+  for(uint8_t i =1; i < (uint8_t)layout_names.size(); i++){
+    common::type layout = (common::type) i;
+    common::startClock();
+    application::graph = new Matrix(inputGraph->out_neighborhoods,
+      inputGraph->num_nodes,inputGraph->num_edges,
+      &application::myNodeSelection,&application::myEdgeSelection,inputGraph->external_ids,layout);
+    common::stopClock(layout_names.at(i));
+    application::graph->Matrix::~Matrix(); 
+  }
+
+  inputGraph->reorder_by_degree();
+  cout << endl << "DEGREE" << endl;
+  for(uint8_t i =1; i < (uint8_t)layout_names.size(); i++){
+    common::type layout = (common::type) i;
+    common::startClock();
+    application::graph = new Matrix(inputGraph->out_neighborhoods,
+      inputGraph->num_nodes,inputGraph->num_edges,
+      &application::myNodeSelection,&application::myEdgeSelection,inputGraph->external_ids,layout);
+    common::stopClock(layout_names.at(i));
+    application::graph->Matrix::~Matrix(); 
+  }
+
+  inputGraph->reorder_bfs();
+  cout << endl << "BFS" << endl;
+  for(uint8_t i =1; i < (uint8_t)layout_names.size(); i++){
+    common::type layout = (common::type) i;
+    common::startClock();
+    application::graph = new Matrix(inputGraph->out_neighborhoods,
+      inputGraph->num_nodes,inputGraph->num_edges,
+      &application::myNodeSelection,&application::myEdgeSelection,inputGraph->external_ids,layout);
+    common::stopClock(layout_names.at(i));
+    application::graph->Matrix::~Matrix(); 
+  }
+
+  inputGraph->MutableGraph::~MutableGraph(); 
   return 0;
 }
+

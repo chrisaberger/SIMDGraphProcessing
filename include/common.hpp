@@ -96,9 +96,10 @@ namespace common{
     ARRAY32 = 2,
     A32BITPACKED = 3,
     VARIANT = 4,
-    HYBRID = 5,
-    DENSE_RUNS = 6,
-    EMPTY = 7
+    HYBRID_PERF = 5,
+    HYBRID_COMP = 6,
+    DENSE_RUNS = 7,
+    EMPTY = 8
   };
   
 }

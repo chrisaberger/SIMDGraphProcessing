@@ -56,6 +56,8 @@ class Matrix{
     //Simple methods to give type of row or column
     static common::type get_array_type(common::type t_stat,unsigned int *r_data, size_t len, size_t m_size);
     static common::type get_hybrid_array_type(unsigned int *r_data, size_t len, size_t m_size);
+    static common::type get_compressed_hybrid_array_type(unsigned int *r_data, size_t len, size_t m_size);
+    static common::type get_perf_hybrid_array_type(unsigned int *r_data, size_t len, size_t m_size);
 
     //Mainly for debug
     void print_data(string filename);
@@ -99,9 +101,10 @@ inline common::type Matrix::get_array_type(common::type t_stat,unsigned int *r_d
     } else{
       return common::DENSE_RUNS;
     }
-  }
-  else if(t_stat == common::HYBRID){
-    return Matrix::get_hybrid_array_type(r_data,len,size);
+  } else if(t_stat == common::HYBRID_COMP){
+    return Matrix::get_compressed_hybrid_array_type(r_data,len,size);
+  } else if(t_stat == common::HYBRID_PERF){
+    return Matrix::get_perf_hybrid_array_type(r_data,len,size);
   } else{
     return t_stat;
   }
@@ -114,18 +117,39 @@ inline common::type Matrix::get_array_type(common::type t_stat,unsigned int *r_d
 }
 
 inline common::type Matrix::get_hybrid_array_type(unsigned int *r_data, size_t row_size, size_t matrix_size){
-  (void) r_data;
   double sparsity = (double) row_size/matrix_size;
   if( sparsity > (double) 1/32 ){
     return common::BITSET;
-  } else if(row_size > 20){
+  } else if(row_size != 0 && 
+    (row_size/((r_data[row_size-1] >> 16) - (r_data[0] >> 16) + 1)) > 16){
     return common::ARRAY16;
-  } 
-  else if(row_size > 10){
-    return common::VARIANT;
-  } 
-  else{
+  } else{
     return common::ARRAY32;
+  }
+}
+
+inline common::type Matrix::get_perf_hybrid_array_type(unsigned int *r_data, size_t row_size, size_t matrix_size){
+  double sparsity = (double) row_size/matrix_size;
+  if( sparsity > (double) 1/32 ){
+    return common::BITSET;
+  } else if(row_size != 0 && 
+    (row_size/((r_data[row_size-1] >> 16) - (r_data[0] >> 16) + 1)) > 12){
+    return common::ARRAY16;
+  } else{
+    return common::ARRAY32;
+  }
+}
+
+inline common::type Matrix::get_compressed_hybrid_array_type(unsigned int *r_data, size_t row_size, size_t matrix_size){
+  (void) r_data;
+  double sparsity = (double) row_size/matrix_size;
+  if( sparsity > (double) 2/32 ){
+    return common::BITSET;
+  } else if(row_size != 0 && 
+    (row_size/((r_data[row_size-1] >> 16) - (r_data[0] >> 16) + 1)) > 8 && row_size > 100){
+    return common::A32BITPACKED;
+  }  else{
+    return common::VARIANT;
   }
 }
 

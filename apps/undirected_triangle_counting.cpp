@@ -45,7 +45,7 @@ int main (int argc, char* argv[]) {
   } else if(input_layout.compare("a16") == 0){
     layout = common::ARRAY16;
   } else if(input_layout.compare("hybrid") == 0){
-    layout = common::HYBRID;
+    layout = common::HYBRID_PERF;
   } else if(input_layout.compare("v") == 0){
     layout = common::VARIANT;
   } else if(input_layout.compare("bp") == 0){
@@ -58,8 +58,11 @@ int main (int argc, char* argv[]) {
   common::startClock();
   MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
   application::result = new uint8_t[inputGraph->num_nodes]; //we don't actually use this for just a count
-  inputGraph->reorder_by_degree();
   common::stopClock("Reading File");
+  common::startClock();
+  inputGraph->reorder_by_degree();
+  common::stopClock("Reordering");
+
 
   cout << endl;
 

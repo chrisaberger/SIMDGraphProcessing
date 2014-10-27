@@ -10,6 +10,7 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
   size_t *row_indicies_in = new size_t[matrix_size_in+1];
   unsigned int *row_lengths_in = new unsigned int[matrix_size_in];
   uint8_t *tmp_row_data = new uint8_t[cardinality_in*ALLOCATOR]; 
+  //uint8_t *tmp_row_data = new uint8_t[cardinality_in*ALLOCATOR]; 
 
   cout << "Number of edges: " << cardinality_in << endl;
 

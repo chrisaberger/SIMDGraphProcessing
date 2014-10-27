@@ -1,4 +1,5 @@
 #include "MutableGraph.hpp"
+#include <time.h>
 
 struct OrderNeighborhoodByDegree{
   vector< vector<unsigned int>*  > *g;
@@ -242,7 +243,6 @@ void MutableGraph::reorder_by_rev_degree(){
   in_neighborhoods = new_neighborhoods;
 }
 
-
 /*
 File format
 
@@ -287,6 +287,7 @@ MutableGraph* MutableGraph::undirectedFromBinary(const string path) {
     unsigned int *tmp_data = new unsigned int[row_size];
     infile.read((char *)&tmp_data[0], sizeof(unsigned int)*row_size); 
     row->assign(&tmp_data[0],&tmp_data[row_size]);
+    //TODO: can you delete row?
     neighborhoods->push_back(row);
   }
   infile.close();

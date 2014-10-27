@@ -179,6 +179,9 @@ namespace hybrid {
     return result;
   }
   inline size_t intersect_a16_bs(unsigned int *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+    #if WRITE_VECTOR == 0
+    (void) C;   
+    #endif 
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       unsigned int prefix = (A[i] << 16);
@@ -202,6 +205,9 @@ namespace hybrid {
   }
   //untested
   inline size_t intersect_a32_bs(unsigned int *C, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+    #if WRITE_VECTOR == 0
+    (void) C;   
+    #endif
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       unsigned int cur = A[i];

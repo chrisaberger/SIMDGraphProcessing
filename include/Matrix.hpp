@@ -114,18 +114,14 @@ inline common::type Matrix::get_array_type(common::type t_stat,unsigned int *r_d
 }
 
 inline common::type Matrix::get_hybrid_array_type(unsigned int *r_data, size_t row_size, size_t matrix_size){
+  (void) r_data;
   double sparsity = (double) row_size/matrix_size;
   if( sparsity > (double) 1/32 ){
     return common::BITSET;
-  } 
-  //size/num_bins = average # per bin, > 8 say yes
-  else if(row_size != 0 && 
-    (row_size/((r_data[row_size-1] >> 16) - (r_data[0] >> 16) + 1)) > 8){
+  } else if(row_size > 20){
     return common::ARRAY16;
-  } else if(row_size >= 12){
-    return common::A32BITPACKED;
   } 
-  else if(row_size < 12 && row_size > 4){
+  else if(row_size > 10){
     return common::VARIANT;
   } 
   else{
@@ -136,7 +132,7 @@ inline common::type Matrix::get_hybrid_array_type(unsigned int *r_data, size_t r
 template<typename T> 
 T Matrix::sum_over_rows(T (Matrix::*rowfunction)(unsigned int,T (*f)(unsigned int,unsigned int,unsigned int*)), T (*f)(unsigned int,unsigned int,unsigned int*)) {
   T reducer = (T) 0;
-  #pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,150) reduction(+:reducer) 
+  #pragma omp parallel for default(none) shared(f,rowfunction) schedule(static,100) reduction(+:reducer) 
   for(size_t i = 0; i < matrix_size; i++){
     reducer += (this->*rowfunction)(i,f);
   }
@@ -152,15 +148,7 @@ T Matrix::sum_over_columns_in_row(unsigned int row,T (*function)(unsigned int,un
     size_t end = row_indicies[row+1];
 
     unsigned int *decoded_a = row_lengths;
-    #if COMPRESSION == 1
-    decoded_a = new unsigned int[card];
-    #endif
-    
     result = uint_array::sum_decoded(function,row,row_data+start,end-start,card,t,decoded_a);
-
-    #if COMPRESSION == 1
-    delete[] decoded_a;
-    #endif
   }
   return result;
 }

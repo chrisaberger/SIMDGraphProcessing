@@ -14,7 +14,7 @@ inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
 }
 
 int main (int argc, char* argv[]) {
-  MutableGraph *inputGraph = MutableGraph::directedFromBinary(argv[1]);
+  MutableGraph *inputGraph = MutableGraph::syntheticUndirected(100,100);
   cout << "Loaded edge list" << endl;
   
   Matrix *m = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,

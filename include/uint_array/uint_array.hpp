@@ -30,35 +30,42 @@ namespace uint_array{
     return index;
   }
   template<typename T> 
-  inline T sum_decoded(T (*function)(unsigned int,unsigned int,unsigned int*),unsigned int col,uint8_t *data,size_t length, size_t card,common::type t,unsigned int *outputA){
+  inline T sum_decoded(T (*function)(unsigned int,unsigned int,unsigned int*),unsigned int col,uint8_t *data,size_t length, size_t card,common::type t, unsigned int *outputA){
     #if HYBRID_LAYOUT == 1
     t = (common::type) data[0];
     data++;
     length--;
     #endif
 
+    T result;
     switch(t){
       case common::ARRAY32:
-        return array32::sum_decoded(function,col,(unsigned int*)data,length/4,outputA);
+        result = array32::sum_decoded(function,col,(unsigned int*)data,length/4,outputA);
         break;
       case common::ARRAY16:
-        return array16::reduce(function,col,(unsigned short*)data,length/2,outputA);
+        result = array16::reduce(function,col,(unsigned short*)data,length/2,outputA);
         break;
       case common::BITSET:
-        return bitset::reduce(function,col,(unsigned short*)data,length/2,outputA);
+        result = bitset::reduce(function,col,(unsigned short*)data,length/2,outputA);
         break;
       case common::A32BITPACKED:
+        outputA = new unsigned int[card];
         a32bitpacked::decode(outputA,data,card);
-        return array32::sum_decoded(function,col,outputA,card,outputA);
+        result = array32::sum_decoded(function,col,outputA,card,outputA);
+        delete[] outputA;
         break;
       case common::VARIANT:
+        outputA = new unsigned int[card];
+        a32bitpacked::decode(outputA,data,card);
         variant::decode(outputA,data,card);
-        return array32::sum_decoded(function,col,outputA,card,outputA);
+        result = array32::sum_decoded(function,col,outputA,card,outputA);
+        delete[] outputA;
         break;
       default:
         return (T) 0;
         break;
     }
+    return result;
   } 
   template<typename T> 
   inline T sum(uint8_t *data,size_t length, size_t card,common::type t, T *old_data, unsigned int *lengths){

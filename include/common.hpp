@@ -19,14 +19,14 @@
 #include <unistd.h>   /* For open(), creat() */
 #include <math.h>
 
-#define HYBRID_LAYOUT 1
-#define COMPRESSION 1
+#define HYBRID_LAYOUT 0
+#define COMPRESSION 0
 #define VECTORIZE 1
-#define WRITE_VECTOR 1
+#define WRITE_VECTOR 0
 #define SHORTS_PER_REG 8
 #define INTS_PER_REG 4
 #define BYTES_PER_REG 16
-
+#define ALLOCATOR 40
 using namespace std;
 
 namespace common{
@@ -94,9 +94,9 @@ namespace common{
     BITSET = 0,
     ARRAY16 = 1,
     ARRAY32 = 2,
-    HYBRID = 3,
-    A32BITPACKED = 4,
-    VARIANT = 5,
+    A32BITPACKED = 3,
+    VARIANT = 4,
+    HYBRID = 5,
     DENSE_RUNS = 6,
     EMPTY = 7
   };

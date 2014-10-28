@@ -1,11 +1,11 @@
 // class templates
-#include "Matrix.hpp"
+#include "CSR_Matrix.hpp"
 #include "MutableGraph.hpp"
 
 using namespace std::placeholders;
 
 namespace application{
-  Matrix *graph;
+  CSR_Matrix *graph;
   uint8_t *result;
   long num_triangles = 0;
   
@@ -24,7 +24,7 @@ namespace application{
   }
   inline void queryOver(){
     auto edge_function = std::bind(&edgeApply, _1, _2, _3);
-    auto row_function = std::bind(&Matrix::sum_over_columns_in_row<long>, graph, _1, _2);
+    auto row_function = std::bind(&CSR_Matrix::sum_over_columns_in_row<long>, graph, _1, _2);
 
     num_triangles = graph->sum_over_rows<long>(row_function,edge_function);
   }
@@ -73,7 +73,7 @@ int main (int argc, char* argv[]) {
   cout << endl;
 
   common::startClock();
-  application::graph = new Matrix(inputGraph->out_neighborhoods,
+  application::graph = new CSR_Matrix(inputGraph->out_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,
     node_selection,edge_selection,inputGraph->external_ids,layout);
   common::stopClock("Freezing Graph");
@@ -84,7 +84,7 @@ int main (int argc, char* argv[]) {
   common::startClock();
   application::queryOver();
   common::stopClock(input_layout);
-  application::graph->Matrix::~Matrix(); 
+  application::graph->CSR_Matrix::~CSR_Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
   
   return 0;

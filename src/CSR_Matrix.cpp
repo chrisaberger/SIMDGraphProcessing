@@ -20,6 +20,7 @@ CSR_Matrix::CSR_Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_i
     if(node_selection(i)){
       row_indicies_in[i] = index;
       vector<unsigned int> *row = g->at(i);
+
       unsigned int *selected_row = new unsigned int[row->size()];
       size_t new_size = 0;
       for(size_t j = 0; j < row->size(); ++j) {
@@ -28,9 +29,10 @@ CSR_Matrix::CSR_Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_i
           selected_row[new_size++] = row->at(j);
         } 
       }
+      
       row_lengths_in[i] = new_size;
       if(new_size > 0){
-        common::type row_type = CSR_Matrix::get_array_type(t_in,selected_row,new_size,matrix_size_in);
+        common::type row_type = uint_array::get_array_type(t_in,selected_row,new_size,matrix_size_in);
         index = uint_array::preprocess(tmp_row_data,index,selected_row,new_size,matrix_size_in,row_type);
       }
       delete[] selected_row;
@@ -97,7 +99,7 @@ CSR_Matrix::CSR_Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector
       }
 
       row_lengths_in[i] = new_row_size;
-      const common::type row_type = CSR_Matrix::get_array_type(t_in,filtered_row,new_row_size,matrix_size_in); //depends on above array being set
+      const common::type row_type = uint_array::get_array_type(t_in,filtered_row,new_row_size,matrix_size_in); //depends on above array being set
       index_o = uint_array::preprocess(tmp_row_data,index_o,filtered_row,new_row_size,matrix_size_in,row_type);
       delete[] filtered_row;
 
@@ -111,7 +113,7 @@ CSR_Matrix::CSR_Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector
       }
 
       col_lengths_in[i] = new_col_size;
-      const common::type col_type = CSR_Matrix::get_array_type(t_in,filtered_col,new_col_size,matrix_size_in); //depends on above array being set
+      const common::type col_type = uint_array::get_array_type(t_in,filtered_col,new_col_size,matrix_size_in); //depends on above array being set
       index_i = uint_array::preprocess(tmp_col_data,index_i,filtered_col,new_col_size,matrix_size_in,col_type);
       delete[] filtered_col;
     }

@@ -50,6 +50,7 @@
 #endif
 
 using namespace std;
+using namespace std::placeholders;
 
 namespace common{
   static double t1;

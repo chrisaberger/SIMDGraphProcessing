@@ -1,6 +1,56 @@
 #include "hybrid.hpp"
 
 namespace uint_array{
+  inline common::type get_perf_hybrid_array_type(unsigned int *r_data, size_t row_size, size_t matrix_size){
+    double sparsity = (double) row_size/matrix_size;
+    if( sparsity > (double) 1/32 ){
+      return common::BITSET;
+    } else if(row_size != 0 && 
+      (row_size/((r_data[row_size-1] >> 16) - (r_data[0] >> 16) + 1)) > 12){
+      return common::ARRAY16;
+    } else if(row_size < 10){
+      return common::ARRAY32;
+    }else{
+      return common::A32BITPACKED;
+    }
+  }
+
+  inline common::type get_compressed_hybrid_array_type(unsigned int *r_data, size_t row_size, size_t matrix_size){
+    (void) r_data;
+    double sparsity = (double) row_size/matrix_size;
+    if( sparsity > (double) 2/32 ){
+      return common::BITSET;
+    } else if(row_size != 0 && 
+      (row_size/((r_data[row_size-1] >> 16) - (r_data[0] >> 16) + 1)) > 8 && row_size > 100){
+      return common::A32BITPACKED;
+    }  else{
+      return common::VARIANT;
+    }
+  }
+
+  inline common::type get_array_type(common::type t_stat,unsigned int *r_data, size_t len, size_t size){
+    #if HYBRID_LAYOUT == 1
+    if(t_stat == common::DENSE_RUNS){
+      if(len < 8){
+        return common::ARRAY32;
+      } else{
+        return common::DENSE_RUNS;
+      }
+    } else if(t_stat == common::HYBRID_COMP){
+      return get_compressed_hybrid_array_type(r_data,len,size);
+    } else if(t_stat == common::HYBRID_PERF){
+      return get_perf_hybrid_array_type(r_data,len,size);
+    } else{
+      return t_stat;
+    }
+    #else
+    (void)r_data;
+    (void)len;
+    (void)size;
+    return t_stat;
+    #endif
+  }
+
   inline size_t preprocess(uint8_t *data, size_t index, unsigned int *data_in, size_t length_in, size_t mat_size, common::type t){
     #if HYBRID_LAYOUT == 1
     data[index++] = t;

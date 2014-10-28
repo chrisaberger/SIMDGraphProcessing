@@ -1,11 +1,10 @@
 // class templates
-#include "CSR_Matrix.hpp"
+#include "AOA_Matrix.hpp"
+
 #include "MutableGraph.hpp"
 
-using namespace std::placeholders;
-
 namespace application{
-  CSR_Matrix *graph;
+  AOA_Matrix *graph;
   uint8_t *result;
   long num_triangles = 0;
   
@@ -24,7 +23,7 @@ namespace application{
   }
   inline void queryOver(){
     auto edge_function = std::bind(&edgeApply, _1, _2, _3);
-    auto row_function = std::bind(&CSR_Matrix::sum_over_columns_in_row<long>, graph, _1, _2);
+    auto row_function = std::bind(&AOA_Matrix::sum_over_columns_in_row<long>, graph, _1, _2);
 
     num_triangles = graph->sum_over_rows<long>(row_function,edge_function);
   }
@@ -46,6 +45,8 @@ int main (int argc, char* argv[]) {
   common::type layout;
   if(input_layout.compare("a32") == 0){
     layout = common::ARRAY32;
+  } else if(input_layout.compare("bs") == 0){
+    layout = common::BITSET;
   } else if(input_layout.compare("a16") == 0){
     layout = common::ARRAY16;
   } else if(input_layout.compare("hybrid") == 0){
@@ -66,25 +67,26 @@ int main (int argc, char* argv[]) {
   MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
   application::result = new uint8_t[inputGraph->num_nodes]; //we don't actually use this for just a count
   common::stopClock("Reading File");
+  
   common::startClock();
   inputGraph->reorder_by_degree();
   common::stopClock("Reordering");
-
+  
   cout << endl;
 
   common::startClock();
-  application::graph = new CSR_Matrix(inputGraph->out_neighborhoods,
+  application::graph = new AOA_Matrix(inputGraph->out_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,
     node_selection,edge_selection,inputGraph->external_ids,layout);
-  common::stopClock("Freezing Graph");
+  common::stopClock("selections");
   inputGraph->MutableGraph::~MutableGraph(); 
 
-  //application::graph->print_data("hybrid.txt");
+  //application::graph->print_data("out.txt");
   
   common::startClock();
   application::queryOver();
   common::stopClock(input_layout);
-  application::graph->CSR_Matrix::~CSR_Matrix(); 
+  application::graph->AOA_Matrix::~AOA_Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
   
   return 0;

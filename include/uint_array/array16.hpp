@@ -140,7 +140,7 @@ namespace array16 {
 	  return count;
 	}
   template<typename T> 
-  inline T sum_decoded(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,unsigned short *data, size_t length, unsigned int *outputA){
+  inline T sum(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,unsigned short *data, size_t length, unsigned int *outputA){
     T result = (T) 0;
     for(size_t j = 0; j < length; ++j){
       const size_t header_length = 2;
@@ -158,26 +158,7 @@ namespace array16 {
     }
     return result;
   }
-  template<typename T> 
-  inline T sum(unsigned short *data, size_t length,  T *old_data, unsigned int *lengths){
-    T result = (T) 0;
-    for(size_t j = 0; j < length; ++j){
-      const size_t header_length = 2;
-      const size_t start = j;
-      const size_t prefix = data[j++];
-      const size_t len = data[j++];
-      const size_t partition_end = start+header_length+len;
-
-      //Traverse partition use prefix to get nbr id.
-      for(;j < partition_end;++j){
-        unsigned int cur = (prefix << 16) | data[j]; //neighbor node
-        result += old_data[cur]/lengths[cur];
-      }
-      j = partition_end-1;   
-    }
-    return result;
-  }
-  inline void get_a32(unsigned int *result, unsigned short *A, size_t s_a){
+  inline void decode(unsigned int *result, unsigned short *A, size_t s_a){
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       unsigned int prefix = (A[i] << 16);
@@ -188,7 +169,6 @@ namespace array16 {
       size_t inner_end = i+size;
       while(i < inner_end){
         unsigned int tmp = prefix | A[i];
-
         result[count++] = tmp; 
         ++i;
       }

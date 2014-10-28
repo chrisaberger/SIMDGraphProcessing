@@ -89,22 +89,8 @@ namespace bitset {
 	  }
 	  return count;
 	}
-  template<typename T> 
-  inline T sum(unsigned short *data, size_t length, T *old_data, unsigned int *lengths){
-    T result = (T) 0;
-    for(size_t i = 0; i < length; i++){
-      unsigned short cur_word = data[i];
-      for(size_t j = 0; j < BITS_PER_WORD; j++){
-        if((cur_word >> j) % 2){
-          unsigned int cur = BITS_PER_WORD*i + j;
-          result += old_data[cur]/lengths[cur];
-        }
-      }
-    }
-    return result;
-  }
 	template<typename T> 
-  inline T sum_decoded(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,unsigned short *data, size_t length,unsigned int *outputA){
+  inline T sum(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,unsigned short *data, size_t length,unsigned int *outputA){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
     	unsigned short cur_word = data[i];
@@ -117,7 +103,7 @@ namespace bitset {
     }
     return result;
   }
-  inline void get_a32(unsigned int *result, unsigned short *A, size_t s_a){
+  inline void decode(unsigned int *result, unsigned short *A, size_t s_a){
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       unsigned short cur_word = A[i];

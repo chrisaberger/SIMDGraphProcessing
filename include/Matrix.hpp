@@ -144,10 +144,10 @@ inline common::type Matrix::get_perf_hybrid_array_type(unsigned int *r_data, siz
   } else if(row_size != 0 && 
     (row_size/((r_data[row_size-1] >> 16) - (r_data[0] >> 16) + 1)) > 12){
     return common::ARRAY16;
-  } else if(row_size > 10 && row_size < 20){
-    return common::VARIANT;
-  } else{
+  } else if(row_size < 10){
     return common::ARRAY32;
+  }else{
+    return common::A32BITPACKED;
   }
 }
 
@@ -183,68 +183,8 @@ T Matrix::sum_over_columns_in_row(unsigned int row,std::function<T(unsigned int,
     size_t end = row_indicies[row+1];
 
     unsigned int *decoded_a = row_lengths;
-    result = uint_array::sum_decoded(f,row,row_data+start,end-start,card,t,decoded_a);
+    result = uint_array::sum(f,row,row_data+start,end-start,card,t,decoded_a);
   }
-  return result;
-}
-
-template<typename T> 
-T Matrix::map_columns(T (Matrix::*rowfunction)(unsigned int,T *old_data), T *new_data, T *old_data) {
-  T diff = (T) 0;
-  #pragma omp parallel for default(none) shared(rowfunction,new_data,old_data) schedule(static,150)
-  for(size_t i = 0; i < matrix_size; i++){
-    new_data[i] = ((this->*rowfunction)(i,old_data));
-    //diff += new_data[i]-old_data[i];
-  }
-  return diff;
-}
-
-template<typename T> 
-T Matrix::sum_over_rows_in_column(unsigned int col,T *old_data){
-  const size_t start = column_indicies[col];
-  const size_t end = column_indicies[col+1];
-
-  #if COMPRESSION == 1
-  const size_t card = column_lengths[col];
-  #else 
-  const size_t card = 0;
-  #endif
-
-  T result = (T) 0;
-  if((end-start) > 0){
-    result = uint_array::sum(column_data+start,end-start,card,t,old_data,row_lengths);
-  }
-
-  return result;
-}
-
-template<typename T> 
-T Matrix::map_columns_pr(T (Matrix::*rowfunction)(unsigned int,T *old_data), T *new_data, T *old_data) {
-  T diff = (T) 0;
-  #pragma omp parallel for default(none) shared(rowfunction,new_data,old_data) schedule(static,150) reduction(+:diff) 
-  for(size_t i = 0; i < matrix_size; i++){
-    new_data[i] = 0.85*((this->*rowfunction)(i,old_data))+(0.15f/matrix_size);
-    diff += new_data[i]-old_data[i];
-  }
-  return diff;
-}
-
-template<typename T> 
-T Matrix::sum_over_rows_in_column_pr(unsigned int col,T *old_data){
-  const size_t start = column_indicies[col];
-  const size_t end = column_indicies[col+1];
-
-  #if COMPRESSION == 1
-  const size_t card = column_lengths[col];
-  #else 
-  const size_t card = 0;
-  #endif
-  
-  T result = (T) 0;
-  if((end-start) > 0){
-    result = uint_array::sum_pr(column_data+start,end-start,card,t,old_data,row_lengths);
-  }
-
   return result;
 }
 

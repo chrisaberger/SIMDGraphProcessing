@@ -30,7 +30,7 @@ namespace uint_array{
     return index;
   }
   template<typename T> 
-  inline T sum_decoded(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,uint8_t *data,size_t length, size_t card,common::type t, unsigned int *outputA){
+  inline T sum(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,uint8_t *data,size_t length, size_t card,common::type t, unsigned int *outputA){
     #if HYBRID_LAYOUT == 1
     t = (common::type) data[0];
     data++;
@@ -40,24 +40,24 @@ namespace uint_array{
     T result;
     switch(t){
       case common::ARRAY32:
-        result = array32::sum_decoded(function,col,(unsigned int*)data,length/4,outputA);
+        result = array32::sum(function,col,(unsigned int*)data,length/4,outputA);
         break;
       case common::ARRAY16:
-        result = array16::sum_decoded(function,col,(unsigned short*)data,length/2,outputA);
+        result = array16::sum(function,col,(unsigned short*)data,length/2,outputA);
         break;
       case common::BITSET:
-        result = bitset::sum_decoded(function,col,(unsigned short*)data,length/2,outputA);
+        result = bitset::sum(function,col,(unsigned short*)data,length/2,outputA);
         break;
       case common::A32BITPACKED:
         outputA = new unsigned int[card];
         a32bitpacked::decode(outputA,data,card);
-        result = array32::sum_decoded(function,col,outputA,card,outputA);
+        result = array32::sum(function,col,outputA,card,outputA);
         delete[] outputA;
         break;
       case common::VARIANT:
         outputA = new unsigned int[card];
         variant::decode(outputA,data,card);
-        result = array32::sum_decoded(function,col,outputA,card,outputA);
+        result = array32::sum(function,col,outputA,card,outputA);
         delete[] outputA;
         break;
       default:
@@ -66,76 +66,6 @@ namespace uint_array{
     }
     return result;
   } 
-  template<typename T> 
-  inline T sum(uint8_t *data,size_t length, size_t card,common::type t, T *old_data, unsigned int *lengths){
-    card = card;
-
-    #if HYBRID_LAYOUT == 1
-    t = (common::type) data[0];
-    data++; //integer division cuts off length
-    length--;
-    #endif
-
-    switch(t){
-      case common::ARRAY32:
-        return array32::sum((unsigned int*)data,length/4,old_data,lengths);
-        break;
-      case common::ARRAY16:
-        return array16::sum((unsigned short*)data,length/2,old_data,lengths);
-        break;
-      case common::BITSET:
-        return bitset::sum((unsigned short*)data,length/2,old_data,lengths);
-        break;
-      case common::A32BITPACKED:
-        return a32bitpacked::sum(data,card,old_data,lengths);
-        break;
-      case common::VARIANT:
-        return variant::sum(data,card,old_data,lengths);
-        break;
-      case common::DENSE_RUNS:
-        return hybrid::sum(data,length,card,old_data,lengths);
-        break;
-      default:
-        return 0.0;
-        break;
-    }
-  } 
-  template<typename T> 
-  inline T sum_pr(uint8_t *data,size_t length, size_t card,common::type t, T *old_data, unsigned int *lengths){
-    card = card;
-
-    #if HYBRID_LAYOUT == 1
-    t = (common::type) data[0];
-    data++;
-    length--;
-    #endif 
-
-    switch(t){
-      case common::ARRAY32:
-        return array32::sum_pr((unsigned int*)data,length/4,old_data,lengths);
-        break;
-        /*
-      case common::ARRAY16:
-        return array16::sum((unsigned short*)data,length/2,old_data,lengths);
-        break;
-      case common::BITSET:
-        return bitset::sum((unsigned short*)data,length/2,old_data,lengths);
-        break;
-        */
-      case common::A32BITPACKED:
-        return a32bitpacked::sum_pr(data,card,old_data,lengths);
-        break;
-      case common::VARIANT:
-        return variant::sum_pr(data,card,old_data,lengths);
-        break;
-      case common::DENSE_RUNS:
-        return hybrid::sum_pr(data,length,card,old_data,lengths);
-        break;
-      default:
-        return 0.0;
-        break;
-    }
-  }
   inline size_t intersect_homogeneous(uint8_t *R, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b, 
     unsigned int card_a, unsigned int card_b, common::type t,unsigned int *outputA){
     size_t count = 0;
@@ -288,7 +218,7 @@ namespace uint_array{
     return uint_array::intersect_homogeneous(R,A,B,s_a,s_b,card_a,card_b,t,outputA);
     #endif
   }
-  inline void get_a32(unsigned int *result, uint8_t *data, size_t length, size_t cardinality, common::type t){
+  inline void decode(unsigned int *result, uint8_t *data, size_t length, size_t cardinality, common::type t){
     #if HYBRID_LAYOUT == 1
     t = (common::type) data[0];
     data++;
@@ -300,13 +230,13 @@ namespace uint_array{
         std::copy((unsigned int*)data,(unsigned int*)data+(length/4),result);
         break;
       case common::ARRAY16:
-        array16::get_a32(result,(unsigned short*)data,length/2);
+        array16::decode(result,(unsigned short*)data,length/2);
         break;
       case common::BITSET:
-        bitset::get_a32(result,(unsigned short*)data,length/2);
+        bitset::decode(result,(unsigned short*)data,length/2);
         break;
       case common::A32BITPACKED:
-        variant::decode(result,data,cardinality);
+        a32bitpacked::decode(result,data,cardinality);
         break;
       case common::VARIANT:
         variant::decode(result,data,cardinality);

@@ -436,28 +436,11 @@ namespace array32 {
     return count;
   }
   template<typename T> 
-  inline T sum_decoded(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,unsigned int *data, size_t length,unsigned int *outputA){
+  inline T sum(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,unsigned int *data, size_t length,unsigned int *outputA){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
       result += function(col,data[i],outputA);
     }
-    return result;
-  }
-  template<typename T> 
-  inline T sum(unsigned int *data, size_t length, T *old_data, unsigned int *lengths){
-    (void) lengths;
-    T result = 0.0;
-    for(size_t i = 0; i < length; i++){
-      result += (old_data[data[i]]);
-    } 
-    return result;
-  }
-  template<typename T> 
-  inline T sum_pr(unsigned int *data, size_t length, T *old_data, unsigned int *lengths){
-    T result = 0.0;
-    for(size_t i = 0; i < length; i++){
-      result += (old_data[data[i]]/lengths[data[i]]);
-    } 
     return result;
   }
   inline void print_data(unsigned int *data,size_t length,ofstream &file){

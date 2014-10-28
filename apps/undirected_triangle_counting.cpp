@@ -2,6 +2,8 @@
 #include "Matrix.hpp"
 #include "MutableGraph.hpp"
 
+using namespace std::placeholders;
+
 namespace application{
   Matrix *graph;
   uint8_t *result;
@@ -21,11 +23,10 @@ namespace application{
     return count;
   }
   inline void queryOver(){
-    using namespace std::placeholders;
-    auto edge_fun = std::bind(&edgeApply, _1, _2, _3);
-    auto row_fun = std::bind(&Matrix::sum_over_columns_in_row<long>, graph, _1, _2);
+    auto edge_function = std::bind(&edgeApply, _1, _2, _3);
+    auto row_function = std::bind(&Matrix::sum_over_columns_in_row<long>, graph, _1, _2);
 
-    num_triangles = graph->sum_over_rows<long>(row_fun,edge_fun);
+    num_triangles = graph->sum_over_rows<long>(row_function,edge_function);
   }
 }
 
@@ -58,6 +59,9 @@ int main (int argc, char* argv[]) {
     exit(0);
   }
 
+  auto node_selection = std::bind(&application::myNodeSelection, _1);
+  auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2);
+
   common::startClock();
   MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
   application::result = new uint8_t[inputGraph->num_nodes]; //we don't actually use this for just a count
@@ -71,7 +75,7 @@ int main (int argc, char* argv[]) {
   common::startClock();
   application::graph = new Matrix(inputGraph->out_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,inputGraph->external_ids,layout);
+    node_selection,edge_selection,inputGraph->external_ids,layout);
   common::stopClock("Freezing Graph");
   inputGraph->MutableGraph::~MutableGraph(); 
 

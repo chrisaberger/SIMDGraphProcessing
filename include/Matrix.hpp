@@ -32,13 +32,13 @@ class Matrix{
 
     //Constructor symmetric 
     Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_t cardinality_in, 
-      bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), 
+      std::function<bool(unsigned int)> node_selection,std::function<bool(unsigned int,unsigned int)> edge_selection, 
       unordered_map<unsigned int,unsigned int> *external_ids_in,common::type t_in);
 
     //Constructor asymmetric 
     Matrix(vector< vector<unsigned int>*  > *out_nbrs, vector< vector<unsigned int>*  > *in_nbrs, 
       size_t matrix_size_in, size_t cardinality_in, 
-      bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), 
+      std::function<bool(unsigned int)> node_selection,std::function<bool(unsigned int,unsigned int)> edge_selection, 
       unordered_map<unsigned int,unsigned int> *external_ids_in, common::type t_in);
 
     ~Matrix(){
@@ -66,12 +66,6 @@ class Matrix{
 
     //Some accessors.  Right now these are for rows but the same thing can be done for columns.
     //Currently out neighbors but easy to apply to in neighbors.
-    template<typename T> T map_columns_pr(T (Matrix::*rowfunction)(unsigned int,T*), T *mapped_data, T *old_data);
-    template<typename T> T sum_over_rows_in_column_pr(unsigned int c, T *old_data);
-
-    template<typename T> T map_columns(T (Matrix::*rowfunction)(unsigned int,T*), T *mapped_data, T *old_data);
-    template<typename T> T sum_over_rows_in_column(unsigned int c, T *old_data);
-
     template<typename T> T sum_over_rows(std::function<T(unsigned int, std::function<T(unsigned int,unsigned int,unsigned int*)>)> rowfunction, std::function<T(unsigned int,unsigned int,unsigned int*)> f);
     template<typename T> T sum_over_columns_in_row(unsigned int c,std::function<T(unsigned int,unsigned int,unsigned int*)> f);        
     size_t row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a);

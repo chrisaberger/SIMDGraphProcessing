@@ -1,9 +1,35 @@
 #include "AOA_Matrix.hpp"
+#include <pthread.h>
+#include <stdio.h>
+#include <cstdlib>
+#define NUM_THREADS 5
 
-AOA_Matrix::AOA_Matrix(const vector< vector<unsigned int>*  > *g,const size_t matrix_size_in,const size_t cardinality_in, 
+struct thread_data{
+   int  thread_id;
+   int  sum;
+   char *message;
+};
+
+
+void *AOA_Matrix::parallel_constructor(void *threadarg)
+{
+  struct thread_data *my_data;
+
+  my_data = (struct thread_data *) threadarg;
+  int taskid = my_data->thread_id;
+  int sum = my_data->sum;
+  //char* hello_msg = my_data->message;
+
+  printf("Hello World! It's me, thread #%d %d  !\n", taskid, sum);
+  pthread_exit(NULL);
+}
+
+AOA_Matrix* AOA_Matrix::from_symmetric(const vector< vector<unsigned int>*  > *g,const size_t matrix_size_in,const size_t cardinality_in, 
   const std::function<bool(unsigned int)> node_selection,const std::function<bool(unsigned int,unsigned int)> edge_selection, 
   const unordered_map<unsigned int,unsigned int> *external_ids_in, const common::type t_in){
   
+  struct thread_data thread_data_array[NUM_THREADS];
+
   array16::prepare_shuffling_dictionary16();
   hybrid::prepare_shuffling_dictionary();
 
@@ -51,20 +77,9 @@ AOA_Matrix::AOA_Matrix(const vector< vector<unsigned int>*  > *g,const size_t ma
     }
   }
 
-  matrix_size = matrix_size_in;
-  cardinality = new_cardinality;
-  t = t_in;
-  symmetric = true;
-  
-  row_lengths = row_lengths_in;
-  column_lengths = row_lengths_in;
-
-  row_arrays = tmp_row_arrays;
-  column_arrays = tmp_row_arrays;
-
-  external_ids = external_ids_in;
-
   cout << "ROW DATA SIZE (Bytes): " << total_bytes_used << endl;
+
+  return new AOA_Matrix(matrix_size_in,cardinality_in,t_in,true,row_lengths_in,tmp_row_arrays,row_lengths_in,tmp_row_arrays,external_ids_in);
 }
 
 void AOA_Matrix::print_data(string filename){

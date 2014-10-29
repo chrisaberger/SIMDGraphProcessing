@@ -75,7 +75,7 @@ int main (int argc, char* argv[]) {
   cout << endl;
 
   common::startClock();
-  application::graph = new AOA_Matrix(inputGraph->out_neighborhoods,
+  application::graph = AOA_Matrix::from_symmetric(inputGraph->out_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,
     node_selection,edge_selection,inputGraph->external_ids,layout);
   common::stopClock("selections");

@@ -24,6 +24,25 @@ class AOA_Matrix{
 
     const unordered_map<unsigned int,unsigned int> *external_ids;
 
+    AOA_Matrix(size_t matrix_size_in,
+      size_t cardinality_in,
+      common::type t_in, 
+      bool symmetric_in, 
+      unsigned int *row_lengths_in,
+      uint8_t **row_arrays_in, 
+      unsigned int *column_lengths_in, 
+      uint8_t **column_arrays_in, 
+      const unordered_map<unsigned int,unsigned int> *external_ids_in):
+        matrix_size(matrix_size_in),
+        cardinality(cardinality_in),
+        t(t_in),
+        symmetric(symmetric_in),
+        row_lengths(row_lengths_in),
+        row_arrays(row_arrays_in),
+        column_lengths(column_lengths_in),
+        column_arrays(column_arrays_in),
+        external_ids(external_ids_in){}
+
     ~AOA_Matrix(){
       #pragma omp parallel for default(none)
       for(size_t i = 0; i < matrix_size; i++){
@@ -41,10 +60,11 @@ class AOA_Matrix{
       }
     }
 
-    AOA_Matrix(const vector< vector<unsigned int>*  > *g,const size_t matrix_size_in,const size_t cardinality_in, 
+    void *parallel_constructor(void *);
+
+    static AOA_Matrix* from_symmetric(const vector< vector<unsigned int>*  > *g,const size_t matrix_size_in,const size_t cardinality_in, 
       const std::function<bool(unsigned int)> node_selection,const std::function<bool(unsigned int,unsigned int)> edge_selection, 
       const unordered_map<unsigned int,unsigned int> *external_ids_in,const common::type t_in);
-
 
     size_t row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a);
     

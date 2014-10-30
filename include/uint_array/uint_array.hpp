@@ -268,7 +268,7 @@ namespace uint_array{
     return uint_array::intersect_homogeneous(R,A,B,s_a,s_b,card_a,card_b,t,outputA);
     #endif
   }
-
+  /*
   inline size_t union(uint8_t *R, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b, unsigned int card_a, unsigned int card_b, common::type t){
     #if HYBRID_LAYOUT == 1
     (void) t;
@@ -284,6 +284,7 @@ namespace uint_array{
     return 0;
     #endif
   }
+  */
 
   inline void decode(unsigned int *result, uint8_t *data, size_t length, size_t cardinality, common::type t){
     #if HYBRID_LAYOUT == 1

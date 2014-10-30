@@ -86,6 +86,7 @@ class AOA_Matrix{
 
 };
 
+/*
 inline void AOA_Matrix::get_distinct_neighbors(UnsignedIntegerArray *result, UnsignedIntegerArray *frontier){
   //set_union(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b);
   unsigned int *data = (unsigned int*)frontier->data;
@@ -94,7 +95,7 @@ inline void AOA_Matrix::get_distinct_neighbors(UnsignedIntegerArray *result, Uns
     size_t card = row_lengths[data[0]];
     if(card > 0){
       unsigned int *size_ptr = (unsigned int*) row_arrays[0];
-      std::copy(row_arrays[4],row_arrays[4]+size,result);
+      std::copy(row_arrays[4],row_arrays[4]+size_ptr[0],result);
     }
   }
 
@@ -102,7 +103,6 @@ inline void AOA_Matrix::get_distinct_neighbors(UnsignedIntegerArray *result, Uns
     cout << "i: " << data[i] << endl;
   }
 }
-
 inline size_t AOA_Matrix::row_union(uint8_t *R, unsigned int i, unsigned int j){
   size_t card_a = row_lengths[i];
   size_t card_b = row_lengths[j];
@@ -116,7 +116,7 @@ inline size_t AOA_Matrix::row_union(uint8_t *R, unsigned int i, unsigned int j){
   }
   return ncount;
 }
-
+*/
 inline size_t AOA_Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a){
   size_t card_a = row_lengths[i];
   size_t card_b = row_lengths[j];

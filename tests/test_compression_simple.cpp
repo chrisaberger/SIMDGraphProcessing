@@ -36,12 +36,11 @@ int main (int argc, char* argv[]) {
   layout_names.push_back("A32BITPACKED");
   layout_names.push_back("VARIANT");
   layout_names.push_back("HYBRID_PERF");
-  layout_names.push_back("HYBRID_COMP");
-
-  /*
+  //layout_names.push_back("HYBRID_COMP");
+  
   inputGraph->reorder_random();
   cout << endl << "RANDOM" << endl;
-  for(uint8_t i =1; i < (uint8_t)layout_names.size(); i++){
+  for(uint8_t i =5; i < (uint8_t)layout_names.size(); i++){
     common::type layout = (common::type) i;
     common::startClock();
     application::graph = new Matrix(inputGraph->out_neighborhoods,
@@ -50,11 +49,10 @@ int main (int argc, char* argv[]) {
     common::stopClock(layout_names.at(i));
     application::graph->Matrix::~Matrix(); 
   }
-  */
 
   inputGraph->reorder_strong_run();
   cout << endl << "STRONG RUNS" << endl;
-  for(uint8_t i =1; i < (uint8_t)layout_names.size(); i++){
+  for(uint8_t i =5; i < (uint8_t)layout_names.size(); i++){
     common::type layout = (common::type) i;
     common::startClock();
     application::graph = new Matrix(inputGraph->out_neighborhoods,
@@ -66,7 +64,7 @@ int main (int argc, char* argv[]) {
 
   inputGraph->reorder_by_rev_degree();
   cout << endl << "REV DEGREE" << endl;
-  for(uint8_t i =1; i < (uint8_t)layout_names.size(); i++){
+  for(uint8_t i =5; i < (uint8_t)layout_names.size(); i++){
     common::type layout = (common::type) i;
     common::startClock();
     application::graph = new Matrix(inputGraph->out_neighborhoods,
@@ -78,7 +76,7 @@ int main (int argc, char* argv[]) {
 
   inputGraph->reorder_by_degree();
   cout << endl << "DEGREE" << endl;
-  for(uint8_t i =1; i < (uint8_t)layout_names.size(); i++){
+  for(uint8_t i =5; i < (uint8_t)layout_names.size(); i++){
     common::type layout = (common::type) i;
     common::startClock();
     application::graph = new Matrix(inputGraph->out_neighborhoods,
@@ -87,10 +85,10 @@ int main (int argc, char* argv[]) {
     common::stopClock(layout_names.at(i));
     application::graph->Matrix::~Matrix(); 
   }
-
+  
   inputGraph->reorder_bfs();
   cout << endl << "BFS" << endl;
-  for(uint8_t i =1; i < (uint8_t)layout_names.size(); i++){
+  for(uint8_t i =5; i < (uint8_t)layout_names.size(); i++){
     common::type layout = (common::type) i;
     common::startClock();
     application::graph = new Matrix(inputGraph->out_neighborhoods,

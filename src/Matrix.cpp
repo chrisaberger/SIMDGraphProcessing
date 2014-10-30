@@ -1,7 +1,7 @@
 #include "Matrix.hpp"
 //Undirected Graphs
 Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_t cardinality_in, 
-  bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), 
+  std::function<bool(unsigned int)> node_selection,std::function<bool(unsigned int,unsigned int)> edge_selection, 
   unordered_map<unsigned int,unsigned int> *external_ids_in, common::type t_in){
   
   array16::prepare_shuffling_dictionary16();
@@ -9,8 +9,7 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
 
   size_t *row_indicies_in = new size_t[matrix_size_in+1];
   unsigned int *row_lengths_in = new unsigned int[matrix_size_in];
-  uint8_t *tmp_row_data = new uint8_t[cardinality_in*ALLOCATOR]; 
-  //uint8_t *tmp_row_data = new uint8_t[cardinality_in*ALLOCATOR]; 
+  uint8_t *tmp_row_data = new uint8_t[matrix_size_in*25000]; 
 
   cout << "Number of edges: " << cardinality_in << endl;
 
@@ -18,13 +17,13 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
   size_t index = 0;
 
   for(size_t i = 0; i < matrix_size_in; ++i){
-    if(nodeFilter(i)){
+    if(node_selection(i)){
       row_indicies_in[i] = index;
       vector<unsigned int> *row = g->at(i);
       unsigned int *selected_row = new unsigned int[row->size()];
       size_t new_size = 0;
       for(size_t j = 0; j < row->size(); ++j) {
-        if(nodeFilter(row->at(j)) && edgeFilter(i,row->at(j))){
+        if(node_selection(row->at(j)) && edge_selection(i,row->at(j))){
           new_cardinality++;
           selected_row[new_size++] = row->at(j);
         } 
@@ -62,7 +61,9 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *g, size_t matrix_size_in, size_
 }
 //Directed Graph
 Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigned int>*  > *in_nbrs, size_t matrix_size_in, size_t cardinality_in, 
-  bool (*nodeFilter)(unsigned int), bool (*edgeFilter)(unsigned int,unsigned int), unordered_map<unsigned int,unsigned int> *external_ids_in, common::type t_in){
+  std::function<bool(unsigned int)> node_selection,std::function<bool(unsigned int,unsigned int)> edge_selection, 
+  unordered_map<unsigned int,unsigned int> *external_ids_in, common::type t_in){
+
   array16::prepare_shuffling_dictionary16();
   hybrid::prepare_shuffling_dictionary();  
 
@@ -85,11 +86,11 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
 
     vector<unsigned int> *row = out_nbrs->at(i);
     vector<unsigned int> *col = in_nbrs->at(i);
-    if(nodeFilter(i)){
+    if(node_selection(i)){
       unsigned int *filtered_row = new unsigned int[row->size()];      
       size_t new_row_size = 0;
       for(size_t j = 0; j < row->size(); ++j) {
-        if(nodeFilter(row->at(j)) && edgeFilter(i,row->at(j))){
+        if(node_selection(row->at(j)) && edge_selection(i,row->at(j))){
           new_cardinality++;
           filtered_row[new_row_size++] = row->at(j);
         } 
@@ -103,7 +104,7 @@ Matrix::Matrix(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigne
       unsigned int *filtered_col = new unsigned int[col->size()];
       size_t new_col_size = 0;
       for(size_t j = 0; j < col->size(); ++j) {
-        if(nodeFilter(col->at(j)) && edgeFilter(i,col->at(j))){
+        if(node_selection(col->at(j)) && edge_selection(i,col->at(j))){
           new_cardinality++;
           filtered_col[new_col_size++] = col->at(j);
         } 

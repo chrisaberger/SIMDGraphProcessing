@@ -118,15 +118,16 @@ inline size_t AOA_Matrix::row_union(uint8_t *R, unsigned int i, unsigned int j){
 }
 */
 inline size_t AOA_Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a){
+  (void) decoded_a;
   size_t card_a = row_lengths[i];
   size_t card_b = row_lengths[j];
   long ncount = 0;
 
   if(card_a > 0 && card_b > 0){
-    unsigned int *i_size_ptr = (unsigned int*) row_arrays[i];
-    unsigned int *j_size_ptr = (unsigned int*) row_arrays[j];
+    //unsigned int *i_size_ptr = (unsigned int*) row_arrays[i];
+    //unsigned int *j_size_ptr = (unsigned int*) row_arrays[j];
 
-    ncount = uint_array::intersect(R,row_arrays[i]+4,row_arrays[j]+4,i_size_ptr[0],j_size_ptr[0],card_a,card_b,t,decoded_a);
+    ncount = array32::intersect((unsigned int*)R,(unsigned int *)(row_arrays[i]+4),(unsigned int*)(row_arrays[j]+4),card_a,card_b);
   }
   return ncount;
 }

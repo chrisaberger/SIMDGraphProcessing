@@ -108,7 +108,6 @@ AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<unsigned int>*  > *out_nb
         size_t new_row_size = 0;
         for(size_t j = 0; j < row->size(); ++j) {
           if(node_selection(row->at(j)) && edge_selection(i,row->at(j))){
-            cout << i << " " << row->at(j) << endl;
             new_cardinality++;
             selected[new_row_size++] = row->at(j);
           } 
@@ -131,7 +130,6 @@ AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<unsigned int>*  > *out_nb
         size_t new_col_size = 0;
         for(size_t j = 0; j < col->size(); ++j) {
           if(node_selection(col->at(j)) && edge_selection(i,col->at(j))){
-            cout <<  "c " << i << " " << col->at(j) << endl;
             new_cardinality++;
             selected[new_col_size++] = col->at(j);
           } 

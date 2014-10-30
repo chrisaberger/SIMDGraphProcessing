@@ -87,7 +87,6 @@ void MutableGraph::reorder_bfs(){
     cur_level_size = next_level_size;
   }
 
-  cout << "exiting" << endl;
   delete visited;
   delete[] cur_level;
   delete[] next_level;
@@ -495,7 +494,6 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path) {
     } else{
       dst_row = in_neighborhoods->at(extern_ids->at(dst));
     }
-    cout << "pushing back: " << src << " " << dst << endl;
     src_row->push_back(extern_ids->at(dst));
     dst_row->push_back(extern_ids->at(src));
   }
@@ -505,9 +503,6 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path) {
 
   for(size_t i = 0; i < in_neighborhoods->size(); i++){
     vector<unsigned int> *row = in_neighborhoods->at(i);
-    for(size_t j = 0; j < row->size(); j++){
-      cout << "i: " << i <<  " " << row->at(j) << endl;
-    }
     std::sort(row->begin(),row->end());
     row->erase(unique(row->begin(),row->begin()+row->size()),row->end());
   }

@@ -66,6 +66,13 @@ class AOA_Matrix{
       const std::function<bool(unsigned int)> node_selection,const std::function<bool(unsigned int,unsigned int)> edge_selection, 
       const unordered_map<unsigned int,unsigned int> *external_ids_in,const common::type t_in);
 
+    static AOA_Matrix* from_asymmetric(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigned int>*  > *in_nbrs,
+      const size_t matrix_size_in,const size_t cardinality_in, 
+      const std::function<bool(unsigned int)> node_selection,
+      const std::function<bool(unsigned int,unsigned int)> edge_selection, 
+      const unordered_map<unsigned int,unsigned int> *external_ids_in, 
+      const common::type t_in);
+
     size_t row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a);
     
     template<typename T> 

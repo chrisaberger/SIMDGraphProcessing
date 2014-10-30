@@ -79,6 +79,7 @@ int main (int argc, char* argv[]) {
     inputGraph->num_nodes,inputGraph->num_edges,
     node_selection,edge_selection,inputGraph->external_ids,layout);
   common::stopClock("selections");
+  
   inputGraph->MutableGraph::~MutableGraph(); 
 
   //application::graph->print_data("out.txt");
@@ -86,8 +87,7 @@ int main (int argc, char* argv[]) {
   common::startClock();
   application::queryOver();
   common::stopClock(input_layout);
-  application::graph->AOA_Matrix::~AOA_Matrix(); 
+  //application::graph->AOA_Matrix::~AOA_Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;
-  
   return 0;
 }

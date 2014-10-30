@@ -2,6 +2,12 @@
 #include "Matrix.hpp"
 #include "MutableGraph.hpp"
 
+// #define ENABLE_PCM
+
+#ifdef ENABLE_PCM
+#include <cpucounters.h>
+#endif
+
 namespace application{
   Matrix *graph;
   uint8_t *result;
@@ -76,12 +82,43 @@ int main (int argc, char* argv[]) {
   inputGraph->MutableGraph::~MutableGraph(); 
 
   //application::graph->print_data("hybrid.txt");
-  
+
+#ifdef ENABLE_PCM
+  PCM * m = PCM::getInstance();
+
+  switch(m->program()) {
+     case PCM::Success:
+        cout << "PCM initialized" << endl;
+        break;
+     case PCM::PMUBusy:
+        m->resetPMU();
+        return -1;
+        break;
+     default:
+        return -1;
+        break;
+  }
+
+  SystemCounterState before_sstate = getSystemCounterState();
+#endif
+
   common::startClock();
   application::queryOver();
   common::stopClock(input_layout);
-  application::graph->Matrix::~Matrix(); 
+
+#ifdef ENABLE_PCM
+  SystemCounterState after_sstate = getSystemCounterState();
+  cout << "Instructions per clock: " << getIPC(before_sstate,after_sstate) << endl
+     << "L3 cache hit ratio: " << getL3CacheHitRatio(before_sstate,after_sstate) << endl
+     << "L3 cache misses: " << getL3CacheMisses(before_sstate,after_sstate) << endl
+     << "Bytes read: " << getBytesReadFromMC(before_sstate,after_sstate) << endl;
+#endif
+
+  application::graph->Matrix::~Matrix();
   cout << "Count: " << application::num_triangles << endl << endl;
-  
+
+#ifdef ENABLE_PCM
+  m->resetPMU();
+#endif
   return 0;
 }

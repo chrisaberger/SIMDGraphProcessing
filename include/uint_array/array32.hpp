@@ -147,7 +147,7 @@ namespace array32 {
       // convert the 128-bit mask to the 4-bit mask
       unsigned int mask = _mm_movemask_ps((__m128)cmp_mask);
       //]
-      
+
       //[ copy out common elements
       #if WRITE_VECTOR == 1
       //cout << "mask: " << mask << endl;

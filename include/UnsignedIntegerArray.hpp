@@ -23,8 +23,8 @@ class UnsignedIntegerArray{
       delete[] data;
     }
 
-    static void intersect(UnsignedIntegerArray *r,UnsignedIntegerArray *a,UnsignedIntegerArray *b);
-    static void difference(UnsignedIntegerArray *r,UnsignedIntegerArray *a,UnsignedIntegerArray *b);
+    static UnsignedIntegerArray* intersect(UnsignedIntegerArray *r,UnsignedIntegerArray *a,UnsignedIntegerArray *b);
+    static UnsignedIntegerArray* difference(UnsignedIntegerArray *r,UnsignedIntegerArray *a,UnsignedIntegerArray *b);
 
     void print_data(string file);
     void reset();

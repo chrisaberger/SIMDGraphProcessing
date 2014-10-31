@@ -73,7 +73,7 @@ class AOA_Matrix{
       const unordered_map<unsigned int,unsigned int> *external_ids_in, 
       const common::type t_in);
 
-    void get_distinct_neighbors(UnsignedIntegerArray *result,UnsignedIntegerArray *frontier,UnsignedIntegerArray *tmp);
+    UnsignedIntegerArray* get_distinct_neighbors(UnsignedIntegerArray *result,UnsignedIntegerArray *frontier,UnsignedIntegerArray *tmp);
     size_t row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a);
     
     template<typename T> 
@@ -86,35 +86,24 @@ class AOA_Matrix{
 
 };
 
-inline void AOA_Matrix::get_distinct_neighbors(UnsignedIntegerArray *result, UnsignedIntegerArray *frontier, UnsignedIntegerArray *tmp){
+inline UnsignedIntegerArray* AOA_Matrix::get_distinct_neighbors(UnsignedIntegerArray *result, UnsignedIntegerArray *frontier, UnsignedIntegerArray *tmp){
   //set_union(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b);
   unsigned int *data = (unsigned int*)frontier->data;
 
-  if(frontier->cardinality > 0){
-    cout << "elem: " << data[0] << endl;
+  if(frontier->length > 0){
     size_t card = row_lengths[data[0]];
     if(card > 0){
       unsigned int *cur_row = (unsigned int*) row_arrays[data[0]];
       result->length = cur_row[0]/4;
-      cout << "length: " << result->length << endl;
-
-      unsigned int *rdata = (unsigned int*) &cur_row[1];
-      for(size_t i = 0; i < cur_row[0]/4; i++){
-        cout << "i: " << i << " data: " << rdata[i] << endl;
-      }
-
       std::copy((uint8_t*)&cur_row[1],(uint8_t*)&cur_row[1+cur_row[0]],result->data);
     }
   }
   
-  cout << frontier->length << endl;
   for(size_t i=1; i<frontier->length; i++){
     size_t card = row_lengths[data[i]];
     if(card > 0){
       unsigned int *size_ptr = (unsigned int*) row_arrays[data[i]];
-      tmp->length = array32::set_union((unsigned int*)tmp,(unsigned int*)result->data,(unsigned int*)row_arrays[data[i]]+4,result->length/4,size_ptr[0]/4)/4;
-      cout << "here: " << tmp->length << endl;
-
+      tmp->length = array32::set_union((unsigned int*)tmp->data,(unsigned int*)result->data,(unsigned int*)(row_arrays[data[i]]+4),result->length,size_ptr[0]/4);
       UnsignedIntegerArray *tmp2 = result;
       result = tmp;
       tmp = tmp2;
@@ -124,8 +113,9 @@ inline void AOA_Matrix::get_distinct_neighbors(UnsignedIntegerArray *result, Uns
 
   unsigned int *rdata = (unsigned int*) result->data;
   for(size_t i = 0; i < result->length; i++){
-    cout << "i: " << i << " data: " << rdata[i] << endl;
+    cout << "distinct neighbors: " << i << " data: " << rdata[i] << endl;
   }
+  return result;
 }
 /*
 inline size_t AOA_Matrix::row_union(uint8_t *R, unsigned int i, unsigned int j){

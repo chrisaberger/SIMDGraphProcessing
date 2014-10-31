@@ -20,7 +20,7 @@ void UnsignedIntegerArray::reset(){
 }
 
 UnsignedIntegerArray* UnsignedIntegerArray::fromRange(size_t start, size_t end){
-  unsigned int *data_in = new unsigned int[end-start];
+  unsigned int *data_in = new unsigned int[(end-start)*6];
 
   for(size_t i=0; i<(end-start); i++){
     data_in[i] = start+i;
@@ -29,7 +29,7 @@ UnsignedIntegerArray* UnsignedIntegerArray::fromRange(size_t start, size_t end){
 }
 
 UnsignedIntegerArray* UnsignedIntegerArray::fromArray(unsigned int *data_in, size_t length_in, common::type t_in){
-  uint8_t *new_data = new uint8_t[length_in*10*4];
+  uint8_t *new_data = new uint8_t[length_in*10*6];
   size_t length = uint_array::preprocess(new_data,0,data_in,length_in,0xffffffff,t_in);
 
   return new UnsignedIntegerArray(new_data,length,length_in,t_in);

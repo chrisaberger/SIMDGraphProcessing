@@ -111,10 +111,12 @@ inline UnsignedIntegerArray* AOA_Matrix::get_distinct_neighbors(UnsignedIntegerA
     }
   }
 
+  /*
   unsigned int *rdata = (unsigned int*) result->data;
   for(size_t i = 0; i < result->length; i++){
     cout << "distinct neighbors: " << i << " data: " << rdata[i] << endl;
   }
+  */
   return result;
 }
 /*

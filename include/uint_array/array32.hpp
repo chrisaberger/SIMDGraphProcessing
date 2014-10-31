@@ -125,8 +125,8 @@ namespace array32 {
       //]
 
       //[ move pointers
-      unsigned int a_max = _mm_extract_epi32(v_a, 3);
-      unsigned int b_max = _mm_extract_epi32(v_b, 3);
+      unsigned int a_max = A[i_a+3];
+      unsigned int b_max = B[i_b+3];
       i_a += (a_max <= b_max) * 4;
       i_b += (a_max >= b_max) * 4;
       //]
@@ -345,6 +345,7 @@ namespace array32 {
     __m128i v_a = _mm_setzero_si128();
     unsigned int num_hit = 0;
     while(i_a < st_a && i_b < st_b) {
+      //xcout << i_a << " " << st_a << " " << i_b << " " << st_b << endl;
       //[ load segments of four 32-bit elements
       v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
       __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
@@ -392,26 +393,24 @@ namespace array32 {
       __m128i p_a = _mm_shuffle_epi8(v_a, shuffle_difference_mask32_a[mask_a]);
       _mm_storeu_si128((__m128i*)&C[count], p_a);
       count += (INTS_PER_REG-num_hit)*(a_max <= b_max);
-      /*
-      if(a_max <= b_max && next){
-        next = false;
-        cout <<"result: " << mask_a << " count: " << count << " mask: " << mask_a << endl;
-        print_sse_register(p_a);
-      }\*/
 
       mask_a = mask_a*(a_max > b_max);
 
       //]
     }
+    //cout << "exiting: " << i_a << " " << s_a << " " << i_b << " " << s_b << " " << count << endl;
+    //cout << "difference incrementer: " << difference_incrementer[mask_a] << " " << num_hit << endl;
     //cleanup
-    if(i_a < s_a && difference_incrementer[mask_a] != 4){
+    if(i_a < s_a && difference_incrementer[mask_a] != 4 && difference_incrementer[mask_a] > 0){
       i_a += difference_incrementer[mask_a];
       __m128i p_a = _mm_shuffle_epi8(v_a, shuffle_difference_mask32_a[mask_a]);
       _mm_storeu_si128((__m128i*)&C[count], p_a);
       count += difference_incrementer[mask_a]-num_hit; 
     }
-    #endif
+    //cout << "cleaned up: " << i_a << " " << s_a << " " << i_b << " " << s_b << " " << count << endl;
 
+    #endif
+    //cout << "intersecting tail: " << count << endl;
     // intersect the tail using scalar intersection
     count += set_difference_std(&C[count],&A[i_a],&B[i_b],(s_a-i_a),(s_b-i_b));
 

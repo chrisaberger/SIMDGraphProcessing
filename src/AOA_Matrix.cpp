@@ -88,9 +88,10 @@ AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<unsigned int>*  > *out_nb
   size_t col_total_bytes_used = 0;
     
   size_t alloc_size = sizeof(unsigned int)*(cardinality_in/omp_get_num_threads());
-  if(alloc_size < matrix_size_in*4){
+  if(alloc_size <= matrix_size_in*4){
     alloc_size = matrix_size_in*10;
   }
+  cout << alloc_size << " " << matrix_size_in << endl;
   #pragma omp parallel default(shared) reduction(+:row_total_bytes_used) reduction(+:new_cardinality)
   {
     //unsigned int *tmp_row_data = new unsigned int[matrix_size_in];

@@ -1,5 +1,11 @@
 #include "UnsignedIntegerArray.hpp"
 
+void UnsignedIntegerArray::intersect(UnsignedIntegerArray *r,UnsignedIntegerArray *a,UnsignedIntegerArray *b){
+  r->length = array32::intersect((unsigned int*) r->data, (unsigned int *)a->data, (unsigned int *)b->data, a->length/4, b->length/4)/4;
+}
+void UnsignedIntegerArray::difference(UnsignedIntegerArray *r,UnsignedIntegerArray *a,UnsignedIntegerArray *b){
+  r->length = array32::set_difference((unsigned int*) r->data, (unsigned int *)a->data, (unsigned int *)b->data, a->length/4, b->length/4)/4;
+}
 void UnsignedIntegerArray::swap(UnsignedIntegerArray *a,UnsignedIntegerArray *b){
   UnsignedIntegerArray *tmp = a;
   a = b;
@@ -17,7 +23,7 @@ UnsignedIntegerArray* UnsignedIntegerArray::fromRange(size_t start, size_t end){
   for(size_t i=0; i<(end-start); i++){
     data_in[i] = start+i;
   }
-  return new UnsignedIntegerArray((uint8_t*)data_in,(end-start),(end-start),common::ARRAY32);
+  return new UnsignedIntegerArray((uint8_t*)data_in,(end-start)*4,(end-start)*4,common::ARRAY32);
 }
 
 UnsignedIntegerArray* UnsignedIntegerArray::fromArray(unsigned int *data_in, size_t length_in, common::type t_in){

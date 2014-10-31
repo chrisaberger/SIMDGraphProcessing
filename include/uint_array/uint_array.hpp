@@ -271,7 +271,7 @@ namespace uint_array{
   inline size_t set_union(uint8_t *R, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b, 
     unsigned int card_a, unsigned int card_b, common::type t, unsigned int *outputA){
     
-    (void) card_a; (void) card_b; (void) outputA;
+    (void) card_a; (void) card_b; (void) outputA; (void) t;
     #if HYBRID_LAYOUT == 1
     (void) t;
     const common::type t1 = (common::type) A[0];

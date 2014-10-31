@@ -213,15 +213,6 @@ namespace array32 {
         next_i_a = i_a + 4;
         next_i_b = i_b + 4;
 
-        /*
-        if(count > 1970 && count < 1980){
-          cout << "Data:" << endl;
-          print_sse_register(v_a);
-          print_sse_register(v_b); 
-        }
-        */
-        
-
         //[ compute mask of common elements
         unsigned int right_cyclic_shift = _MM_SHUFFLE(0,3,2,1);
         
@@ -250,15 +241,6 @@ namespace array32 {
         #if WRITE_VECTOR == 1
         __m128i p_a = _mm_or_si128(setinel_mask_a[mask_a],_mm_shuffle_epi8(v_a, shuffle_difference_mask32_a[mask_a]));  
         __m128i p_b = v_b;
-    
-        /*
-        if(count > 1970 && count < 1980){
-          cout << "p's:" << endl;
-          cout << mask_a << endl;
-          print_sse_register(p_a);
-          print_sse_register(p_b); 
-        }
-        */
             
         __m128i l_1 = _mm_min_epu32(p_a,p_b);
         __m128i h_1 = _mm_max_epu32(p_a,p_b);      

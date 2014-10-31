@@ -1,10 +1,10 @@
 #include "UnsignedIntegerArray.hpp"
 
 void UnsignedIntegerArray::intersect(UnsignedIntegerArray *r,UnsignedIntegerArray *a,UnsignedIntegerArray *b){
-  r->length = array32::intersect((unsigned int*) r->data, (unsigned int *)a->data, (unsigned int *)b->data, a->length/4, b->length/4)/4;
+  r->length = array32::intersect((unsigned int*) r->data, (unsigned int *)a->data, (unsigned int *)b->data, a->length, b->length);
 }
 void UnsignedIntegerArray::difference(UnsignedIntegerArray *r,UnsignedIntegerArray *a,UnsignedIntegerArray *b){
-  r->length = array32::set_difference((unsigned int*) r->data, (unsigned int *)a->data, (unsigned int *)b->data, a->length/4, b->length/4)/4;
+  r->length = array32::set_difference((unsigned int*) r->data, (unsigned int *)a->data, (unsigned int *)b->data, a->length, b->length);
 }
 void UnsignedIntegerArray::swap(UnsignedIntegerArray *a,UnsignedIntegerArray *b){
   UnsignedIntegerArray *tmp = a;

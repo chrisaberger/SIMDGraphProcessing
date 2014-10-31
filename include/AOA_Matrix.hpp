@@ -91,24 +91,34 @@ inline void AOA_Matrix::get_distinct_neighbors(UnsignedIntegerArray *result, Uns
   unsigned int *data = (unsigned int*)frontier->data;
 
   if(frontier->cardinality > 0){
+    cout << "elem: " << data[0] << endl;
     size_t card = row_lengths[data[0]];
     if(card > 0){
       unsigned int *cur_row = (unsigned int*) row_arrays[data[0]];
       result->length = cur_row[0]/4;
       cout << "length: " << result->length << endl;
-      std::copy((uint8_t*)&cur_row[4],(uint8_t*)&cur_row[4+cur_row[0]],result->data);
+
+      unsigned int *rdata = (unsigned int*) &cur_row[1];
+      for(size_t i = 0; i < cur_row[0]/4; i++){
+        cout << "i: " << i << " data: " << rdata[i] << endl;
+      }
+
+      std::copy((uint8_t*)&cur_row[1],(uint8_t*)&cur_row[1+cur_row[0]],result->data);
     }
   }
   
-  cout << frontier->cardinality << endl;
-  for(size_t i=1; i<frontier->cardinality; i++){
+  cout << frontier->length << endl;
+  for(size_t i=1; i<frontier->length; i++){
     size_t card = row_lengths[data[i]];
     if(card > 0){
       unsigned int *size_ptr = (unsigned int*) row_arrays[data[i]];
       tmp->length = array32::set_union((unsigned int*)tmp,(unsigned int*)result->data,(unsigned int*)row_arrays[data[i]]+4,result->length/4,size_ptr[0]/4)/4;
-      tmp->cardinality = tmp->length/4;
       cout << "here: " << tmp->length << endl;
-      UnsignedIntegerArray::swap(tmp,result);
+
+      UnsignedIntegerArray *tmp2 = result;
+      result = tmp;
+      tmp = tmp2;
+
     }
   }
 

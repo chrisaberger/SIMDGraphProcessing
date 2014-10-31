@@ -24,7 +24,7 @@
 #define VECTORIZE 1
 #define COMPRESSION 1
 #define HYBRID_LAYOUT 0
-#define WRITE_VECTOR 0
+#define WRITE_VECTOR 1
 #define SHORTS_PER_REG 8
 #define INTS_PER_REG 4
 #define BYTES_PER_REG 16

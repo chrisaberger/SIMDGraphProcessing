@@ -91,7 +91,6 @@ AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<unsigned int>*  > *out_nb
   if(alloc_size <= matrix_size_in*6){
     alloc_size = matrix_size_in*10;
   }
-  cout << cardinality_in << " " << alloc_size << " " << matrix_size_in << endl;
   #pragma omp parallel default(shared) reduction(+:row_total_bytes_used) reduction(+:new_cardinality)
   {
     //unsigned int *tmp_row_data = new unsigned int[matrix_size_in];

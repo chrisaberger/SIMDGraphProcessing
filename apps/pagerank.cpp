@@ -55,8 +55,8 @@ namespace application{
     float *tmp_diff = new float[8];
     __m256 initReg = _mm256_set1_ps(initVal);
     #if VECTORIZE == 1
-    //#pragma omp parallel for default(none) schedule(dynamic)
-    for(; pr_i<st_a;pr_i+=8){
+    #pragma omp parallel for default(shared) schedule(static)
+    for(pr_i = 0; pr_i<st_a;pr_i+=8){
       for(size_t j=0;j<8;j++){
         scaling_array[pr_i+j] = ((graph->row_lengths[pr_i+j]==0)+graph->row_lengths[pr_i+j]);
       }
@@ -65,8 +65,8 @@ namespace application{
       _mm256_storeu_ps(&pr_data[pr_i],new_vals);
     }
     #endif
-    //#pragma omp parallel for default(none) schedule(dynamic)
-    for(;pr_i<num_nodes;pr_i++){
+    #pragma omp parallel for default(shared) schedule(static)
+    for(pr_i = st_a ;pr_i<num_nodes;pr_i++){
       scaling_array[pr_i] = ((graph->row_lengths[pr_i]==0)+graph->row_lengths[pr_i]);
       pr_data[pr_i] = k*(initVal/scaling_array[pr_i]);
     }
@@ -80,8 +80,8 @@ namespace application{
     
       #if VECTORIZE == 1
       __m256 diff_sse = _mm256_setzero_ps();
-      //#pragma omp parallel for default(none) schedule(dynamic)
-      for(; pr_i<st_a;pr_i+=8){
+      #pragma omp parallel for default(shared) schedule(static)
+      for(pr_i = 0; pr_i<st_a;pr_i+=8){
         __m256 new_vals = _mm256_add_ps(_mm256_loadu_ps(&new_pr_data[pr_i]),add_reg);
         new_vals = _mm256_div_ps(new_vals,_mm256_loadu_ps(&scaling_array[pr_i]));
         new_vals = _mm256_mul_ps(k_reg,new_vals);
@@ -93,8 +93,8 @@ namespace application{
       diff += common::_mm256_reduce_add_ps(diff_sse); 
       #endif  
       
-      //#pragma omp parallel for default(none) schedule(dynamic)
-      for(;pr_i<graph->matrix_size;pr_i++){
+      #pragma omp parallel for default(shared) schedule(static)
+      for(pr_i = st_a;pr_i<graph->matrix_size;pr_i++){
         float new_val = new_pr_data[pr_i]+add_val;
         float old_data = pr_data[pr_i];
         pr_data[pr_i] = k*(new_val/scaling_array[pr_i]); 
@@ -103,17 +103,16 @@ namespace application{
       num_iterations++;
     }
     //Need to compensate now.
-    pr_i = 0;
     #if VECTORIZE == 1
-    //#pragma omp parallel for default(none) schedule(dynamic)
-    for(; pr_i<st_a;pr_i+=8){
+    #pragma omp parallel for default(shared) schedule(static)
+    for(pr_i = 0; pr_i<st_a;pr_i+=8){
       __m256 new_vals = _mm256_mul_ps(_mm256_loadu_ps(&pr_data[pr_i]),_mm256_loadu_ps(&scaling_array[pr_i]));
       new_vals = _mm256_div_ps(new_vals,k_reg);
       _mm256_storeu_ps(&pr_data[pr_i],new_vals);
     } 
     #endif
-    //#pragma omp parallel for default(none) schedule(dynamic)
-    for(;pr_i<graph->matrix_size;pr_i++){
+    #pragma omp parallel for default(shared) schedule(static)
+    for(pr_i = st_a;pr_i<graph->matrix_size;pr_i++){
       float new_val = (pr_data[pr_i]*scaling_array[pr_i])/k;
       pr_data[pr_i] = new_val; 
     }

@@ -153,7 +153,7 @@ T AOA_Matrix::sum_over_rows(std::function<T(unsigned int, std::function<T(unsign
 template<typename T> 
 T AOA_Matrix::map_columns(std::function<T(unsigned int, std::function<T(unsigned int)>)> rowfunction, std::function<T(unsigned int)> f, T *new_data){
   T diff = (T) 0;
-  #pragma omp parallel for default(none) schedule(dynamic) reduction(+:diff) 
+  #pragma omp parallel for default(none) shared(f,new_data,rowfunction) schedule(dynamic) reduction(+:diff) 
   for(size_t i = 0; i < matrix_size; i++){
     new_data[i] = rowfunction(i,f);
   }
@@ -163,7 +163,7 @@ T AOA_Matrix::map_columns(std::function<T(unsigned int, std::function<T(unsigned
 template<typename T> 
 T AOA_Matrix::map_columns_pr(std::function<T(unsigned int, std::function<T(unsigned int)>)> rowfunction, std::function<T(unsigned int)> f, T *new_data, T *old_data){
   T diff = (T) 0;
-  #pragma omp parallel for default(none) schedule(dynamic) reduction(+:diff) 
+  #pragma omp parallel for default(none) shared(rowfunction,old_data,f,new_data) schedule(dynamic) reduction(+:diff) 
   for(size_t i = 0; i < matrix_size; i++){
     new_data[i] = 0.85* rowfunction(i,f) +(0.15f/matrix_size);
     diff += new_data[i]-old_data[i];

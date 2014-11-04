@@ -74,7 +74,7 @@ namespace application{
     size_t num_iterations = 0;
     while(num_iterations < max_iterations){
       //returns the sum of the difference of new and old for all arrays.
-      graph->map_columns_pr<float>(col_function,nbr_function,new_pr_data,pr_data);
+      graph->map_columns<float>(col_function,nbr_function,new_pr_data);
       size_t pr_i = 0;
       float diff = 0.0;
     
@@ -124,8 +124,8 @@ namespace application{
     float *new_pr_data = new float[graph->matrix_size];
     pr_data = new float[graph->matrix_size];
     
-    float init_val = 1.0f/graph->matrix_size;
-    #pragma omp parallel for default(none) schedule(dynamic)
+    const float init_val = 1.0f/graph->matrix_size;
+    #pragma omp parallel for default(none) shared(graph,pr_data) schedule(dynamic)
     for(size_t i = 0; i < graph->matrix_size; i++){
       pr_data[i] = init_val;
     }    
@@ -147,9 +147,9 @@ namespace application{
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
-  if(argc != 4){
+  if(argc != 5){
     cout << "Please see usage below: " << endl;
-    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp>" << endl;
+    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp> <# iterations>" << endl;
     exit(0);
   }
 
@@ -157,6 +157,7 @@ int main (int argc, char* argv[]) {
   omp_set_num_threads(atoi(argv[2]));        
 
   std::string input_layout = argv[3];
+  application::max_iterations = atoi(argv[4]);
 
   common::type layout;
   if(input_layout.compare("a32") == 0){
@@ -197,16 +198,15 @@ int main (int argc, char* argv[]) {
   
   inputGraph->MutableGraph::~MutableGraph(); 
 
-
-  //application::graph->sum_over_rows_in_column(370346,application::pr_data);
-  //application::graph->print_column(4030,"col.txt");
-
   common::startClock();
-  //application::queryOver();
+  application::queryOver();
   common::stopClock("APP");
+  application::print_pr_data("pr.txt");
+  
   common::startClock();
-  //application::queryOverNew();
+  application::queryOverNew();
   common::stopClock("APP FISION");
+  application::print_pr_data("new_pr.txt");
   
   return 0;
 }

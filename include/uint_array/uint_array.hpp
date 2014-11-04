@@ -116,6 +116,47 @@ namespace uint_array{
     }
     return result;
   } 
+  template<typename T> 
+  inline T sum(std::function<T(unsigned int)> function,uint8_t *data,size_t length, size_t card,common::type t){
+    #if HYBRID_LAYOUT == 1
+    t = (common::type) data[0];
+    data++;
+    length--;
+    #endif
+
+    card = card;
+
+    T result;
+    switch(t){
+      case common::ARRAY32:
+        result = array32::sum(function,(unsigned int*)data,length/4);
+        break;
+        /*
+      case common::ARRAY16:
+        result = array16::sum(function,col,(unsigned short*)data,length/2,outputA);
+        break;
+      case common::BITSET:
+        result = bitset::sum(function,col,(unsigned short*)data,length/2,outputA);
+        break;
+      case common::A32BITPACKED:
+        outputA = new unsigned int[card];
+        a32bitpacked::decode(outputA,data,card);
+        result = array32::sum(function,col,outputA,card,outputA);
+        delete[] outputA;
+        break;
+      case common::VARIANT:
+        outputA = new unsigned int[card];
+        variant::decode(outputA,data,card);
+        result = array32::sum(function,col,outputA,card,outputA);
+        delete[] outputA;
+        break;
+        */
+      default:
+        return (T) 0;
+        break;
+    }
+    return result;
+  } 
   inline size_t intersect_homogeneous(uint8_t *R, uint8_t *A, uint8_t *B, size_t s_a, size_t s_b, 
     unsigned int card_a, unsigned int card_b, common::type t,unsigned int *outputA){
     size_t count = 0;

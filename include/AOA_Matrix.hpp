@@ -76,11 +76,16 @@ class AOA_Matrix{
     UnsignedIntegerArray* get_distinct_neighbors(UnsignedIntegerArray *result,UnsignedIntegerArray *frontier,UnsignedIntegerArray *tmp);
     size_t row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a);
     
+
+    template<typename T> 
+    T map_columns_pr(std::function<T(unsigned int, std::function<T(unsigned int)>)> rowfunction, std::function<T(unsigned int)> f, T *new_data, T *old_data);
     template<typename T> 
     T sum_over_rows(std::function<T(unsigned int, std::function<T(unsigned int,unsigned int,unsigned int*)>)> rowfunction, std::function<T(unsigned int,unsigned int,unsigned int*)> f);
     
     template<typename T> 
-    T sum_over_columns_in_row(unsigned int row,std::function<T(unsigned int,unsigned int,unsigned int*)> f);
+    T sum_over_columns_in_row(unsigned int col,std::function<T(unsigned int,unsigned int,unsigned int*)> f);
+    template<typename T> 
+    T sum_over_rows_in_column(unsigned int row,std::function<T(unsigned int)> f);
         
     void print_data(string filename);
 
@@ -159,6 +164,17 @@ T AOA_Matrix::sum_over_rows(std::function<T(unsigned int, std::function<T(unsign
 }
 
 template<typename T> 
+T AOA_Matrix::map_columns_pr(std::function<T(unsigned int, std::function<T(unsigned int)>)> rowfunction, std::function<T(unsigned int)> f, T *new_data, T *old_data){
+  T diff = (T) 0;
+  #pragma omp parallel for default(none) schedule(dynamic) reduction(+:diff) 
+  for(size_t i = 0; i < matrix_size; i++){
+    new_data[i] = 0.85* rowfunction(i,f) +(0.15f/matrix_size);
+    diff += new_data[i]-old_data[i];
+  }
+  return diff;
+}
+
+template<typename T> 
 T AOA_Matrix::sum_over_columns_in_row(unsigned int row,std::function<T(unsigned int,unsigned int,unsigned int*)> f){    
   T result = (T) 0;
   size_t card = row_lengths[row];
@@ -166,6 +182,16 @@ T AOA_Matrix::sum_over_columns_in_row(unsigned int row,std::function<T(unsigned 
     unsigned int *size_ptr = (unsigned int*) row_arrays[row];
     unsigned int *decoded_a = row_lengths;
     result = uint_array::sum(f,row,row_arrays[row]+4,size_ptr[0],card,t,decoded_a);
+  }
+  return result;
+}
+template<typename T> 
+T AOA_Matrix::sum_over_rows_in_column(unsigned int col,std::function<T(unsigned int)> f){    
+  T result = (T) 0;
+  size_t card = column_lengths[col];
+  if(card > 0){
+    unsigned int *size_ptr = (unsigned int*) column_arrays[col];
+    result = uint_array::sum(f,column_arrays[col]+4,size_ptr[0],card,t);
   }
   return result;
 }

@@ -424,6 +424,14 @@ namespace array32 {
     }
     return result;
   }
+  template<typename T> 
+  inline T sum(std::function<T(unsigned int)> function,unsigned int *data, size_t length){
+    T result = (T) 0;
+    for(size_t i = 0; i < length; i++){
+      result += function(data[i]);
+    }
+    return result;
+  }
   inline void print_data(unsigned int *data,size_t length,ofstream &file){
     //cout << "LEN: " << length << endl;
     for(size_t i = 0; i < length; i++){

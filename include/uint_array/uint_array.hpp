@@ -163,7 +163,7 @@ namespace uint_array{
         count = array32::intersect((unsigned int*)R,(unsigned int*)A,(unsigned int*)B,s_a/4,s_b/4);
         break;
       case common::ARRAY16:
-        count = array16::intersect((unsigned short*)R,(unsigned short*)A,(unsigned short*)B,s_a/2,s_b/2);
+        count = array16::intersect((unsigned int*)R,(unsigned short*)A,(unsigned short*)B,s_a/2,s_b/2);
         break;
       case common::BITSET:
         count = bitset::intersect((unsigned short*)R,(unsigned short*)A,(unsigned short*)B,s_a/2,s_b/2);

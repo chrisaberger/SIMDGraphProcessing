@@ -121,7 +121,7 @@ namespace variant {
     }
   }
   template<typename T> 
-  inline T sum(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,uint8_t *data, size_t cardinality){
+  inline T sum(std::function<T(unsigned int,unsigned int)> function,unsigned int col,uint8_t *data, size_t cardinality){
     T result = (T) 0;
 
     if(cardinality != 0){

@@ -417,10 +417,10 @@ namespace array32 {
     return count;
   }
   template<typename T> 
-  inline T sum(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,unsigned int *data, size_t length,unsigned int *outputA){
+  inline T sum(std::function<T(unsigned int,unsigned int)> function,unsigned int col,unsigned int *data, size_t length){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
-      result += function(col,data[i],outputA);
+      result += function(col,data[i]);
     }
     return result;
   }

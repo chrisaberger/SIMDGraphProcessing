@@ -140,7 +140,7 @@ namespace array16 {
 	  return count;
 	}
   template<typename T> 
-  inline T sum(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,unsigned short *data, size_t length, unsigned int *outputA){
+  inline T sum(std::function<T(unsigned int,unsigned int)> function,unsigned int col,unsigned short *data, size_t length){
     T result = (T) 0;
     for(size_t j = 0; j < length; ++j){
       const size_t header_length = 2;
@@ -152,7 +152,7 @@ namespace array16 {
       //Traverse partition use prefix to get nbr id.
       for(;j < partition_end;++j){
         unsigned int cur = (prefix << 16) | data[j]; //neighbor node
-        result += function(col,cur,outputA);
+        result += function(col,cur);
       }
       j = partition_end-1;   
     }

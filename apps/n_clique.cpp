@@ -19,29 +19,41 @@ namespace application{
   }
   inline long edgeApply(size_t depth, size_t query_depth, size_t thread_id, long t_count, uint8_t *buffer1, uint8_t *buffer2, Table *output, unsigned int *src_nbrhood, unsigned int src, unsigned int dst){
     (void) buffer2;
-    long count = graph->row_intersect(buffer1,src,dst,src_nbrhood);
 
     size_t index = (depth-1) + query_depth*thread_id;
-    //cout << index << " " << thread_id << endl;
+    long count = 0;
     if(depth == 3){
+      count = graph->row_intersect(buffer1,src,dst,src_nbrhood);
+
       output->tuple[query_depth*thread_id] = src;
       output->tuple[query_depth*thread_id+1] = dst;
     } else{
+      //intersect buffer2 with dst neighborhood
+      count = graph->buffer_intersect(buffer1,dst,buffer2,t_count);
       output->tuple[index] = dst;
     }
 
     if(depth == query_depth){
-      unsigned int *output_table = output->table_pointers[index];
-      uint_array::decode(output_table,buffer1,count);
-      output->table_size[thread_id] += count; 
+      size_t cur_size = output->table_size[thread_id];
+      unsigned int *output_table = (output->table_pointers[index])+cur_size;
+
+      uint_array::decode(output_table,&buffer1[4],count);
+
       if(depth == 3){
         for(long i = 0; i < count; i++){
           unsigned int *src_row = output->table_pointers[query_depth*thread_id];
           unsigned int *dst_row = output->table_pointers[query_depth*thread_id+1];
-          src_row[t_count+i] = output->tuple[query_depth*thread_id];
-          dst_row[t_count+i] = output->tuple[query_depth*thread_id+1];
+          src_row[cur_size+i] = output->tuple[query_depth*thread_id];
+          dst_row[cur_size+i] = output->tuple[query_depth*thread_id+1];
         }
-      }  
+      }
+      output->table_size[thread_id] += count;   
+    } else if(count > 0){
+      auto ef = std::bind(&edgeApply,depth+1,query_depth,thread_id,count,buffer2,buffer1,output,src_nbrhood,_1,_2);
+      auto sum = std::bind(&uint_array::sum<long>,_1,_2,_3,_4,_5,_6,_7);
+
+      unsigned int *size_ptr = (unsigned int*)&buffer1[0];
+      count += (sum)(ef,dst,buffer1+4,size_ptr[0],count,common::HYBRID_PERF,size_ptr);
     }
 
     return count;

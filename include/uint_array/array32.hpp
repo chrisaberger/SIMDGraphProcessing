@@ -110,9 +110,15 @@ namespace array32 {
     _mm_set_epi8(max,max,max,max,max,max,max,max,max,max,max,max,max,max,max,max), //15
   }; 
 
-  inline size_t intersect(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
+  inline size_t intersect(uint8_t *C_in, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
+
+    #if WRITE_VECTOR == 1
+    unsigned int *C_size = (unsigned int*)&C_in[0];
+    C_in[4] = common::ARRAY32;
+    unsigned int *C = (unsigned int*)&C_in[5];
+    #endif
 
     // trim lengths to be a multiple of 4
     #if VECTORIZE == 1
@@ -182,6 +188,8 @@ namespace array32 {
 
     #if WRITE_VECTOR == 0
     C = C;
+    #else
+    C_size[0] = count;
     #endif
     
     return count;

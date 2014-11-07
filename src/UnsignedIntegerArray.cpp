@@ -1,7 +1,7 @@
 #include "UnsignedIntegerArray.hpp"
 
 UnsignedIntegerArray* UnsignedIntegerArray::intersect(UnsignedIntegerArray *r,UnsignedIntegerArray *a,UnsignedIntegerArray *b){
-  r->length = array32::intersect((unsigned int*) r->data, (unsigned int *)a->data, (unsigned int *)b->data, a->length, b->length);
+  r->length = array32::intersect(r->data, (unsigned int *)a->data, (unsigned int *)b->data, a->length, b->length);
   return r;
 }
 UnsignedIntegerArray* UnsignedIntegerArray::difference(UnsignedIntegerArray *r,UnsignedIntegerArray *a,UnsignedIntegerArray *b){

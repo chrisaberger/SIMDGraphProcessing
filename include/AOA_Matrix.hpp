@@ -75,7 +75,8 @@ class AOA_Matrix{
 
     UnsignedIntegerArray* get_distinct_neighbors(UnsignedIntegerArray *result,UnsignedIntegerArray *frontier,UnsignedIntegerArray *tmp);
     size_t row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a);
-    
+    size_t buffer_intersect(uint8_t *R, unsigned int j, uint8_t *A, unsigned int card_a);
+
     template<typename T> 
     T map_columns(std::function<T(unsigned int, std::function<T(unsigned int)>)> rowfunction, std::function<T(unsigned int)> f, T *new_data);
     template<typename T> 
@@ -136,6 +137,19 @@ inline size_t AOA_Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int
     unsigned int *j_size_ptr = (unsigned int*) row_arrays[j];
 
     ncount = uint_array::intersect(R,row_arrays[i]+4,row_arrays[j]+4,i_size_ptr[0],j_size_ptr[0],card_a,card_b,t,decoded_a);  
+  }
+  return ncount;
+}
+
+inline size_t AOA_Matrix::buffer_intersect(uint8_t *R, unsigned int j, uint8_t *A, unsigned int card_a){
+  size_t card_b = row_lengths[j];
+  long ncount = 0;
+
+  if(card_a > 0 && card_b > 0){
+    unsigned int *i_size_ptr = (unsigned int*) A;
+    unsigned int *j_size_ptr = (unsigned int*) row_arrays[j];
+
+    ncount = uint_array::intersect(R,A+4,row_arrays[j]+4,i_size_ptr[0],j_size_ptr[0],card_a,card_b,t,(unsigned int*)A); //last variable is foo wont be used
   }
   return ncount;
 }

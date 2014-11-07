@@ -178,10 +178,18 @@ namespace hybrid {
     }
     return result;
   }
-  inline size_t intersect_a16_bs(unsigned int *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+  inline size_t intersect_a16_bs(uint8_t *C_in, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
     (void) C;   
     #endif 
+
+    #if WRITE_VECTOR == 1
+    unsigned int *C_size = (unsigned int*)&C_in[0];
+    C_in[4] = common::ARRAY32;
+    unsigned int *C = (unsigned int*)&C_in[5];
+    #endif
+
+
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       unsigned int prefix = (A[i] << 16);
@@ -201,13 +209,25 @@ namespace hybrid {
       }
       i--;
     }
+
+    #if WRITE_VECTOR == 1
+    C_size[0] = count;
+    #endif
+
     return count;
   }
   //untested
-  inline size_t intersect_a32_bs(unsigned int *C, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+  inline size_t intersect_a32_bs(uint8_t *C_in, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
     (void) C;   
     #endif
+
+    #if WRITE_VECTOR == 1
+    unsigned int *C_size = (unsigned int*)&C_in[0];
+    C_in[4] = common::ARRAY32;
+    unsigned int *C = (unsigned int*)&C_in[5];
+    #endif
+
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       unsigned int cur = A[i];
@@ -218,11 +238,22 @@ namespace hybrid {
         count++;
       }
     }
+
+    #if WRITE_VECTOR == 1
+    C_size[0] = count;
+    #endif
+
     return count;
   }
-  inline size_t intersect_a32_a16(unsigned int *C, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+  inline size_t intersect_a32_a16(uint8_t *C_in, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
     (void)C;
+    #endif
+
+    #if WRITE_VECTOR == 1
+    unsigned int *C_size = (unsigned int*)&C_in[0];
+    C_in[4] = common::ARRAY32;
+    unsigned int *C = (unsigned int*)&C_in[5];
     #endif
 
     size_t a_i = 0;
@@ -316,6 +347,11 @@ namespace hybrid {
         not_finished = a_i < s_a && b_i < s_b;
       }
     }
+
+    #if WRITE_VECTOR == 1
+    C_size[0] = count;
+    #endif
+
     return count;
   }
 } 

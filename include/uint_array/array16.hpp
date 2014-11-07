@@ -109,6 +109,11 @@ namespace array16 {
 	  size_t count = 0;
 	  bool notFinished = i_a < s_a && i_b < s_b;
 
+    #if WRITE_VECTOR == 1
+    unsigned int *C_size = (unsigned int *)&C[0];
+    C = C+2;
+    #endif
+
 	  //cout << lim << endl;
 	  while(notFinished) {
 	    //size_t limLower = limLowerHolder;
@@ -137,6 +142,11 @@ namespace array16 {
 	      notFinished = i_a < s_a && i_b < s_b;
 	    }
 	  }
+
+    #if WRITE_VECTOR == 1
+    C_size[0] = (unsigned int)counter;
+    #endif
+
 	  return count;
 	}
   template<typename T> 

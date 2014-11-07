@@ -43,6 +43,11 @@ namespace bitset {
     (void)C;
     #endif
 
+    #if WRITE_VECTOR == 1
+    unsigned int *C_size = (unsigned int *)&C[0];
+    C = C+2;
+    #endif
+
 	  long count = 0l;
 	  unsigned short *small = A;
 	  size_t small_length = s_a;
@@ -87,6 +92,11 @@ namespace bitset {
 	  	
 	  	count += _mm_popcnt_u32(result);
 	  }
+
+    #if WRITE_VECTOR == 1
+    C_size[0] = (unsigned int)i;
+    #endif
+
 	  return count;
 	}
 	template<typename T> 

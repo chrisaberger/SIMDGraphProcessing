@@ -160,7 +160,8 @@ namespace array16 {
   }
   inline void decode(unsigned int *result, unsigned short *A, size_t s_a){
     size_t count = 0;
-    for(size_t i = 0; i < s_a; i++){
+    size_t i = 0;
+    while(count < s_a){
       unsigned int prefix = (A[i] << 16);
       unsigned short size = A[i+1];
       //cout << "size: " << size << endl;
@@ -172,7 +173,6 @@ namespace array16 {
         result[count++] = tmp; 
         ++i;
       }
-      i--;
     }
   }
   inline void print_data(unsigned short *A, size_t s_a, std::ofstream &file){

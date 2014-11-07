@@ -29,7 +29,7 @@ namespace application{
     long reducer = 0;
     #pragma omp parallel default(none) shared(row_function) reduction(+:reducer) 
     {
-      uint8_t *t_local_result = new uint8_t[(cardinality*4)/(omp_get_num_threads())];
+      uint8_t *t_local_result = new uint8_t[matrix_size];
       unsigned int *t_local_decode = new unsigned int[matrix_size];
       long t_local_reducer = 0;
 

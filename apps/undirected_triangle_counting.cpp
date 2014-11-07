@@ -24,7 +24,6 @@ namespace application{
     auto row_function = std::bind(&AOA_Matrix::sum_over_columns_in_row<long>, graph, _1, _2, _3);
 
     const size_t matrix_size = graph->matrix_size;
-    const size_t cardinality = graph->cardinality;
 
     long reducer = 0;
     #pragma omp parallel default(none) shared(row_function) reduction(+:reducer) 

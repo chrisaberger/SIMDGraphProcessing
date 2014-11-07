@@ -33,6 +33,7 @@ namespace application{
     if(depth == query_depth){
       unsigned int *output_table = output->table_pointers[index];
       uint_array::decode(output_table,buffer1,count);
+      output->table_size[thread_id] += count; 
       if(depth == 3){
         for(long i = 0; i < count; i++){
           unsigned int *src_row = output->table_pointers[query_depth*thread_id];
@@ -52,8 +53,6 @@ namespace application{
     const size_t matrix_size = graph->matrix_size;
     const size_t cardinality = graph->cardinality;
 
-
-    cout << num_threads << endl;
     output = new Table(3,num_threads,cardinality);
 
     long reducer = 0;
@@ -77,6 +76,8 @@ namespace application{
       delete[] t_local_buffer_2;
       delete[] t_local_decode;
     }
+
+    output->print_data("table.txt");
 
     num_triangles = reducer;
   }
@@ -118,7 +119,7 @@ int main (int argc, char* argv[]) {
   auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2);
 
   common::startClock();
-  MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
+  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files
   common::stopClock("Reading File");
   
   common::startClock();
@@ -140,7 +141,7 @@ int main (int argc, char* argv[]) {
   common::startClock();
   application::queryOver();
   common::stopClock(input_layout);
-  //application::graph->AOA_Matrix::~AOA_Matrix(); 
+  //application::graph->AOA_Matrix::~AOA_Matrix();
   cout << "Count: " << application::num_triangles << endl << endl;
   return 0;
 }

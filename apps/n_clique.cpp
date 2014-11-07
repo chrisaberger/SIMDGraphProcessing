@@ -1,11 +1,14 @@
 // class templates
 #include "AOA_Matrix.hpp"
-
+#include <cstdarg>
 #include "MutableGraph.hpp"
+#include "Table.hpp"
 
 namespace application{
   AOA_Matrix *graph;
   long num_triangles = 0;
+  Table *output;
+  size_t num_threads;
   
   inline bool myNodeSelection(unsigned int node){
     (void)node;
@@ -14,35 +17,64 @@ namespace application{
   inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
     return nbr < node;
   }
-  inline long edgeApply(uint8_t *result, unsigned int src, unsigned int dst, unsigned int *src_nbrhood){
-    //cout << "src: " << src << " dst: " << dst << endl;
-    long count = graph->row_intersect(result,src,dst,src_nbrhood);
-    //cout << count << endl;
+  inline long edgeApply(size_t depth, size_t query_depth, size_t thread_id, long t_count, uint8_t *buffer1, uint8_t *buffer2, Table *output, unsigned int *src_nbrhood, unsigned int src, unsigned int dst){
+    (void) buffer2;
+    long count = graph->row_intersect(buffer1,src,dst,src_nbrhood);
+
+    size_t index = (depth-1) + query_depth*thread_id;
+    //cout << index << " " << thread_id << endl;
+    if(depth == 3){
+      output->tuple[query_depth*thread_id] = src;
+      output->tuple[query_depth*thread_id+1] = dst;
+    } else{
+      output->tuple[index] = dst;
+    }
+
+    if(depth == query_depth){
+      unsigned int *output_table = output->table_pointers[index];
+      uint_array::decode(output_table,buffer1,count);
+      if(depth == 3){
+        for(long i = 0; i < count; i++){
+          unsigned int *src_row = output->table_pointers[query_depth*thread_id];
+          unsigned int *dst_row = output->table_pointers[query_depth*thread_id+1];
+          src_row[t_count+i] = output->tuple[query_depth*thread_id];
+          dst_row[t_count+i] = output->tuple[query_depth*thread_id+1];
+        }
+      }  
+    }
+
     return count;
   }
   inline void queryOver(){
+    const size_t query_depth = 3;
     auto row_function = std::bind(&AOA_Matrix::sum_over_columns_in_row<long>, graph, _1, _2, _3);
 
     const size_t matrix_size = graph->matrix_size;
     const size_t cardinality = graph->cardinality;
 
+
+    cout << num_threads << endl;
+    output = new Table(3,num_threads,cardinality);
+
     long reducer = 0;
-    #pragma omp parallel default(none) shared(row_function) reduction(+:reducer) 
+    
+    #pragma omp parallel default(none) shared(row_function,output,num_threads) reduction(+:reducer) 
     {
-      uint8_t *t_local_result = new uint8_t[matrix_size*4];
+      uint8_t *t_local_buffer_1 = new uint8_t[(cardinality*4)/(num_threads)];
+      uint8_t *t_local_buffer_2 = new uint8_t[(cardinality*4)/(num_threads)];
+
       unsigned int *t_local_decode = new unsigned int[matrix_size];
       long t_local_reducer = 0;
-
-      auto edge_function = std::bind(&edgeApply,t_local_result,_1,_2,t_local_decode);
       
       #pragma omp for schedule(dynamic)
       for(size_t i = 0; i < matrix_size; i++){
+        auto edge_function = std::bind(&edgeApply,3,query_depth,omp_get_thread_num(),t_local_reducer,t_local_buffer_1,t_local_buffer_2,output,t_local_decode,_1,_2);
         t_local_reducer += (row_function)(i,t_local_decode,edge_function);
       }
       reducer += t_local_reducer;
 
-
-      delete[] t_local_result;
+      delete[] t_local_buffer_1;
+      delete[] t_local_buffer_2;
       delete[] t_local_decode;
     }
 
@@ -60,6 +92,7 @@ int main (int argc, char* argv[]) {
 
   cout << endl << "Number of threads: " << atoi(argv[2]) << endl;
   omp_set_num_threads(atoi(argv[2]));        
+  application::num_threads = atoi(argv[2]);
 
   std::string input_layout = argv[3];
 

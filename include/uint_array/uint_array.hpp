@@ -355,9 +355,7 @@ namespace uint_array{
 
     switch(t){
       case common::ARRAY32:
-        //cout << "here: " << card << endl;
         std::copy((unsigned int*)data,(unsigned int*)data+card,result);
-        //cout << "end" << endl;
         break;
       case common::ARRAY16:
         array16::decode(result,(unsigned short*)data,card);

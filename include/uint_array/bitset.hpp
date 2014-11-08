@@ -44,9 +44,9 @@ namespace bitset {
     #endif
 
     #if WRITE_VECTOR == 1
-    unsigned int *C_size = (unsigned int*)&C_in[0];
-    C_in[4] = common::ARRAY32;
-    unsigned short *C = (unsigned short*)&C_in[5];
+    size_t *C_size = (size_t*)&C_in[1];
+    C_in[0] = common::BITSET;
+    unsigned short *C = (unsigned short*)&C_in[sizeof(size_t)+1];
     #endif
 
 	  long count = 0l;
@@ -95,7 +95,7 @@ namespace bitset {
 	  }
 
     #if WRITE_VECTOR == 1
-    C_size[0] = (unsigned int)i;
+    C_size[0] = i*sizeof(short);
     #endif
 
 	  return count;

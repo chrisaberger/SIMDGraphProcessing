@@ -115,9 +115,8 @@ namespace array32 {
     size_t i_a = 0, i_b = 0;
 
     #if WRITE_VECTOR == 1
-    unsigned int *C_size = (unsigned int*)&C_in[0];
-    C_in[4] = common::ARRAY32;
-    unsigned int *C = (unsigned int*)&C_in[5];
+    C_in[0] = common::ARRAY32;
+    unsigned int *C = (unsigned int*)&C_in[1];
     #endif
 
     // trim lengths to be a multiple of 4
@@ -188,8 +187,6 @@ namespace array32 {
 
     #if WRITE_VECTOR == 0
     C = C;
-    #else
-    C_size[0] = count*4+5;
     #endif
     
     return count;

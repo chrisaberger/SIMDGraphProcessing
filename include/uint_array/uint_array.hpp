@@ -168,7 +168,7 @@ namespace uint_array{
     unsigned int card_a, unsigned int card_b, common::type t,unsigned int *outputA){
     size_t count = 0;
     unsigned int *outputB;
-
+ 
     size_t *size_ptr_a; size_t *size_ptr_b;
     switch(t){
       case common::ARRAY32:
@@ -380,9 +380,11 @@ namespace uint_array{
         std::copy((unsigned int*)data,(unsigned int*)data+card,result);
         break;
       case common::ARRAY16:
+        data += sizeof(size_t);
         array16::decode(result,(unsigned short*)data,card);
         break;
       case common::BITSET:
+        data += sizeof(size_t);
         bitset::decode(result,(unsigned short*)data,card);
         break;
       case common::A32BITPACKED:
@@ -401,6 +403,8 @@ namespace uint_array{
     data++;
     #endif
     
+    cout << "PRINT TYPE: " << (unsigned int) t << endl;
+
     size_t *size_ptr;
     switch(t){
       case common::ARRAY32:

@@ -110,15 +110,14 @@ namespace array16 {
 	  bool notFinished = i_a < s_a && i_b < s_b;
 
     #if WRITE_VECTOR == 1
-    unsigned int *C_size = (unsigned int*)&C_in[0];
-    C_in[4] = common::ARRAY32;
-    unsigned short *C = (unsigned short*)&C_in[5];
+    size_t *C_size = (size_t*)&C_in[1];
+    C_in[0] = common::ARRAY16;
+    unsigned short *C = (unsigned short*)&C_in[sizeof(size_t)+1];
     #endif
 
 	  //cout << lim << endl;
 	  while(notFinished) {
 	    //size_t limLower = limLowerHolder;
-	    //cout << "looping" << endl;
 	    if(A[i_a] < B[i_b]) {
 	      i_a += A[i_a + 1] + 2;
 	      notFinished = i_a < s_a;
@@ -145,7 +144,7 @@ namespace array16 {
 	  }
 
     #if WRITE_VECTOR == 1
-    C_size[0] = (unsigned int)counter;
+    C_size[0] = counter*sizeof(short);
     #endif
 
 	  return count;

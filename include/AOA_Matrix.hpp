@@ -133,10 +133,7 @@ inline size_t AOA_Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int
   long ncount = 0;
 
   if(card_a > 0 && card_b > 0){
-    unsigned int *i_size_ptr = (unsigned int*) row_arrays[i];
-    unsigned int *j_size_ptr = (unsigned int*) row_arrays[j];
-
-    ncount = uint_array::intersect(R,row_arrays[i]+4,row_arrays[j]+4,i_size_ptr[0],j_size_ptr[0],card_a,card_b,t,decoded_a);  
+    ncount = uint_array::intersect(R,row_arrays[i],row_arrays[j],card_a,card_b,t,decoded_a);  
   }
   return ncount;
 }
@@ -146,10 +143,7 @@ inline size_t AOA_Matrix::buffer_intersect(uint8_t *R, unsigned int j, uint8_t *
   long ncount = 0;
 
   if(card_a > 0 && card_b > 0){
-    unsigned int *i_size_ptr = (unsigned int*) A;
-    unsigned int *j_size_ptr = (unsigned int*) row_arrays[j];
-
-    ncount = uint_array::intersect(R,A+4,row_arrays[j]+4,i_size_ptr[0],j_size_ptr[0],card_a,card_b,t,(unsigned int*)A); //last variable is foo wont be used
+    ncount = uint_array::intersect(R,A,row_arrays[j],card_a,card_b,t,(unsigned int*)A); //last variable is foo wont be used
   }
   return ncount;
 }
@@ -180,8 +174,7 @@ T AOA_Matrix::sum_over_columns_in_row(unsigned int row, unsigned int *decoded, s
   T result = (T) 0;
   size_t card = row_lengths[row];
   if(card > 0){
-    unsigned int *size_ptr = (unsigned int*) row_arrays[row];
-    result = uint_array::sum(f,row,row_arrays[row]+4,size_ptr[0],card,t,decoded);
+    result = uint_array::sum(f,row,row_arrays[row],card,t,decoded);
   }
   return result;
 }
@@ -190,8 +183,7 @@ T AOA_Matrix::sum_over_rows_in_column(unsigned int col,std::function<T(unsigned 
   T result = (T) 0;
   size_t card = column_lengths[col];
   if(card > 0){
-    unsigned int *size_ptr = (unsigned int*) column_arrays[col];
-    result = uint_array::sum(f,column_arrays[col]+4,size_ptr[0],card,t);
+    result = uint_array::sum(f,column_arrays[col],card,t);
   }
   return result;
 }

@@ -352,8 +352,7 @@ namespace a32bitpacked {
       num_decoded++;
     }
   }
-  inline void print_data(uint8_t *data, const size_t length, const size_t cardinality, std::ofstream &file){
-    (void)length;
+  inline void print_data(uint8_t *data, const size_t cardinality, std::ofstream &file){
     size_t data_i = 1;
     const uint8_t bits_used = data[0];
     size_t num_decoded = 0;

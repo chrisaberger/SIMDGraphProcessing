@@ -21,7 +21,6 @@ AOA_Matrix* AOA_Matrix::from_symmetric(const vector< vector<unsigned int>*  > *g
   }
   #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
   {
-    //unsigned int *tmp_row_data = new unsigned int[matrix_size_in];
     uint8_t *row_data_in = new uint8_t[alloc_size];
     unsigned int *selected_row = new unsigned int[matrix_size_in];
     size_t index = 0;
@@ -41,17 +40,11 @@ AOA_Matrix* AOA_Matrix::from_symmetric(const vector< vector<unsigned int>*  > *g
         row_lengths_in[i] = new_size;
         row_arrays_in[i] = &row_data_in[index];
 
-        unsigned int *len_info = (unsigned int*) &row_data_in[index];
         if(new_size > 0){
-          index+=4;
-          size_t start_index = index;
           common::type row_type = uint_array::get_array_type(t_in,selected_row,new_size,matrix_size_in);
-          index = uint_array::preprocess(row_data_in,index,selected_row,new_size,matrix_size_in,row_type);
-          len_info[0] = (unsigned int) (index-start_index);
+          index = uint_array::preprocess(row_data_in,index,selected_row,new_size,row_type);
         }
-      
         new_cardinality += new_size;
-        //cout << "i: " << i << " " << len_info[0] << endl;
       } else{
         row_lengths_in[i] = 0;
       }
@@ -93,7 +86,6 @@ AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<unsigned int>*  > *out_nb
   }
   #pragma omp parallel default(shared) reduction(+:row_total_bytes_used) reduction(+:new_cardinality)
   {
-    //unsigned int *tmp_row_data = new unsigned int[matrix_size_in];
     uint8_t *row_data_in = new uint8_t[alloc_size];
     uint8_t *col_data_in = new uint8_t[alloc_size];
 
@@ -116,13 +108,9 @@ AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<unsigned int>*  > *out_nb
         row_lengths_in[i] = new_row_size;
         row_arrays_in[i] = &row_data_in[row_index];
 
-        unsigned int *len_info = (unsigned int*) &row_data_in[row_index];
         if(new_row_size > 0){
-          row_index+=4;
-          size_t start_index = row_index;
           common::type row_type = uint_array::get_array_type(t_in,selected,new_row_size,matrix_size_in);
-          row_index = uint_array::preprocess(row_data_in,row_index,selected,new_row_size,matrix_size_in,row_type);
-          len_info[0] = (unsigned int) (row_index-start_index);
+          row_index = uint_array::preprocess(row_data_in,row_index,selected,new_row_size,row_type);
         }
         new_cardinality += new_row_size;
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -138,13 +126,9 @@ AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<unsigned int>*  > *out_nb
         col_lengths_in[i] = new_col_size;
         col_arrays_in[i] = &col_data_in[col_index];
 
-        len_info = (unsigned int*) &col_data_in[col_index];
         if(new_col_size > 0){
-          col_index+=4;
-          size_t start_index = col_index;
           common::type col_type = uint_array::get_array_type(t_in,selected,new_col_size,matrix_size_in);
-          col_index = uint_array::preprocess(col_data_in,col_index,selected,new_col_size,matrix_size_in,col_type);
-          len_info[0] = (unsigned int) (col_index-start_index);
+          col_index = uint_array::preprocess(col_data_in,col_index,selected,new_col_size,col_type);
         }
         new_cardinality += new_col_size;
       } else{
@@ -176,8 +160,7 @@ void AOA_Matrix::print_data(string filename){
     myfile << "ROW: " << i <<  " LEN: " << row_lengths[i] << endl;
     size_t card = row_lengths[i];
     if(card > 0){
-      unsigned int *size_ptr = (unsigned int*) row_arrays[i];
-      uint_array::print_data(row_arrays[i]+4,size_ptr[0],card,t,myfile);
+      uint_array::print_data(row_arrays[i],card,t,myfile);
     }
   }
   myfile << endl;
@@ -187,8 +170,7 @@ void AOA_Matrix::print_data(string filename){
       myfile << "COLUMN: " << i << " LEN: " << column_lengths[i] << endl;
       size_t card = column_lengths[i];
       if(card > 0){
-        unsigned int *size_ptr = (unsigned int*) column_arrays[i];
-        uint_array::print_data(column_arrays[i]+4,size_ptr[0],card,t,myfile);
+        uint_array::print_data(column_arrays[i],card,t,myfile);
       }
     }
   }

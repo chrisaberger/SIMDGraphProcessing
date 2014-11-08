@@ -23,11 +23,13 @@ namespace application{
     size_t index = (depth-1) + query_depth*thread_id;
     long count = 0;
     if(depth == 3){
+      //cout << "standard intersect " << endl;
       count = graph->row_intersect(buffer1,src,dst,src_nbrhood);
 
       output->tuple[query_depth*thread_id] = src;
       output->tuple[query_depth*thread_id+1] = dst;
     } else{
+      //cout << "buffer intersect: " << depth << " " << query_depth << endl;
       //intersect buffer2 with dst neighborhood
       count = graph->buffer_intersect(buffer1,dst,buffer2,t_count);
       output->tuple[index] = dst;
@@ -49,17 +51,17 @@ namespace application{
       }
       output->table_size[thread_id] += count;   
     } else if(count > 0){
-      auto ef = std::bind(&edgeApply,depth+1,query_depth,thread_id,count,buffer2,buffer1,output,src_nbrhood,_1,_2);
-      auto sum = std::bind(&uint_array::sum<long>,_1,_2,_3,_4,_5,_6,_7);
+      cout << "Count: " << count << endl;
 
-      unsigned int *size_ptr = (unsigned int*)&buffer1[0];
-      count += (sum)(ef,dst,buffer1+4,size_ptr[0],count,common::HYBRID_PERF,size_ptr);
+      auto ef = std::bind(&edgeApply,depth+1,query_depth,thread_id,count,buffer2,buffer1,output,src_nbrhood,_1,_2);
+      auto sum = std::bind(&uint_array::sum<long>,_1,_2,_3,_4,_5,_6);
+
+      count = (sum)(ef,dst,buffer1+4,count,common::HYBRID_PERF,(unsigned int*) buffer1);
     }
 
     return count;
   }
-  inline void queryOver(){
-    const size_t query_depth = 3;
+  inline void queryOver(const size_t query_depth){
     auto row_function = std::bind(&AOA_Matrix::sum_over_columns_in_row<long>, graph, _1, _2, _3);
 
     const size_t matrix_size = graph->matrix_size;
@@ -97,9 +99,9 @@ namespace application{
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
-  if(argc != 4){
+  if(argc != 5){
     cout << "Please see usage below: " << endl;
-    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp>" << endl;
+    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp> <depth>" << endl;
     exit(0);
   }
 
@@ -148,11 +150,13 @@ int main (int argc, char* argv[]) {
   
   inputGraph->MutableGraph::~MutableGraph(); 
 
-  //application::graph->print_data("out.txt");
+  application::graph->print_data("out.txt");
   
   common::startClock();
-  application::queryOver();
+  application::queryOver(atoi(argv[4]));
   common::stopClock(input_layout);
+  
+
   //application::graph->AOA_Matrix::~AOA_Matrix();
   cout << "Count: " << application::num_triangles << endl << endl;
   return 0;

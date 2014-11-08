@@ -38,14 +38,15 @@ namespace bitset {
 	  }
 	  return 2*num_words;
 	}
-	inline size_t intersect(unsigned short *C, unsigned short *A, unsigned short *B, const size_t s_a, const size_t s_b) {
+	inline size_t intersect(uint8_t *C_in, unsigned short *A, unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
     (void)C;
     #endif
 
     #if WRITE_VECTOR == 1
-    unsigned int *C_size = (unsigned int *)&C[0];
-    C = C+2;
+    unsigned int *C_size = (unsigned int*)&C_in[0];
+    C_in[4] = common::ARRAY32;
+    unsigned short *C = (unsigned short*)&C_in[5];
     #endif
 
 	  long count = 0l;

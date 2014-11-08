@@ -189,7 +189,7 @@ namespace array32 {
     #if WRITE_VECTOR == 0
     C = C;
     #else
-    C_size[0] = count;
+    C_size[0] = count*4+5;
     #endif
     
     return count;

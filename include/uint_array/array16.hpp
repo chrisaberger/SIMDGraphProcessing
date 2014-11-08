@@ -103,15 +103,16 @@ namespace array16 {
 	  }
 	  return count;
 	}
-	inline size_t intersect(unsigned short *C,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+	inline size_t intersect(uint8_t *C_in,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
 	  size_t i_a = 0, i_b = 0;
 	  size_t counter = 0;
 	  size_t count = 0;
 	  bool notFinished = i_a < s_a && i_b < s_b;
 
     #if WRITE_VECTOR == 1
-    unsigned int *C_size = (unsigned int *)&C[0];
-    C = C+2;
+    unsigned int *C_size = (unsigned int*)&C_in[0];
+    C_in[4] = common::ARRAY32;
+    unsigned short *C = (unsigned short*)&C_in[5];
     #endif
 
 	  //cout << lim << endl;

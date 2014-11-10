@@ -1,6 +1,8 @@
 DROP TABLE IF EXISTS edge;
 CREATE TABLE edgeRaw(a BIGINT, b BIGINT);
 CREATE TABLE edge(a BIGINT, b BIGINT);
+CREATE INDEX ON edge(a);
+
 COPY edgeRaw FROM :'dataset';
 
 INSERT INTO edge(a, b) (

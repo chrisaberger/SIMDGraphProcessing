@@ -2,7 +2,7 @@
 #include "Matrix.hpp"
 #include "MutableGraph.hpp"
 
-// #define ENABLE_PCM
+#define ENABLE_PCM
 
 #ifdef ENABLE_PCM
 #include <cpucounters.h>
@@ -118,7 +118,7 @@ int main (int argc, char* argv[]) {
      << "Bytes read: " << getBytesReadFromMC(before_sstate,after_sstate) << endl;
 #endif
 
-  application::graph->Matrix::~Matrix();
+  //application::graph->Matrix::~Matrix();
   cout << "Count: " << application::num_triangles << endl << endl;
 
 #ifdef ENABLE_PCM

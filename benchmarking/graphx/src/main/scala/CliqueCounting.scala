@@ -21,8 +21,7 @@ object CliqueCounting {
         val set = Set[Set[VertexId]]()
         var i = 0
         while (i < nbrs.size) {
-          // prevent self cycle
-          if(nbrs(i) != vid) {
+          if(nbrs(i) < vid) {
             set.add(Set(nbrs(i)))
           }
           i += 1
@@ -84,6 +83,6 @@ object CliqueCounting {
     val cliques = run(edges)
     val result = cliques.vertices.reduce((a: (VertexId, Int), b: (VertexId, Int)) => (a._1, a._2 + b._2))
     println(result._2)
-    println("Time: " + (System.nanoTime() - startTime))
+    println("Time: " + (System.nanoTime() - startTime) / 1000000000.0)
   }
 }

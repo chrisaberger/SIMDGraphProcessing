@@ -22,6 +22,6 @@ object TriangleCounting {
     val triangles = edges.triangleCount()
     val result = triangles.vertices.reduce((a: (VertexId, Int), b: (VertexId, Int)) => (a._1, a._2 + b._2))
     println(result._2)
-    println("Time: " + (System.nanoTime() - startTime))
+    println("Time: " + (System.nanoTime() - startTime) / 1000000000.0)
   }
 }

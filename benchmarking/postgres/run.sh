@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for app in "triangle_counting"; do
-   psql -h $3 -p 5432 -U amirabs -v dataset="${1}" -f load.sql andres
-   psql -h $3 -p 5432 -U amirabs -v dataset=${1} -f triangle_counting.sql andres
+psql -p 5433 -v dataset="${1}" -f load.sql
+for app in "triangle_counting" "cycle_counting" "clique_counting"; do
+   psql -p 5433 -v dataset=${1} -f ${app}.sql
 done

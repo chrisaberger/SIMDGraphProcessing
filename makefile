@@ -1,6 +1,7 @@
 UNAME := $(shell uname)
 
-# INTEL_PCM_HOME=/afs/cs.stanford.edu/u/noetzli/IntelPerformanceCounterMonitorV2.7
+# Uncomment the following line to compile without PCM support
+INTEL_PCM_HOME=/afs/cs.stanford.edu/u/noetzli/IntelPerformanceCounterMonitorV2.7
 
 ifeq ($(UNAME), Linux)
 	LIBS=-lnuma
@@ -20,7 +21,7 @@ else #intel
 ifeq ($(DEBUG),1)
     override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -ggdb -DDEBUG=1 -D_GLIBCXX_DEBUG -Wall -Wextra  -Wcast-align
 else
-    override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -O3 -g -Wall -Wextra  -Wcast-align
+    override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -O3 -Wall -Wextra  -Wcast-align
 endif #debug
 endif #intel
 
@@ -32,7 +33,7 @@ SOURCES=$(wildcard src/*cpp)
 OBJECTS=$(SOURCES:src/%.cpp=$(OBJDIR)/%.o)
 
 ifdef INTEL_PCM_HOME
-	INCLUDE_DIRS=-I$(INTEL_PCM_HOME) $(INCLUDE_DIRS)
+	INCLUDE_DIRS+=-I$(INTEL_PCM_HOME)
 	EXT_OBJECTS=$(INTEL_PCM_HOME)/cpucounters.o $(INTEL_PCM_HOME)/msr.o $(INTEL_PCM_HOME)/pci.o $(INTEL_PCM_HOME)/client_bw.o
 endif
 
@@ -70,4 +71,7 @@ $(OBJECTS): $(SOURCES) $(HEADERS) $(OBJDIR)
 
 clean:
 	rm -rf $(OBJDIR) $(EXEDIR)
+
+intersect: intersect.cpp
+	$(CXX) $(CXXFLAGS) intersect.cpp $(OBJECTS) $(EXT_OBJECTS) $(LIBS) -o intersect $(INCLUDE_DIRS)
 

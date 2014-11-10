@@ -123,6 +123,7 @@ int main (int argc, char* argv[]) {
   common::stopClock("Reading File");
   
   common::startClock();
+  //inputGraph->reorder_bfs();
   inputGraph->reorder_by_degree();
   common::stopClock("Reordering");
   

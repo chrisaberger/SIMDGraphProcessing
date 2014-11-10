@@ -34,7 +34,7 @@ def parseInput():
 def main():
   options = parseInput();
 
-  systems = ['SpaceGraph','GraphLab','pgx','GraphChi','snap']
+  systems = ['snap']
   apps = ['triangle_counting']
 
   #only way (i could get to work) to control threading in these systems

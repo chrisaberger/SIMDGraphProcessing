@@ -117,6 +117,8 @@ namespace array32 {
     #if WRITE_VECTOR == 1
     C_in[0] = common::ARRAY32;
     unsigned int *C = (unsigned int*)&C_in[1];
+    #else
+    unsigned int *C = (unsigned int*) C_in;
     #endif
 
     // trim lengths to be a multiple of 4

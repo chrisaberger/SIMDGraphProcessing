@@ -180,7 +180,7 @@ namespace hybrid {
   }
   inline size_t intersect_a16_bs(uint8_t *C_in, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
-    (void) C;   
+    (void) C_in;   
     #endif 
 
     #if WRITE_VECTOR == 1
@@ -211,7 +211,7 @@ namespace hybrid {
   //untested
   inline size_t intersect_a32_bs(uint8_t *C_in, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
-    (void) C;   
+    (void) C_in;   
     #endif
 
     #if WRITE_VECTOR == 1
@@ -233,7 +233,7 @@ namespace hybrid {
   }
   inline size_t intersect_a32_a16(uint8_t *C_in, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
-    (void)C;
+    (void)C_in;
     #endif
 
     #if WRITE_VECTOR == 1

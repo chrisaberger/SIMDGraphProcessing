@@ -113,6 +113,8 @@ namespace array16 {
     size_t *C_size = (size_t*)&C_in[1];
     C_in[0] = common::ARRAY16;
     unsigned short *C = (unsigned short*)&C_in[sizeof(size_t)+1];
+    #else
+    unsigned short *C = (unsigned short*) C_in;
     #endif
 
 	  //cout << lim << endl;

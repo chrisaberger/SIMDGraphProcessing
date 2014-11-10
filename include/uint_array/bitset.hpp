@@ -40,7 +40,7 @@ namespace bitset {
 	}
 	inline size_t intersect(uint8_t *C_in, unsigned short *A, unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
-    (void)C;
+    (void) C_in;
     #endif
 
     #if WRITE_VECTOR == 1

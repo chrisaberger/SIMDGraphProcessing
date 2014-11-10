@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for system in "socialite"; do
+for system in "graphx"; do
    for dataset in "com-amazon"; do
       for threads in "1" "24" "48"; do
          cd ${system}

@@ -55,16 +55,13 @@ using namespace std::placeholders;
 namespace common{
   static double t1;
   static double t2;
-  static struct timeval tim;  
 
   static void startClock (){
-    gettimeofday(&tim, NULL);  
-    t1=tim.tv_sec+(tim.tv_usec/1000000.0); 
+    t1=omp_get_wtime();
   }
 
   static double stopClock(string in){
-    gettimeofday(&tim, NULL);  
-    t2=tim.tv_sec+(tim.tv_usec/1000000.0); 
+    t2=omp_get_wtime();
     std::cout << "Time["+in+"]: " << t2-t1 << " s" << std::endl;
     return t2 - t1;
   }

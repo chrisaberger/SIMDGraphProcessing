@@ -1,5 +1,8 @@
 UNAME := $(shell uname)
 
+# Uncomment the following line to compile without PCM support
+INTEL_PCM_HOME=/afs/cs.stanford.edu/u/noetzli/IntelPerformanceCounterMonitorV2.7
+
 ifeq ($(UNAME), Linux)
 	LIBS=-lnuma
 endif
@@ -22,11 +25,17 @@ else
 endif #debug
 endif #intel
 
+INCLUDE_DIRS=-Iinclude
 OBJDIR=build
 EXEDIR=bin
 HEADERS=$(wildcard include/*hpp)
 SOURCES=$(wildcard src/*cpp)
 OBJECTS=$(SOURCES:src/%.cpp=$(OBJDIR)/%.o)
+
+ifdef INTEL_PCM_HOME
+	INCLUDE_DIRS+=-I$(INTEL_PCM_HOME)
+	EXT_OBJECTS=$(INTEL_PCM_HOME)/cpucounters.o $(INTEL_PCM_HOME)/msr.o $(INTEL_PCM_HOME)/pci.o $(INTEL_PCM_HOME)/client_bw.o
+endif
 
 APPS_SOURCES=$(shell ls apps)
 TOOLS_SOURCES=$(shell ls tools)
@@ -49,17 +58,20 @@ $(EXEDIR):
 	mkdir -p $(EXEDIR)
 
 $(APPS_EXES): $(OBJECTS) $(APP_SOURCES) $(EXEDIR)
-	$(CXX) $(CXXFLAGS) $(@:bin%=apps%.cpp) $(OBJECTS) $(LIBS) -o $@ -Iinclude 
+	$(CXX) $(CXXFLAGS) $(@:bin%=apps%.cpp) $(OBJECTS) $(EXT_OBJECTS) $(LIBS) -o $@ $(INCLUDE_DIRS)
 
 $(TOOLS_EXES): $(OBJECTS) $(EXEDIR)
-	$(CXX) $(CXXFLAGS) $(@:bin%=tools%.cpp) $(OBJECTS) $(LIBS) -o $@ -Iinclude 
+	$(CXX) $(CXXFLAGS) $(@:bin%=tools%.cpp) $(OBJECTS) $(EXT_OBJECTS) $(LIBS) -o $@ $(INCLUDE_DIRS)
 
 $(TESTS_EXES): $(OBJECTS) $(EXEDIR)
-	$(CXX) $(CXXFLAGS) $(@:bin%=tests%.cpp) $(OBJECTS) $(LIBS) -o $@ -Iinclude 
+	$(CXX) $(CXXFLAGS) $(@:bin%=tests%.cpp) $(OBJECTS) $(EXT_OBJECTS) $(LIBS) -o $@ $(INCLUDE_DIRS)
 
 $(OBJECTS): $(SOURCES) $(HEADERS) $(OBJDIR)
-	$(CXX) $(CXXFLAGS) -Iinclude $(LIB_INCS) -o $@ -c $(@:build%.o=src%.cpp) 
+	$(CXX) $(CXXFLAGS) $(LIB_INCS) -o $@ -c $(@:build%.o=src%.cpp) $(INCLUDE_DIRS)
 
 clean:
 	rm -rf $(OBJDIR) $(EXEDIR)
+
+intersect: intersect.cpp
+	$(CXX) $(CXXFLAGS) intersect.cpp $(OBJECTS) $(EXT_OBJECTS) $(LIBS) -o intersect $(INCLUDE_DIRS)
 

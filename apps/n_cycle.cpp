@@ -106,11 +106,15 @@ int main (int argc, char* argv[]) {
     layout = common::ARRAY16;
   } else if(input_layout.compare("hybrid") == 0){
     layout = common::HYBRID_PERF;
-  } else if(input_layout.compare("v") == 0){
+  } 
+  #if COMPRESSION == 1
+  else if(input_layout.compare("v") == 0){
     layout = common::VARIANT;
   } else if(input_layout.compare("bp") == 0){
     layout = common::A32BITPACKED;
-  } else{
+  } 
+  #endif
+  else{
     cout << "No valid layout entered." << endl;
     exit(0);
   }
@@ -131,7 +135,7 @@ int main (int argc, char* argv[]) {
 
   common::startClock();
   application::graph = AOA_Matrix::from_symmetric(inputGraph->out_neighborhoods,
-    inputGraph->num_nodes,inputGraph->num_edges,
+    inputGraph->num_nodes,inputGraph->num_edges,inputGraph->max_nbrhood_size,
     node_selection,edge_selection,inputGraph->external_ids,layout);
   common::stopClock("selections");
   

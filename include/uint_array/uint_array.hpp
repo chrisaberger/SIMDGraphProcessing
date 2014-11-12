@@ -331,7 +331,10 @@ namespace uint_array{
         count = hybrid::intersect_a32_bs(R,outputA,(unsigned short*)B,card_a,size_ptr_b[0]/sizeof(short));
       } 
     }
+    #else
+    (void) outputA;
     #endif
+
 
     return count;
   }

@@ -1,20 +1,12 @@
-#include <thread>
-#include <atomic>
-
 // class templates
 #include "AOA_Matrix.hpp"
 #include "MutableGraph.hpp"
 
-//#define ENABLE_PCM
-
-#ifdef ENABLE_PCM
-#include <cpucounters.h>
-#endif
-
 namespace application{
   AOA_Matrix *graph;
   long num_triangles = 0;
-  
+  unsigned int *thread_local_buffers;
+
   inline bool myNodeSelection(unsigned int node){
     (void)node;
     return true;
@@ -22,11 +14,38 @@ namespace application{
   inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
     return nbr < node;
   }
-  long edgeApply(uint8_t *result, unsigned int src, unsigned int dst, unsigned int *src_nbrhood){
-    //cout << "src: " << src << " dst: " << dst << endl;
-    long count = graph->row_intersect(result,src,dst,src_nbrhood);
-    //cout << count << endl;
-    return count;
+  struct thread_data{
+    size_t thread_id;
+    uint8_t *buffer;
+    unsigned int *decoded_src;
+
+    thread_data(size_t buffer_lengths, const size_t thread_id_in){
+      thread_id = thread_id_in;
+      decoded_src = new unsigned int[buffer_lengths];
+      buffer = (uint8_t*) decoded_src; //should not be used
+    }
+
+    inline long edgeApply(unsigned int src, unsigned int dst){
+      //cout << "src: " << src << " dst: " << dst << endl;
+      long count = graph->row_intersect(buffer,src,dst,decoded_src);
+      //cout << count << endl;
+      return count;
+    }
+  };
+  thread_data **t_data_pointers;
+
+  inline void allocBuffers(size_t num_threads){    
+    //setup
+    #if COMPRESSION == 1
+    thread_local_buffers = new unsigned int[graph->max_nbrhood_size*num_threads];
+    #else
+    thread_local_buffers = graph->row_lengths; //not used; alloc can be expensive
+    #endif
+
+    t_data_pointers = new thread_data*[num_threads];
+    for(size_t k= 0; k < num_threads; k++){
+      t_data_pointers[k] = new thread_data(graph->max_nbrhood_size,k);
+    }
   }
   inline void queryOver(size_t num_threads){
     auto row_function = std::bind(&AOA_Matrix::sum_over_columns_in_row<long>, graph, _1, _2, _3);
@@ -35,11 +54,6 @@ namespace application{
       SystemCounterState before_sstate = getSystemCounterState();
 #endif
       size_t matrix_size = graph->matrix_size;
-      uint8_t *t_local_result = new uint8_t[10]; //matrix_size*4];
-      unsigned int *t_local_decode = new unsigned int[10];//[matrix_size];
-      double start_comp = omp_get_wtime();
-
-      auto edge_function = std::bind(&edgeApply,t_local_result,_1,_2,t_local_decode);
 
       thread* threads = new thread[num_threads];
       std::atomic<long> reducer;
@@ -48,32 +62,40 @@ namespace application{
       std::atomic<size_t> next_work;
       next_work = 0;
 
-      for(size_t k = 0; k < num_threads; k++){
-         threads[k] = thread([&matrix_size, &next_work, &reducer, &t_local_decode, &edge_function, &row_function](void) -> void {
-               double start_time = omp_get_wtime();
-               long t_local_reducer = 0;
-               while(true) {
-                  size_t work_start = next_work.fetch_add(block_size, std::memory_order_relaxed);
-                  if(work_start > matrix_size)
-                     break;
+      uint8_t *result = (uint8_t*) thread_local_buffers;
+      if(num_threads > 1){
+        for(size_t k = 0; k < num_threads; k++){
+          auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[k],_1,_2);
+          threads[k] = thread([k, &matrix_size, &next_work, &reducer, &thread_local_buffers, &edge_function, &row_function](void) -> void {
+            long t_local_reducer = 0;
+            while(true) {
+              size_t work_start = next_work.fetch_add(block_size, std::memory_order_relaxed);
+              if(work_start > matrix_size)
+                break;
 
-                  size_t work_end = min(work_start + block_size, matrix_size);
-                  for(size_t j = work_start; j < work_end; j++) {
-                    t_local_reducer += (row_function)(j,t_local_decode,edge_function);
-                  }
-               }
-               reducer += t_local_reducer;
-               std::cout << (omp_get_wtime() - start_time) << std::endl;
-         });
+              size_t work_end = min(work_start + block_size, matrix_size);
+              for(size_t j = work_start; j < work_end; j++) {
+                t_local_reducer += (row_function)(j,&thread_local_buffers[k*matrix_size],edge_function);
+              }
+            }
+             reducer += t_local_reducer;
+           });
+        } 
+
+        //cleanup
+        for(size_t k = 0; k < num_threads; k++) {
+          threads[k].join();
+        }
+      } else{
+        auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[0],_1,_2);
+        long t_local_reducer = 0;
+        for(size_t i = 0; i  < matrix_size;  i++){
+          t_local_reducer += (row_function)(i,thread_local_buffers,edge_function);
+        }
+        reducer = t_local_reducer;
       }
 
-      for(size_t k = 0; k < num_threads; k++) {
-         threads[k].join();
-      }
-      std::cout << (omp_get_wtime() - start_comp) << std::endl;
-
-      delete[] t_local_result;
-      delete[] t_local_decode;
+      delete[] thread_local_buffers;
 
 #ifdef ENABLE_PCM
       SystemCounterState after_sstate = getSystemCounterState();
@@ -113,11 +135,15 @@ int main (int argc, char* argv[]) {
     layout = common::ARRAY16;
   } else if(input_layout.compare("hybrid") == 0){
     layout = common::HYBRID_PERF;
-  } else if(input_layout.compare("v") == 0){
+  } 
+  #if COMPRESSION == 1
+  else if(input_layout.compare("v") == 0){
     layout = common::VARIANT;
   } else if(input_layout.compare("bp") == 0){
     layout = common::A32BITPACKED;
-  } else{
+  } 
+  #endif
+  else{
     cout << "No valid layout entered." << endl;
     exit(0);
   }
@@ -154,14 +180,17 @@ int main (int argc, char* argv[]) {
 
   common::startClock();
   application::graph = AOA_Matrix::from_symmetric(inputGraph->out_neighborhoods,
-    inputGraph->num_nodes,inputGraph->num_edges,
+    inputGraph->num_nodes,inputGraph->num_edges,inputGraph->max_nbrhood_size,
     node_selection,edge_selection,inputGraph->external_ids,layout);
   common::stopClock("selections");
   
-  inputGraph->MutableGraph::~MutableGraph(); 
+  //inputGraph->MutableGraph::~MutableGraph(); 
 
   //application::graph->print_data("out.txt");
-  
+  common::startClock();
+  application::allocBuffers(atoi(argv[2]));
+  common::stopClock("buffer allocation");
+
   common::startClock();
   application::queryOver(atoi(argv[2]));
   common::stopClock(input_layout);

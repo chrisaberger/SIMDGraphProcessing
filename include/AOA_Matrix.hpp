@@ -7,6 +7,7 @@ class AOA_Matrix{
   public:
     size_t matrix_size;  //number of nodes, number of columns = number of rows
     size_t cardinality;  //number of edges
+    size_t max_nbrhood_size;
     common::type t; //representation of matrix
     bool symmetric; //undirected?
 
@@ -26,6 +27,7 @@ class AOA_Matrix{
 
     AOA_Matrix(size_t matrix_size_in,
       size_t cardinality_in,
+      size_t max_nbrhood_size_in,
       common::type t_in, 
       bool symmetric_in, 
       unsigned int *row_lengths_in,
@@ -35,6 +37,7 @@ class AOA_Matrix{
       const unordered_map<unsigned int,unsigned int> *external_ids_in):
         matrix_size(matrix_size_in),
         cardinality(cardinality_in),
+        max_nbrhood_size(max_nbrhood_size_in),
         t(t_in),
         symmetric(symmetric_in),
         row_lengths(row_lengths_in),
@@ -62,11 +65,11 @@ class AOA_Matrix{
 
     void *parallel_constructor(void *);
 
-    static AOA_Matrix* from_symmetric(const vector< vector<unsigned int>*  > *g,const size_t matrix_size_in,const size_t cardinality_in, 
+    static AOA_Matrix* from_symmetric(const vector< vector<unsigned int>*  > *g,const size_t matrix_size_in,const size_t cardinality_in,const size_t max_nbrhood_size,
       const std::function<bool(unsigned int)> node_selection,const std::function<bool(unsigned int,unsigned int)> edge_selection, 
       const unordered_map<unsigned int,unsigned int> *external_ids_in,const common::type t_in);
 
-    static AOA_Matrix* from_asymmetric(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigned int>*  > *in_nbrs,
+    static AOA_Matrix* from_asymmetric(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigned int>*  > *in_nbrs,size_t max_nbrhood_size_in,
       const size_t matrix_size_in,const size_t cardinality_in, 
       const std::function<bool(unsigned int)> node_selection,
       const std::function<bool(unsigned int,unsigned int)> edge_selection, 

@@ -1,6 +1,6 @@
 #include "AOA_Matrix.hpp"
 
-AOA_Matrix* AOA_Matrix::from_symmetric(const vector< vector<unsigned int>*  > *g,const size_t matrix_size_in,const size_t cardinality_in, 
+AOA_Matrix* AOA_Matrix::from_symmetric(const vector< vector<unsigned int>*  > *g,const size_t matrix_size_in,const size_t cardinality_in, const size_t max_nbrhood_size_in,
   const std::function<bool(unsigned int)> node_selection,const std::function<bool(unsigned int,unsigned int)> edge_selection, 
   const unordered_map<unsigned int,unsigned int> *external_ids_in, const common::type t_in){
   
@@ -56,10 +56,10 @@ AOA_Matrix* AOA_Matrix::from_symmetric(const vector< vector<unsigned int>*  > *g
 
   cout << "ROW DATA SIZE (Bytes): " << total_bytes_used << endl;
 
-  return new AOA_Matrix(matrix_size_in,new_cardinality,t_in,true,row_lengths_in,row_arrays_in,row_lengths_in,row_arrays_in,external_ids_in);
+  return new AOA_Matrix(matrix_size_in,new_cardinality,max_nbrhood_size_in,t_in,true,row_lengths_in,row_arrays_in,row_lengths_in,row_arrays_in,external_ids_in);
 }
 
-AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigned int>*  > *in_nbrs,
+AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigned int>*  > *in_nbrs,size_t max_nbrhood_size_in,
   const size_t matrix_size_in,const size_t cardinality_in, 
   const std::function<bool(unsigned int)> node_selection,
   const std::function<bool(unsigned int,unsigned int)> edge_selection, 
@@ -147,7 +147,7 @@ AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<unsigned int>*  > *out_nb
   cout << "ROW DATA SIZE (Bytes): " << row_total_bytes_used << endl;
   cout << "COLUMN DATA SIZE (Bytes): " << col_total_bytes_used << endl;
 
-  return new AOA_Matrix(matrix_size_in,new_cardinality,t_in,false,row_lengths_in,row_arrays_in,col_lengths_in,col_arrays_in,external_ids_in);
+  return new AOA_Matrix(matrix_size_in,new_cardinality,max_nbrhood_size_in,t_in,false,row_lengths_in,row_arrays_in,col_lengths_in,col_arrays_in,external_ids_in);
 }
 
 void AOA_Matrix::print_data(string filename){

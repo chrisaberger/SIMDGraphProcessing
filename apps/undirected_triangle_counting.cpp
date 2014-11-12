@@ -62,7 +62,6 @@ namespace application{
       std::atomic<size_t> next_work;
       next_work = 0;
 
-      uint8_t *result = (uint8_t*) thread_local_buffers;
       if(num_threads > 1){
         for(size_t k = 0; k < num_threads; k++){
           auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[k],_1,_2);

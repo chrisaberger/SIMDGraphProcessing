@@ -30,7 +30,7 @@ namespace application{
       buffers = new uint8_t*[query_depth_in-2];
       buffer_cardinalities = new size_t[query_depth_in-2];
       for(size_t i = 0; i < query_depth_in-2; i++){
-        buffers[i] = new uint8_t[buffer_lengths];
+        buffers[i] = new uint8_t[buffer_lengths*sizeof(int)];
       }
       query_depth = query_depth_in;
       depth = depth_in;

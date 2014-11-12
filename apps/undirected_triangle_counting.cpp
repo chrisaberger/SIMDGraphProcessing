@@ -5,27 +5,27 @@
 namespace application{
   AOA_Matrix *graph;
   long num_triangles = 0;
-  unsigned int *thread_local_buffers;
+  uint32_t *thread_local_buffers;
 
-  inline bool myNodeSelection(unsigned int node){
+  inline bool myNodeSelection(uint32_t node){
     (void)node;
     return true;
   }
-  inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
+  inline bool myEdgeSelection(uint32_t node, uint32_t nbr){
     return nbr < node;
   }
   struct thread_data{
     size_t thread_id;
     uint8_t *buffer;
-    unsigned int *decoded_src;
+    uint32_t *decoded_src;
 
     thread_data(size_t buffer_lengths, const size_t thread_id_in){
       thread_id = thread_id_in;
-      decoded_src = new unsigned int[buffer_lengths];
+      decoded_src = new uint32_t[buffer_lengths];
       buffer = (uint8_t*) decoded_src; //should not be used
     }
 
-    inline long edgeApply(unsigned int src, unsigned int dst){
+    inline long edgeApply(uint32_t src, uint32_t dst){
       //cout << "src: " << src << " dst: " << dst << endl;
       long count = graph->row_intersect(buffer,src,dst,decoded_src);
       //cout << count << endl;
@@ -37,7 +37,7 @@ namespace application{
   inline void allocBuffers(size_t num_threads){    
     //setup
     #if COMPRESSION == 1
-    thread_local_buffers = new unsigned int[graph->max_nbrhood_size*num_threads];
+    thread_local_buffers = new uint32_t[graph->max_nbrhood_size*num_threads];
     #else
     thread_local_buffers = graph->row_lengths; //not used; alloc can be expensive
     #endif

@@ -19,7 +19,7 @@ int main (int argc, char* argv[]) {
 
   common::startClock();
   //Worst case matrix
-  unsigned int *row_indicies = new unsigned int[total_data_size];
+  uint32_t *row_indicies = new uint32_t[total_data_size];
   float *matrix_data = new float[total_data_size];
   for(size_t i = 0; i < num_rows; i++){
     for(size_t j = 0; j < num_set_in_row; j++){

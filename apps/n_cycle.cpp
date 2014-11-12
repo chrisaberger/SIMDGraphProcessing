@@ -8,13 +8,13 @@ namespace application{
   long num_triangles = 0;
   Table *output;
   size_t num_threads;
-  unsigned int *thread_local_buffers;
+  uint32_t *thread_local_buffers;
 
-  inline bool myNodeSelection(unsigned int node){
+  inline bool myNodeSelection(uint32_t node){
     (void)node;
     return true;
   }
-  inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
+  inline bool myEdgeSelection(uint32_t node, uint32_t nbr){
     return nbr < node;
   }
 
@@ -24,13 +24,13 @@ namespace application{
     size_t thread_id;
 
     uint8_t *buffer;
-    unsigned int *decoded_src;
+    uint32_t *decoded_src;
     thread_data(size_t buffer_lengths, size_t depth_in, const size_t query_depth_in, const size_t thread_id_in){
       buffer = new uint8_t[buffer_lengths*sizeof(int)];
       query_depth = query_depth_in;
       depth = depth_in;
       thread_id = thread_id_in;
-      decoded_src = new unsigned int[buffer_lengths];
+      decoded_src = new uint32_t[buffer_lengths];
     }
     ~thread_data() { 
       /*
@@ -41,7 +41,7 @@ namespace application{
       delete[] decoded_src;
     }
 
-    inline long edgeApply(unsigned int src, unsigned int dst){
+    inline long edgeApply(uint32_t src, uint32_t dst){
       const size_t index = (depth-1) + query_depth*thread_id;
       long count = 0;
       if(depth == 3){
@@ -54,11 +54,11 @@ namespace application{
       if(depth == query_depth){
         count = graph->row_intersect(buffer,src,dst,decoded_src);
         size_t cur_size = output->table_size[thread_id];
-        unsigned int *output_table = (output->table_pointers[index])+cur_size;
+        uint32_t *output_table = (output->table_pointers[index])+cur_size;
         uint_array::decode(output_table,buffer,count);
         for(long i = 0; i < count; i++){
           for(size_t j = 0; j < output->num_tuples-1; j++){ //the last row is taken care of in decode
-            unsigned int *tmp_row = output->table_pointers[query_depth*thread_id+j];
+            uint32_t *tmp_row = output->table_pointers[query_depth*thread_id+j];
             tmp_row[cur_size+i] = output->tuple[query_depth*thread_id+j];
           }
         }
@@ -81,7 +81,7 @@ namespace application{
 
     //setup
     #if COMPRESSION == 1
-    thread_local_buffers = new unsigned int[graph->max_nbrhood_size*num_threads];
+    thread_local_buffers = new uint32_t[graph->max_nbrhood_size*num_threads];
     #else
     thread_local_buffers = graph->row_lengths; //not used; alloc can be expensive
     #endif

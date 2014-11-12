@@ -10,25 +10,25 @@
 #define PRINT 0
 
 //sparsity = length/max
-void create_synthetic_array(unsigned int *data, size_t length, unsigned int max){
+void create_synthetic_array(uint32_t *data, size_t length, uint32_t max){
   cout << "creating synthetic array" << endl;
   if(length > 0){
-    set<unsigned int> x;
+    set<uint32_t> x;
     x.insert(max);
     for(size_t data_i = 1; data_i < length; data_i++){
-      unsigned int rand_num = rand() % max;
+      uint32_t rand_num = rand() % max;
       while(x.find(rand_num) != x.end()){
         rand_num = rand() % max;
       }
       x.insert(rand_num);
     }
     size_t data_i = 0;
-    for(set<unsigned int>::iterator iter=x.begin(); iter!=x.end();++iter) {    
+    for(set<uint32_t>::iterator iter=x.begin(); iter!=x.end();++iter) {    
       data[data_i++] = (*iter);
     }
   }
 }
-void print_arrays(unsigned int *a_data, unsigned int *b_data, size_t a_size, size_t b_size){
+void print_arrays(uint32_t *a_data, uint32_t *b_data, size_t a_size, size_t b_size){
   ofstream myfile;
   cout << "Printing arrays to files: " << "array1.txt" << " " << "array2.txt" << endl;
   myfile.open("array1.txt");
@@ -43,11 +43,11 @@ void print_arrays(unsigned int *a_data, unsigned int *b_data, size_t a_size, siz
   }
   myfile.close();
 }
-void read_arrays(unsigned int *a_data, unsigned int *b_data, size_t a_size, size_t b_size){
+void read_arrays(uint32_t *a_data, uint32_t *b_data, size_t a_size, size_t b_size){
   (void) a_size; (void) b_size;
   cout << "Reading arrays from files: " << "array1.txt" << " " << "array2.txt" << endl;
   ofstream myfile;
-  unsigned int n,i=0;
+  uint32_t n,i=0;
   ifstream read("array1.txt");
   while(read>>n){
     a_data[i]=n;
@@ -66,14 +66,14 @@ int main (int argc, char* argv[]) {
   srand ( time(NULL) );
   size_t a_size = 400000;
   size_t b_size = 700000;
-  unsigned int max1 = 5000000;
-  unsigned int max2 = 6000000;
+  uint32_t max1 = 5000000;
+  uint32_t max2 = 6000000;
 
-  unsigned int num_times = 1000;
+  uint32_t num_times = 1000;
 
-  unsigned int *a_data = new unsigned int[a_size];
-  unsigned int *b_data = new unsigned int[b_size];
-  unsigned int *result = new unsigned int[a_size+b_size];
+  uint32_t *a_data = new uint32_t[a_size];
+  uint32_t *b_data = new uint32_t[b_size];
+  uint32_t *result = new uint32_t[a_size+b_size];
 
   common::startClock();
   create_synthetic_array(a_data,a_size,max1);
@@ -86,7 +86,7 @@ int main (int argc, char* argv[]) {
   common::stopClock("CREATING ARRAYS");
 
   ofstream myfile;
-  std::vector<unsigned int>::iterator itv;
+  std::vector<uint32_t>::iterator itv;
   size_t count;
 
   ///////////////////////////////////////////////////////////////////////////////////////

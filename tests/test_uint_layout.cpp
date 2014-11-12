@@ -4,7 +4,7 @@
 #include "UnsignedIntegerArray.hpp"
 
 //sparsity = length/max
-void create_synthetic_array(unsigned int *data, size_t length, unsigned int max){
+void create_synthetic_array(uint32_t *data, size_t length, uint32_t max){
   if(length > 0){
     srand ( time(NULL) );
     data[0] = max;
@@ -97,9 +97,9 @@ int main (int argc, char* argv[]) {
   unsigned long long *a16_time = new unsigned long long[1000000];
   unsigned long long *a32_time = new unsigned long long[1000000];
 
-  unsigned int *data = new unsigned int[1000000];
+  uint32_t *data = new uint32_t[1000000];
   
-  unsigned int max_size = 0x0000000f;   
+  uint32_t max_size = 0x0000000f;   
 
   /*
   while(max_size < 0xF0000000){

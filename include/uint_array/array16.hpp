@@ -2,13 +2,13 @@
 
 namespace array16 {  
   static __m128i shuffle_mask16[256]; // precomputed dictionary
-  static inline int getBitSD(unsigned int value, unsigned int position) {
+  static inline int getBitSD(uint32_t value, uint32_t position) {
     return ( ( value & (1 << position) ) >> position);
   }
   static inline void prepare_shuffling_dictionary16() {
     //Number of bits that can possibly be set are the lower 8
-    for(unsigned int i = 0; i < 256; i++) { // 2^8 possibilities we need to store masks for
-      unsigned int counter = 0;
+    for(uint32_t i = 0; i < 256; i++) { // 2^8 possibilities we need to store masks for
+      uint32_t counter = 0;
       unsigned char permutation[16];
       memset(permutation, 0xFF, sizeof(permutation));
       for(unsigned char b = 0; b < 8; b++) { //Check each possible bit that can be set 1-by-1
@@ -21,7 +21,7 @@ namespace array16 {
       shuffle_mask16[i] = mask;
     }
   }
-	inline size_t preprocess(unsigned short *R, unsigned int *A, size_t s_a){
+	inline size_t preprocess(unsigned short *R, uint32_t *A, size_t s_a){
 	  unsigned short high = 0;
 	  size_t partition_length = 0;
 	  size_t partition_size_position = 1;
@@ -70,7 +70,7 @@ namespace array16 {
 	   //         _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
 	    __m128i res_v = _mm_cmpestrm(v_b, SHORTS_PER_REG, v_a, SHORTS_PER_REG,
 	            _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
-	    unsigned int r = _mm_extract_epi32(res_v, 0);
+	    uint32_t r = _mm_extract_epi32(res_v, 0);
 
       #if WRITE_VECTOR == 1
 	    __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask16[r]);
@@ -152,7 +152,7 @@ namespace array16 {
 	  return count;
 	}
   template<typename T> 
-  inline T sum(std::function<T(unsigned int,unsigned int)> function,unsigned int col,unsigned short *data, size_t length){
+  inline T sum(std::function<T(uint32_t,uint32_t)> function,uint32_t col,unsigned short *data, size_t length){
     T result = (T) 0;
     for(size_t j = 0; j < length; ++j){
       const size_t header_length = 2;
@@ -163,25 +163,25 @@ namespace array16 {
 
       //Traverse partition use prefix to get nbr id.
       for(;j < partition_end;++j){
-        unsigned int cur = (prefix << 16) | data[j]; //neighbor node
+        uint32_t cur = (prefix << 16) | data[j]; //neighbor node
         result += function(col,cur);
       }
       j = partition_end-1;   
     }
     return result;
   }
-  inline void decode(unsigned int *result, unsigned short *A, size_t s_a){
+  inline void decode(uint32_t *result, unsigned short *A, size_t s_a){
     size_t count = 0;
     size_t i = 0;
     while(count < s_a){
-      unsigned int prefix = (A[i] << 16);
+      uint32_t prefix = (A[i] << 16);
       unsigned short size = A[i+1];
       //cout << "size: " << size << endl;
       i += 2;
 
       size_t inner_end = i+size;
       while(i < inner_end){
-        unsigned int tmp = prefix | A[i];
+        uint32_t tmp = prefix | A[i];
         result[count++] = tmp; 
         ++i;
       }
@@ -190,14 +190,14 @@ namespace array16 {
   inline void print_data(unsigned short *A, size_t s_a, std::ofstream &file){
   	//cout << "LEN: " << s_a << endl;
     for(size_t i = 0; i < s_a; i++){
-      unsigned int prefix = (A[i] << 16);
+      uint32_t prefix = (A[i] << 16);
       unsigned short size = A[i+1];
       //cout << "size: " << size << endl;
       i += 2;
 
       size_t inner_end = i+size;
       while(i < inner_end){
-        unsigned int tmp = prefix | A[i];
+        uint32_t tmp = prefix | A[i];
         file << " Data: " << tmp << endl;
         ++i;
       }

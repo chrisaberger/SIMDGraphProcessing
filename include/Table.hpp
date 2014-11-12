@@ -7,8 +7,8 @@ class Table{
     size_t num_threads;
 
     size_t *table_size;
-    unsigned int **table_pointers; //num_tuples*num_threads
-    unsigned int *tuple; //num_tuples*num_threads
+    uint32_t **table_pointers; //num_tuples*num_threads
+    uint32_t *tuple; //num_tuples*num_threads
 
 
     size_t *thread_index;
@@ -16,15 +16,15 @@ class Table{
     Table(size_t num_tuples_in, size_t num_threads_in, size_t cardinality){
       num_tuples = num_tuples_in;
       num_threads = num_threads_in;
-      table_pointers = new unsigned int*[num_tuples*num_threads];
-      tuple = new unsigned int[num_tuples*num_threads];
+      table_pointers = new uint32_t*[num_tuples*num_threads];
+      tuple = new uint32_t[num_tuples*num_threads];
       table_size = new size_t[num_threads];
 
       for(size_t i = 0; i < num_threads; i++){
         table_size[i] = 0;
       }
       for(size_t i = 0; i < (num_threads*num_tuples); i++){
-        table_pointers[i] = new unsigned int[(40*cardinality)/num_threads];
+        table_pointers[i] = new uint32_t[(40*cardinality)/num_threads];
       }
     }
 
@@ -48,7 +48,7 @@ void Table::print_data(string filename){
     size_t t_size = table_size[t];
     for(size_t i = 0; i < t_size; i++){
       for(size_t j = 0; j < num_tuples; j++){
-        unsigned int *column = table_pointers[t*num_tuples+j];
+        uint32_t *column = table_pointers[t*num_tuples+j];
         myfile << column[i] << "\t";
       }
       myfile << endl;

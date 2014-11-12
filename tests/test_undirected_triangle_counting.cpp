@@ -8,11 +8,11 @@ namespace application{
   long num_triangles = 0;
   common::type graphType = common::A32BITPACKED;
   
-  inline bool myNodeSelection(unsigned int node){
+  inline bool myNodeSelection(uint32_t node){
     (void)node;
     return true;
   }
-  inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
+  inline bool myEdgeSelection(uint32_t node, uint32_t nbr){
     return nbr < node;
   }
 }
@@ -57,10 +57,10 @@ int main (int argc, char* argv[]) {
     inputGraph->num_nodes,inputGraph->num_edges,
     &application::myNodeSelection,&application::myEdgeSelection,inputGraph->external_ids,layout);
   
-  unsigned int n1 = 1098;
-  unsigned int n2 = 1075;
+  uint32_t n1 = 1098;
+  uint32_t n2 = 1075;
   application::graph->print_rows(n1,n2,"a32_w.txt");
-  unsigned int *dumb;
+  uint32_t *dumb;
   application::num_triangles = application::graph->row_intersect(application::result,n1,n2,dumb);
   application::graph->Matrix::~Matrix(); 
   cout << "Count: " << application::num_triangles << endl << endl;

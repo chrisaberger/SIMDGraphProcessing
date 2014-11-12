@@ -66,7 +66,7 @@ namespace application{
       if(num_threads > 1){
         for(size_t k = 0; k < num_threads; k++){
           auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[k],_1,_2);
-          threads[k] = thread([k, &matrix_size, &next_work, &reducer, &thread_local_buffers, &edge_function, &row_function](void) -> void {
+          threads[k] = thread([k, &matrix_size, &next_work, &reducer, &thread_local_buffers, edge_function, &row_function](void) -> void {
             long t_local_reducer = 0;
             while(true) {
               size_t work_start = next_work.fetch_add(block_size, std::memory_order_relaxed);
@@ -94,8 +94,6 @@ namespace application{
         }
         reducer = t_local_reducer;
       }
-
-      delete[] thread_local_buffers;
 
 #ifdef ENABLE_PCM
       SystemCounterState after_sstate = getSystemCounterState();

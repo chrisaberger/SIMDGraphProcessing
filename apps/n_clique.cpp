@@ -62,6 +62,7 @@ namespace application{
         buffer_cardinalities[buffer_index] = count;
         output->tuple[index-1] = dst;
       }
+      //cout << "tid: " << thread_id <<" count: " << count << " src: " << src << " dst: " << dst << " depth: " << depth << " query_depth: " << query_depth << endl;
       if(depth == query_depth){
         size_t cur_size = output->table_size[thread_id];
         unsigned int *output_table = (output->table_pointers[index])+cur_size;
@@ -85,14 +86,13 @@ namespace application{
   thread_data **t_data_pointers;
 
   inline void allocBuffers(const size_t query_depth){
-    const size_t matrix_size = graph->matrix_size;
     const size_t cardinality = graph->cardinality;
     
     output = new Table(query_depth,num_threads,cardinality);
 
     //setup
     #if COMPRESSION == 1
-    thread_local_buffers = new unsigned int[matrix_size*num_threads];
+    thread_local_buffers = new unsigned int[graph->max_nbrhood_size*num_threads];
     #else
     thread_local_buffers = graph->row_lengths; //not used; alloc can be expensive
     #endif
@@ -110,14 +110,14 @@ namespace application{
     thread* threads = new thread[num_threads];
     std::atomic<long> reducer;
     reducer = 0;
-    const size_t block_size = 1; //matrix_size / num_threads;
+    const size_t block_size = 50; //matrix_size / num_threads;
     std::atomic<size_t> next_work;
     next_work = 0;
 
     if(num_threads > 1){
       for(size_t k = 0; k < num_threads; k++){
         auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[k],_1,_2);
-        threads[k] = thread([k, &matrix_size, &next_work, &reducer, &thread_local_buffers, &edge_function, &row_function](void) -> void {
+        threads[k] = thread([k, &matrix_size, &next_work, &reducer, &thread_local_buffers, edge_function, &row_function](void) -> void {
           long t_local_reducer = 0;
           while(true) {
             size_t work_start = next_work.fetch_add(block_size, std::memory_order_relaxed);
@@ -126,7 +126,7 @@ namespace application{
 
             size_t work_end = min(work_start + block_size, matrix_size);
             for(size_t j = work_start; j < work_end; j++) {
-              t_local_reducer += (row_function)(j,&thread_local_buffers[k*matrix_size],edge_function);
+              t_local_reducer += (row_function)(j,&thread_local_buffers[k*graph->max_nbrhood_size],edge_function);
             }
           }
           reducer += t_local_reducer;

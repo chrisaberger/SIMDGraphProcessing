@@ -20,11 +20,21 @@
 #include <unistd.h>   /* For open(), creat() */
 #include <math.h>
 #include <unistd.h>
+#include <thread>
+#include <atomic>
+#include <cstdarg>
 
+//#define ENABLE_PCM
+
+#ifdef ENABLE_PCM
+#include <cpucounters.h>
+#endif
+
+#define WRITE_VECTOR 1
 #define VECTORIZE 1
 #define COMPRESSION 1
+
 #define HYBRID_LAYOUT 1
-#define WRITE_VECTOR 0
 #define SHORTS_PER_REG 8
 #define INTS_PER_REG 4
 #define BYTES_PER_REG 16
@@ -50,20 +60,18 @@
 #endif
 
 using namespace std;
+using namespace std::placeholders;
 
 namespace common{
   static double t1;
   static double t2;
-  static struct timeval tim;  
 
   static void startClock (){
-    gettimeofday(&tim, NULL);  
-    t1=tim.tv_sec+(tim.tv_usec/1000000.0); 
+    t1=omp_get_wtime();
   }
 
   static double stopClock(string in){
-    gettimeofday(&tim, NULL);  
-    t2=tim.tv_sec+(tim.tv_usec/1000000.0); 
+    t2=omp_get_wtime();
     std::cout << "Time["+in+"]: " << t2-t1 << " s" << std::endl;
     return t2 - t1;
   }

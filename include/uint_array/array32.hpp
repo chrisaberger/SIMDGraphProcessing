@@ -110,9 +110,16 @@ namespace array32 {
     _mm_set_epi8(max,max,max,max,max,max,max,max,max,max,max,max,max,max,max,max), //15
   }; 
 
-  inline size_t intersect(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
+  inline size_t intersect(uint8_t *C_in, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
+
+    #if WRITE_VECTOR == 1
+    C_in[0] = common::ARRAY32;
+    unsigned int *C = (unsigned int*)&C_in[1];
+    #else
+    unsigned int *C = (unsigned int*) C_in;
+    #endif
 
     // trim lengths to be a multiple of 4
     #if VECTORIZE == 1
@@ -125,8 +132,8 @@ namespace array32 {
       //]
 
       //[ move pointers
-      unsigned int a_max = _mm_extract_epi32(v_a, 3);
-      unsigned int b_max = _mm_extract_epi32(v_b, 3);
+      unsigned int a_max = A[i_a+3];
+      unsigned int b_max = B[i_b+3];
       i_a += (a_max <= b_max) * 4;
       i_b += (a_max >= b_max) * 4;
       //]
@@ -213,15 +220,6 @@ namespace array32 {
         next_i_a = i_a + 4;
         next_i_b = i_b + 4;
 
-        /*
-        if(count > 1970 && count < 1980){
-          cout << "Data:" << endl;
-          print_sse_register(v_a);
-          print_sse_register(v_b); 
-        }
-        */
-        
-
         //[ compute mask of common elements
         unsigned int right_cyclic_shift = _MM_SHUFFLE(0,3,2,1);
         
@@ -250,15 +248,6 @@ namespace array32 {
         #if WRITE_VECTOR == 1
         __m128i p_a = _mm_or_si128(setinel_mask_a[mask_a],_mm_shuffle_epi8(v_a, shuffle_difference_mask32_a[mask_a]));  
         __m128i p_b = v_b;
-    
-        /*
-        if(count > 1970 && count < 1980){
-          cout << "p's:" << endl;
-          cout << mask_a << endl;
-          print_sse_register(p_a);
-          print_sse_register(p_b); 
-        }
-        */
             
         __m128i l_1 = _mm_min_epu32(p_a,p_b);
         __m128i h_1 = _mm_max_epu32(p_a,p_b);      
@@ -363,6 +352,7 @@ namespace array32 {
     __m128i v_a = _mm_setzero_si128();
     unsigned int num_hit = 0;
     while(i_a < st_a && i_b < st_b) {
+      //xcout << i_a << " " << st_a << " " << i_b << " " << st_b << endl;
       //[ load segments of four 32-bit elements
       v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
       __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
@@ -410,36 +400,42 @@ namespace array32 {
       __m128i p_a = _mm_shuffle_epi8(v_a, shuffle_difference_mask32_a[mask_a]);
       _mm_storeu_si128((__m128i*)&C[count], p_a);
       count += (INTS_PER_REG-num_hit)*(a_max <= b_max);
-      /*
-      if(a_max <= b_max && next){
-        next = false;
-        cout <<"result: " << mask_a << " count: " << count << " mask: " << mask_a << endl;
-        print_sse_register(p_a);
-      }\*/
 
       mask_a = mask_a*(a_max > b_max);
 
       //]
     }
+    //cout << "exiting: " << i_a << " " << s_a << " " << i_b << " " << s_b << " " << count << endl;
+    //cout << "difference incrementer: " << difference_incrementer[mask_a] << " " << num_hit << endl;
     //cleanup
-    if(i_a < s_a && difference_incrementer[mask_a] != 4){
+    if(i_a < s_a && difference_incrementer[mask_a] != 4 && difference_incrementer[mask_a] > 0){
       i_a += difference_incrementer[mask_a];
       __m128i p_a = _mm_shuffle_epi8(v_a, shuffle_difference_mask32_a[mask_a]);
       _mm_storeu_si128((__m128i*)&C[count], p_a);
       count += difference_incrementer[mask_a]-num_hit; 
     }
-    #endif
+    //cout << "cleaned up: " << i_a << " " << s_a << " " << i_b << " " << s_b << " " << count << endl;
 
+    #endif
+    //cout << "intersecting tail: " << count << endl;
     // intersect the tail using scalar intersection
     count += set_difference_std(&C[count],&A[i_a],&B[i_b],(s_a-i_a),(s_b-i_b));
 
     return count;
   }
   template<typename T> 
-  inline T sum(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,unsigned int *data, size_t length,unsigned int *outputA){
+  inline T sum(std::function<T(unsigned int,unsigned int)> function,unsigned int col,unsigned int *data, size_t length){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
-      result += function(col,data[i],outputA);
+      result += function(col,data[i]);
+    }
+    return result;
+  }
+  template<typename T> 
+  inline T sum(std::function<T(unsigned int)> function,unsigned int *data, size_t length){
+    T result = (T) 0;
+    for(size_t i = 0; i < length; i++){
+      result += function(data[i]);
     }
     return result;
   }

@@ -94,12 +94,8 @@ namespace variant {
       return 0;
     }
   }
-  inline void print_data(uint8_t *data, const size_t length, const size_t cardinality, ofstream &file){
-    (void)length;
-
+  inline void print_data(uint8_t *data, const size_t cardinality, ofstream &file){
     if(cardinality != 0){
-      //cout << "bits_used: " << (uint)bits_used << endl;
-
       size_t data_i = 0;
       size_t num_decoded = 0;
 
@@ -107,11 +103,8 @@ namespace variant {
       file << " Data: " << prev << endl;
       num_decoded++;
 
-      //cout << "starting variant decode at: " << data_i << endl;
       while(num_decoded < cardinality){
-        //cout << "\tdata_i: " << data_i << endl;
         unsigned int cur = variant::variant_decode(data,data_i);
-        //cout << "cur[" << num_decoded << "]" << cur << endl;
         cur += prev;
         prev = cur;
 
@@ -121,7 +114,7 @@ namespace variant {
     }
   }
   template<typename T> 
-  inline T sum(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,uint8_t *data, size_t cardinality){
+  inline T sum(std::function<T(unsigned int,unsigned int)> function,unsigned int col,uint8_t *data, size_t cardinality){
     T result = (T) 0;
 
     if(cardinality != 0){

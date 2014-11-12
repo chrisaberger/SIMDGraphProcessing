@@ -38,9 +38,15 @@ namespace bitset {
 	  }
 	  return 2*num_words;
 	}
-	inline size_t intersect(unsigned short *C, unsigned short *A, unsigned short *B, const size_t s_a, const size_t s_b) {
+	inline size_t intersect(uint8_t *C_in, unsigned short *A, unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
-    (void)C;
+    (void) C_in;
+    #endif
+
+    #if WRITE_VECTOR == 1
+    size_t *C_size = (size_t*)&C_in[1];
+    C_in[0] = common::BITSET;
+    unsigned short *C = (unsigned short*)&C_in[sizeof(size_t)+1];
     #endif
 
 	  long count = 0l;
@@ -87,17 +93,22 @@ namespace bitset {
 	  	
 	  	count += _mm_popcnt_u32(result);
 	  }
+
+    #if WRITE_VECTOR == 1
+    C_size[0] = i*sizeof(short);
+    #endif
+
 	  return count;
 	}
 	template<typename T> 
-  inline T sum(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,unsigned short *data, size_t length,unsigned int *outputA){
+  inline T sum(std::function<T(unsigned int,unsigned int)> function,unsigned int col,unsigned short *data, size_t length){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
     	unsigned short cur_word = data[i];
     	for(size_t j = 0; j < BITS_PER_WORD; j++){
     		if((cur_word >> j) % 2){
     			unsigned int cur = BITS_PER_WORD*i + j;
-    			result += function(col,cur,outputA);
+    			result += function(col,cur);
     		}
     	}
     }
@@ -105,12 +116,14 @@ namespace bitset {
   }
   inline void decode(unsigned int *result, unsigned short *A, size_t s_a){
     size_t count = 0;
-    for(size_t i = 0; i < s_a; i++){
+    size_t i = 0;
+    while(count < s_a){
       unsigned short cur_word = A[i];
       for(size_t j = 0; j < BITS_PER_WORD; j++){
         if((cur_word >> j) % 2)
           result[count++] = BITS_PER_WORD*i + j ;
       }
+      i++;
     }
   }
   inline void print_data(unsigned short *A, size_t s_a, ofstream &file){

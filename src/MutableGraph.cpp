@@ -87,7 +87,6 @@ void MutableGraph::reorder_bfs(){
     cur_level_size = next_level_size;
   }
 
-  cout << "exiting" << endl;
   delete visited;
   delete[] cur_level;
   delete[] next_level;
@@ -276,11 +275,17 @@ MutableGraph* MutableGraph::undirectedFromBinary(const string path) {
   vector< vector<unsigned int>*  > *neighborhoods = new vector< vector<unsigned int>* >();
   size_t num_edges = 0;
   size_t num_nodes = 0;
+
+  size_t max_nbrhood_size = 0;
+
   infile.read((char *)&num_nodes, sizeof(num_nodes)); 
   for(size_t i = 0; i < num_nodes; ++i){
     size_t row_size = 0;
     infile.read((char *)&row_size, sizeof(row_size)); 
     num_edges += row_size;
+
+    if(row_size > max_nbrhood_size)
+      max_nbrhood_size = row_size;
 
     vector<unsigned int> *row = new vector<unsigned int>();
     row->reserve(row_size);
@@ -293,7 +298,7 @@ MutableGraph* MutableGraph::undirectedFromBinary(const string path) {
   }
   infile.close();
 
-  return new MutableGraph(neighborhoods->size(),num_edges,true,extern_ids,neighborhoods,neighborhoods); 
+  return new MutableGraph(neighborhoods->size(),num_edges,max_nbrhood_size,true,extern_ids,neighborhoods,neighborhoods); 
 } 
 MutableGraph* MutableGraph::undirectedFromEdgeList(const string path) {
   ////////////////////////////////////////////////////////////////////////////////////
@@ -356,15 +361,20 @@ MutableGraph* MutableGraph::undirectedFromEdgeList(const string path) {
   fclose(pFile);
   free(buffer);
 
+  size_t max_nbrhood_size = 0;
   size_t num_edges = 0;
   for(size_t i = 0; i < neighborhoods->size(); i++){
     vector<unsigned int> *row = neighborhoods->at(i);
     std::sort(row->begin(),row->end());
+
+    if(row->size() > max_nbrhood_size)
+      max_nbrhood_size = row->size();
+
     row->erase(unique(row->begin(),row->begin()+row->size()),row->end());
     num_edges += row->size();
   }
 
-  return new MutableGraph(neighborhoods->size(),num_edges,true,extern_ids,neighborhoods,neighborhoods); 
+  return new MutableGraph(neighborhoods->size(),num_edges,max_nbrhood_size,true,extern_ids,neighborhoods,neighborhoods); 
 }
 
 void MutableGraph::writeDirectedToBinary(const string path) {
@@ -399,12 +409,16 @@ MutableGraph* MutableGraph::directedFromBinary(const string path) {
   size_t num_edges = 0;
   size_t num_nodes = 0;
   infile.read((char *)&num_nodes, sizeof(num_nodes)); 
-  cout << num_nodes << endl;
+
+  size_t max_nbrhood_size = 0;
   for(size_t i = 0; i < num_nodes; ++i){
     size_t row_size = 0;
     infile.read((char *)&row_size, sizeof(row_size)); 
     cout << "r: " << row_size << endl;
     num_edges += row_size;
+
+    if(row_size > max_nbrhood_size)
+      max_nbrhood_size = row_size;
 
     vector<unsigned int> *row = new vector<unsigned int>();
     row->reserve(row_size);
@@ -418,6 +432,9 @@ MutableGraph* MutableGraph::directedFromBinary(const string path) {
     infile.read((char *)&row_size, sizeof(row_size)); 
     num_edges += row_size;
 
+    if(row_size > max_nbrhood_size)
+      max_nbrhood_size = row_size;
+
     vector<unsigned int> *row = new vector<unsigned int>();
     row->reserve(row_size);
     unsigned int *tmp_data = new unsigned int[row_size];
@@ -427,7 +444,7 @@ MutableGraph* MutableGraph::directedFromBinary(const string path) {
   }
   infile.close();
 
-  return new MutableGraph(out_neighborhoods->size(),num_edges,true,extern_ids,out_neighborhoods,in_neighborhoods); 
+  return new MutableGraph(out_neighborhoods->size(),num_edges,max_nbrhood_size,true,extern_ids,out_neighborhoods,in_neighborhoods); 
 } 
 /*
 File format
@@ -495,7 +512,6 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path) {
     } else{
       dst_row = in_neighborhoods->at(extern_ids->at(dst));
     }
-
     src_row->push_back(extern_ids->at(dst));
     dst_row->push_back(extern_ids->at(src));
   }
@@ -503,88 +519,25 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path) {
   fclose(pFile);
   free(buffer);
 
+  size_t max_nbrhood_size = 0;
   for(size_t i = 0; i < in_neighborhoods->size(); i++){
     vector<unsigned int> *row = in_neighborhoods->at(i);
     std::sort(row->begin(),row->end());
+
+    if(row->size() > max_nbrhood_size)
+      max_nbrhood_size = row->size();
+
     row->erase(unique(row->begin(),row->begin()+row->size()),row->end());
   }
   for(size_t i = 0; i < out_neighborhoods->size(); i++){
     vector<unsigned int> *row = out_neighborhoods->at(i);
     std::sort(row->begin(),row->end());
+
+    if(row->size() > max_nbrhood_size)
+      max_nbrhood_size = row->size();
+
     row->erase(unique(row->begin(),row->begin()+row->size()),row->end());
   }
 
-  return new MutableGraph(in_neighborhoods->size(),num_edges,false,extern_ids,out_neighborhoods,in_neighborhoods); 
+  return new MutableGraph(in_neighborhoods->size(),num_edges,max_nbrhood_size,false,extern_ids,out_neighborhoods,in_neighborhoods); 
 }
-/*
-File format
-
-Edges must be duplicated.  If you have edge (0,1) you must
-also have (1,0) listed.
-
-src0 dst0 dst1 dst2 dst3 ...
-src1 dst0 dst1 dst2 dst3 ...
-...
-
-*/
-/*
-MutableGraph* MutableGraph::undirectedFromAdjList(const string path,const int num_files) {
-  vector< vector<unsigned int>* >* *graph_in = new vector< vector<unsigned int>* >*[num_files];
-
-  size_t num_edges = 0;
-  size_t num_nodes = 0;
-  //Place graph into vector of vectors then decide how you want to
-  //store the graph.
-  
-  //#pragma omp parallel for default(none) shared(graph_in,path) reduction(+:num_edges) reduction(+:num_nodes)
-  for(size_t i=0; i < (size_t) num_files;++i){
-    vector< vector<unsigned int>*  > *file_adj = new vector< vector<unsigned int>* >();
-
-    string file_path = path;
-    if(num_files!=1) file_path.append(to_string(i));
-
-    ifstream myfile (file_path);
-    string line;
-    if (myfile.is_open()){
-      while ( getline (myfile,line) ){
-        vector<unsigned int> *cur = new vector<unsigned int>(); //guess a size
-        cur->reserve(line.length());
-        istringstream iss(line);
-        do{
-          string sub;
-          iss >> sub;
-          if(sub.compare("")){
-            cur->push_back(atoi(sub.c_str()));
-          }
-        } while (iss);
-        cur->resize(cur->size());   
-        num_edges += cur->size()-1;
-        num_nodes++;
-        file_adj->push_back(cur);
-      }
-      graph_in[i] = file_adj;
-    }
-  }
-
-  //Serial Merge: Could actually do a merge sort if I cared enough.
-  vector< vector<unsigned int>*  > *neighborhoods = new vector< vector<unsigned int>* >();
-  neighborhoods->reserve(num_nodes);
-  for(size_t i=0; i < (size_t) num_files;++i){
-    neighborhoods->insert(neighborhoods->end(),graph_in[i]->begin(),graph_in[i]->end());
-    graph_in[i]->erase(graph_in[i]->begin(),graph_in[i]->end());
-  }
-  delete[] graph_in;
-
-  //Sort the neighborhoods by degree.
-  std::sort(neighborhoods->begin(),neighborhoods->end(),AdjComparator());
-
-  //Build hash map
-  unordered_map<unsigned int,unsigned int> *extern_ids = new unordered_map<unsigned int,unsigned int>();
-  build_hash(neighborhoods,extern_ids);
-
-  reassign_ids(neighborhoods,extern_ids);
-
-  return new MutableGraph(num_nodes,num_edges,true,extern_ids,neighborhoods,neighborhoods); 
-  //stopClock("Reassigning ids");
-}
-*/

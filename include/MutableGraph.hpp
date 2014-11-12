@@ -8,6 +8,7 @@
 struct MutableGraph {
   size_t num_nodes;
   size_t num_edges;
+  size_t max_nbrhood_size;
   bool symmetric;
   unordered_map<unsigned int,unsigned int> *external_ids;
   vector< vector<unsigned int>*  > *out_neighborhoods;
@@ -24,12 +25,14 @@ struct MutableGraph {
 
   MutableGraph(  size_t num_nodes_in, 
       size_t num_edges_in,
+      size_t max_nbrhood_size_in,
       bool symmetric_in,
       unordered_map<unsigned int,unsigned int> *external_ids_in,
       vector< vector<unsigned int>*  > *out_neighborhoods_in,
       vector< vector<unsigned int>*  > *in_neighborhoods_in): 
     num_nodes(num_nodes_in), 
     num_edges(num_edges_in),
+    max_nbrhood_size(max_nbrhood_size_in),
     symmetric(symmetric_in),
     external_ids(external_ids_in), 
     out_neighborhoods(out_neighborhoods_in),

@@ -34,7 +34,7 @@ def parseInput():
 def main():
   options = parseInput();
 
-  systems = ['SpaceGraph','GraphLab','pgx','GraphChi','snap']
+  systems = ['snap']
   apps = ['triangle_counting']
 
   #only way (i could get to work) to control threading in these systems
@@ -48,13 +48,13 @@ def main():
     'SpaceGraph': { \
       'dir' : '/afs/cs.stanford.edu/u/caberger/SpaceGraph', \
       'triangle_counting':{ \
-        'args':["/afs/cs.stanford.edu/u/caberger/SpaceGraph/bin/undirected_triangle_counting",options.dataset + "/edgelist/data.txt",options.threads,"hybrid"] \
+        'args':["/afs/cs.stanford.edu/u/caberger/SpaceGraph/bin/undirected_triangle_counting",options.dataset + "/bin/udata.bin",options.threads,"hybrid"] \
       } \
     }, \
     'GraphLab': { \
       'dir':'/afs/cs.stanford.edu/u/caberger/graphlab/', \
       'triangle_counting':{ \
-        'args':["/afs/cs.stanford.edu/u/caberger/graphlab/release/toolkits/graph_analytics/undirected_triangle_count","--graph="+options.dataset + "/glab_undirected/data.txt","--format=snap"] \
+        'args':["/afs/cs.stanford.edu/u/caberger/graphlab/release/toolkits/graph_analytics/undirected_triangle_count","--graph="+options.dataset + "/glab_undirected/data.txt","--format=snap","--ncpus="+options.threads] \
       } \
     }, \
     'pgx': { \
@@ -78,7 +78,7 @@ def main():
 
   } \
 
-  outpath = "/lfs/raiders3/0/caberger/run_outputs/" + options.dataset.split('/').pop()
+  outpath = "/dfs/scratch0/caberger/run_outputs/" + options.dataset.split('/').pop()
   if not os.path.exists(outpath):
     os.system('mkdir ' + outpath)
   
@@ -107,15 +107,19 @@ def main():
         p = psutil.Popen(system_dictionary[system][app]['args'],stdout=stdfile)
         memlists_i = 0
         while p.poll() is None:
+          comm='''
           if memlists_i >= len(memlists):
             memlists.append(p.memory_info().rss)
           else:
             memlists[memlists_i] += p.memory_info().rss
           memlists_i += 1
+          '''
           time.sleep(SLICE_IN_SECONDS)
 
+      comm = '''
       for mem in memlists:
         memfile.write(str(float(mem)/float(options.runs)) + ',')
+        '''
 
 if __name__ == "__main__":
     main()

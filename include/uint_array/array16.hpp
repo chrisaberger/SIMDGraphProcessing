@@ -103,16 +103,23 @@ namespace array16 {
 	  }
 	  return count;
 	}
-	inline size_t intersect(unsigned short *C,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+	inline size_t intersect(uint8_t *C_in,const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
 	  size_t i_a = 0, i_b = 0;
 	  size_t counter = 0;
 	  size_t count = 0;
 	  bool notFinished = i_a < s_a && i_b < s_b;
 
+    #if WRITE_VECTOR == 1
+    size_t *C_size = (size_t*)&C_in[1];
+    C_in[0] = common::ARRAY16;
+    unsigned short *C = (unsigned short*)&C_in[sizeof(size_t)+1];
+    #else
+    unsigned short *C = (unsigned short*) C_in;
+    #endif
+
 	  //cout << lim << endl;
 	  while(notFinished) {
 	    //size_t limLower = limLowerHolder;
-	    //cout << "looping" << endl;
 	    if(A[i_a] < B[i_b]) {
 	      i_a += A[i_a + 1] + 2;
 	      notFinished = i_a < s_a;
@@ -137,10 +144,15 @@ namespace array16 {
 	      notFinished = i_a < s_a && i_b < s_b;
 	    }
 	  }
+
+    #if WRITE_VECTOR == 1
+    C_size[0] = counter*sizeof(short);
+    #endif
+
 	  return count;
 	}
   template<typename T> 
-  inline T sum(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,unsigned short *data, size_t length, unsigned int *outputA){
+  inline T sum(std::function<T(unsigned int,unsigned int)> function,unsigned int col,unsigned short *data, size_t length){
     T result = (T) 0;
     for(size_t j = 0; j < length; ++j){
       const size_t header_length = 2;
@@ -152,7 +164,7 @@ namespace array16 {
       //Traverse partition use prefix to get nbr id.
       for(;j < partition_end;++j){
         unsigned int cur = (prefix << 16) | data[j]; //neighbor node
-        result += function(col,cur,outputA);
+        result += function(col,cur);
       }
       j = partition_end-1;   
     }
@@ -160,7 +172,8 @@ namespace array16 {
   }
   inline void decode(unsigned int *result, unsigned short *A, size_t s_a){
     size_t count = 0;
-    for(size_t i = 0; i < s_a; i++){
+    size_t i = 0;
+    while(count < s_a){
       unsigned int prefix = (A[i] << 16);
       unsigned short size = A[i+1];
       //cout << "size: " << size << endl;
@@ -172,7 +185,6 @@ namespace array16 {
         result[count++] = tmp; 
         ++i;
       }
-      i--;
     }
   }
   inline void print_data(unsigned short *A, size_t s_a, std::ofstream &file){

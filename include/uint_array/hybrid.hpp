@@ -178,10 +178,15 @@ namespace hybrid {
     }
     return result;
   }
-  inline size_t intersect_a16_bs(unsigned int *C, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+  inline size_t intersect_a16_bs(uint8_t *C_in, const unsigned short *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
-    (void) C;   
+    (void) C_in;   
     #endif 
+
+    #if WRITE_VECTOR == 1
+    unsigned int *C = (unsigned int*)&C_in[1];
+    #endif
+
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       unsigned int prefix = (A[i] << 16);
@@ -204,10 +209,15 @@ namespace hybrid {
     return count;
   }
   //untested
-  inline size_t intersect_a32_bs(unsigned int *C, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+  inline size_t intersect_a32_bs(uint8_t *C_in, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
-    (void) C;   
+    (void) C_in;   
     #endif
+
+    #if WRITE_VECTOR == 1
+    unsigned int *C = (unsigned int*)&C_in[1];
+    #endif
+
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       unsigned int cur = A[i];
@@ -218,11 +228,16 @@ namespace hybrid {
         count++;
       }
     }
+
     return count;
   }
-  inline size_t intersect_a32_a16(unsigned int *C, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+  inline size_t intersect_a32_a16(uint8_t *C_in, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
-    (void)C;
+    (void)C_in;
+    #endif
+
+    #if WRITE_VECTOR == 1
+    unsigned int *C = (unsigned int*)&C_in[1];
     #endif
 
     size_t a_i = 0;
@@ -316,6 +331,7 @@ namespace hybrid {
         not_finished = a_i < s_a && b_i < s_b;
       }
     }
+
     return count;
   }
 } 

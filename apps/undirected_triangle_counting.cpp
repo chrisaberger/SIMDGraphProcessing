@@ -1,6 +1,9 @@
 // class templates
 #include "AOA_Matrix.hpp"
 #include "MutableGraph.hpp"
+#include "pcm_helper.hpp"
+
+using namespace pcm_helper;
 
 namespace application{
   AOA_Matrix *graph;
@@ -31,7 +34,7 @@ namespace application{
   };
   thread_data **t_data_pointers;
 
-  inline void allocBuffers(size_t num_threads){    
+  inline void allocBuffers(size_t num_threads){
     t_data_pointers = new thread_data*[num_threads];
     for(size_t k= 0; k < num_threads; k++){
       t_data_pointers[k] = new thread_data(graph->max_nbrhood_size,k);
@@ -40,9 +43,7 @@ namespace application{
   inline void queryOver(size_t num_threads){
     auto row_function = std::bind(&AOA_Matrix::sum_over_columns_in_row<long>, graph, _1, _2, _3);
 
-#ifdef ENABLE_PCM
-      SystemCounterState before_sstate = getSystemCounterState();
-#endif
+      system_counter_state_t before_sstate = pcm_get_counter_state();
       size_t matrix_size = graph->matrix_size;
 
       thread* threads = new thread[num_threads];
@@ -69,7 +70,7 @@ namespace application{
             }
              reducer += t_local_reducer;
            });
-        } 
+        }
 
         //cleanup
         for(size_t k = 0; k < num_threads; k++) {
@@ -84,18 +85,8 @@ namespace application{
         reducer = t_local_reducer;
       }
 
-#ifdef ENABLE_PCM
-      SystemCounterState after_sstate = getSystemCounterState();
-        std::cout << "Instructions per clock: " << getIPC(before_sstate, after_sstate) << std::endl
-          << "L2 cache hit ratio: " << getL2CacheHitRatio(before_sstate, after_sstate) << std::endl
-          << "L3 cache hit ratio: " << getL3CacheHitRatio(before_sstate, after_sstate) << std::endl
-          << "L2 cache misses: " << getL2CacheMisses(before_sstate, after_sstate) << std::endl
-          << "L3 cache misses: " << getL3CacheMisses(before_sstate, after_sstate) << std::endl
-          << "Cycles lost due to L2 cache misses: " << getCyclesLostDueL2CacheMisses(before_sstate, after_sstate) << std::endl
-          << "Cycles lost due to L3 cache misses: " << getCyclesLostDueL3CacheMisses(before_sstate, after_sstate) << std::endl
-          << "Bytes read: " << getBytesReadFromMC(before_sstate, after_sstate) << std::endl;
-#endif
-
+    system_counter_state_t after_sstate = pcm_get_counter_state();
+    pcm_print_counter_stats(before_sstate, after_sstate);
     num_triangles = reducer;
   }
 }
@@ -141,29 +132,12 @@ int main (int argc, char* argv[]) {
   common::startClock();
   MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
   common::stopClock("Reading File");
-  
+
   common::startClock();
   inputGraph->reorder_by_degree();
   common::stopClock("Reordering");
-  
+
   cout << endl;
-
-#ifdef ENABLE_PCM
-  PCM * m = PCM::getInstance();
-
-  switch(m->program()) {
-     case PCM::Success:
-        cout << "PCM initialized" << endl;
-        break;
-     case PCM::PMUBusy:
-        m->resetPMU();
-        return -1;
-        break;
-     default:
-        return -1;
-        break;
-  }
-#endif
 
   common::startClock();
   application::graph = AOA_Matrix::from_symmetric(inputGraph->out_neighborhoods,
@@ -171,25 +145,9 @@ int main (int argc, char* argv[]) {
     node_selection,edge_selection,inputGraph->external_ids,layout);
   common::stopClock("selections");
 
-#ifdef ENABLE_PCM
-  PCM * m = PCM::getInstance();
+  if(pcm_init() < 0)
+     return -1;
 
-  switch(m->program()) {
-     case PCM::Success:
-        cout << "PCM initialized" << endl;
-        break;
-     case PCM::PMUBusy:
-        m->resetPMU();
-        return -1;
-        break;
-     default:
-        return -1;
-        break;
-  }
-
-  SystemCounterState before_sstate = getSystemCounterState();
-#endif
-  
   //inputGraph->MutableGraph::~MutableGraph(); 
 
   //application::graph->print_data("out.txt");
@@ -198,21 +156,14 @@ int main (int argc, char* argv[]) {
   common::stopClock("buffer allocation");
 
   common::startClock();
+  system_counter_state_t before_sstate = pcm_get_counter_state();
   application::queryOver(atoi(argv[2]));
+  system_counter_state_t after_sstate = pcm_get_counter_state();
+  pcm_print_counter_stats(before_sstate, after_sstate);
   common::stopClock(input_layout);
 
-#ifdef ENABLE_PCM
-  SystemCounterState after_sstate = getSystemCounterState();
-  cout << "Instructions per clock: " << getIPC(before_sstate,after_sstate) << endl
-     << "L3 cache hit ratio: " << getL3CacheHitRatio(before_sstate,after_sstate) << endl
-     << "L3 cache misses: " << getL3CacheMisses(before_sstate,after_sstate) << endl
-     << "Bytes read: " << getBytesReadFromMC(before_sstate,after_sstate) << endl;
-#endif
-
   cout << "Count: " << application::num_triangles << endl << endl;
+  pcm_cleanup();
 
-#ifdef ENABLE_PCM
-  m->resetPMU();
-#endif
   return 0;
 }

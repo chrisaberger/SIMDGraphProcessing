@@ -8,7 +8,7 @@
 #include <ctime>
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <stdio.h>  
+#include <stdio.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -24,11 +24,7 @@
 #include <atomic>
 #include <cstdarg>
 
-//#define ENABLE_PCM
-
-#ifdef ENABLE_PCM
-#include <cpucounters.h>
-#endif
+// #define ENABLE_PCM
 
 #define WRITE_VECTOR 1
 #define VECTORIZE 1

@@ -2,7 +2,7 @@
 
 AOA_Matrix* AOA_Matrix::from_symmetric(const vector< vector<uint32_t>*  > *g,const size_t matrix_size_in,const size_t cardinality_in, const size_t max_nbrhood_size_in,
   const std::function<bool(uint32_t)> node_selection,const std::function<bool(uint32_t,uint32_t)> edge_selection, 
-  const unordered_map<uint32_t,uint32_t> *external_ids_in, const common::type t_in){
+  const unordered_map<uint64_t,uint32_t> *external_ids_in, const common::type t_in){
   
   array16::prepare_shuffling_dictionary16();
   hybrid::prepare_shuffling_dictionary();
@@ -63,7 +63,7 @@ AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<uint32_t>*  > *out_nbrs,v
   const size_t matrix_size_in,const size_t cardinality_in, 
   const std::function<bool(uint32_t)> node_selection,
   const std::function<bool(uint32_t,uint32_t)> edge_selection, 
-  const unordered_map<uint32_t,uint32_t> *external_ids_in, 
+  const unordered_map<uint64_t,uint32_t> *external_ids_in, 
   const common::type t_in){
   
   array16::prepare_shuffling_dictionary16();

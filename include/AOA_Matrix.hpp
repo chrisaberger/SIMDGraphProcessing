@@ -23,7 +23,7 @@ class AOA_Matrix{
     uint32_t *column_lengths;
     uint8_t **column_arrays;
 
-    const unordered_map<uint32_t,uint32_t> *external_ids;
+    const unordered_map<uint64_t,uint32_t> *external_ids;
 
     AOA_Matrix(size_t matrix_size_in,
       size_t cardinality_in,
@@ -34,7 +34,7 @@ class AOA_Matrix{
       uint8_t **row_arrays_in, 
       uint32_t *column_lengths_in, 
       uint8_t **column_arrays_in, 
-      const unordered_map<uint32_t,uint32_t> *external_ids_in):
+      const unordered_map<uint64_t,uint32_t> *external_ids_in):
         matrix_size(matrix_size_in),
         cardinality(cardinality_in),
         max_nbrhood_size(max_nbrhood_size_in),
@@ -67,13 +67,13 @@ class AOA_Matrix{
 
     static AOA_Matrix* from_symmetric(const vector< vector<uint32_t>*  > *g,const size_t matrix_size_in,const size_t cardinality_in,const size_t max_nbrhood_size,
       const std::function<bool(uint32_t)> node_selection,const std::function<bool(uint32_t,uint32_t)> edge_selection, 
-      const unordered_map<uint32_t,uint32_t> *external_ids_in,const common::type t_in);
+      const unordered_map<uint64_t,uint32_t> *external_ids_in,const common::type t_in);
 
     static AOA_Matrix* from_asymmetric(vector< vector<uint32_t>*  > *out_nbrs,vector< vector<uint32_t>*  > *in_nbrs,size_t max_nbrhood_size_in,
       const size_t matrix_size_in,const size_t cardinality_in, 
       const std::function<bool(uint32_t)> node_selection,
       const std::function<bool(uint32_t,uint32_t)> edge_selection, 
-      const unordered_map<uint32_t,uint32_t> *external_ids_in, 
+      const unordered_map<uint64_t,uint32_t> *external_ids_in, 
       const common::type t_in);
 
     UnsignedIntegerArray* get_distinct_neighbors(UnsignedIntegerArray *result,UnsignedIntegerArray *frontier,UnsignedIntegerArray *tmp);

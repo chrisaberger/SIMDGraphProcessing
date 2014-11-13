@@ -271,7 +271,8 @@ MutableGraph* MutableGraph::undirectedFromBinary(const string path) {
   ifstream infile; 
   infile.open(path, ios::binary | ios::in); 
 
-  unordered_map<uint32_t,uint32_t> *extern_ids = new unordered_map<uint32_t,uint32_t>();
+  vector<uint64_t> *id_map = new vector<uint64_t>();
+  unordered_map<uint64_t,uint32_t> *extern_ids = new unordered_map<uint64_t,uint32_t>();
   vector< vector<uint32_t>*  > *neighborhoods = new vector< vector<uint32_t>* >();
   size_t num_edges = 0;
   size_t num_nodes = 0;
@@ -298,13 +299,15 @@ MutableGraph* MutableGraph::undirectedFromBinary(const string path) {
   }
   infile.close();
 
-  return new MutableGraph(neighborhoods->size(),num_edges,max_nbrhood_size,true,extern_ids,neighborhoods,neighborhoods); 
+  return new MutableGraph(neighborhoods->size(),num_edges,max_nbrhood_size,true,id_map,extern_ids,neighborhoods,neighborhoods); 
 } 
 MutableGraph* MutableGraph::undirectedFromEdgeList(const string path) {
   ////////////////////////////////////////////////////////////////////////////////////
   //Place graph into vector of vectors then decide how you want to
   //store the graph.
-  unordered_map<uint32_t,uint32_t> *extern_ids = new unordered_map<uint32_t,uint32_t>();
+  unordered_map<uint64_t,uint32_t> *extern_ids = new unordered_map<uint64_t,uint32_t>();
+  vector<uint64_t> *id_map = new vector<uint64_t>();
+
   vector< vector<uint32_t>*  > *neighborhoods = new vector< vector<uint32_t>* >();
 
   cout << path << endl;
@@ -328,17 +331,18 @@ MutableGraph* MutableGraph::undirectedFromEdgeList(const string path) {
 
   char *test = strtok(buffer," \t\nA");
   while(test != NULL){
-    uint32_t src;
-    sscanf(test,"%u",&src);
+    uint64_t src;
+    sscanf(test,"%lu",&src);
     test = strtok(NULL," \t\nA");
     
-    uint32_t dst;
-    sscanf(test,"%u",&dst);
+    uint64_t dst;
+    sscanf(test,"%lu",&dst);
     test = strtok(NULL," \t\nA");
 
     vector<uint32_t> *src_row;
     if(extern_ids->find(src) == extern_ids->end()){
       extern_ids->insert(make_pair(src,extern_ids->size()));
+      id_map->push_back(src);
       src_row = new vector<uint32_t>();
       neighborhoods->push_back(src_row);
     } else{
@@ -348,6 +352,7 @@ MutableGraph* MutableGraph::undirectedFromEdgeList(const string path) {
     vector<uint32_t> *dst_row;
     if(extern_ids->find(dst) == extern_ids->end()){
       extern_ids->insert(make_pair(dst,extern_ids->size()));
+      id_map->push_back(dst);
       dst_row = new vector<uint32_t>();
       neighborhoods->push_back(dst_row);
     } else{
@@ -374,7 +379,7 @@ MutableGraph* MutableGraph::undirectedFromEdgeList(const string path) {
     num_edges += row->size();
   }
 
-  return new MutableGraph(neighborhoods->size(),num_edges,max_nbrhood_size,true,extern_ids,neighborhoods,neighborhoods); 
+  return new MutableGraph(neighborhoods->size(),num_edges,max_nbrhood_size,true,id_map,extern_ids,neighborhoods,neighborhoods); 
 }
 
 void MutableGraph::writeDirectedToBinary(const string path) {
@@ -402,7 +407,8 @@ MutableGraph* MutableGraph::directedFromBinary(const string path) {
   ifstream infile; 
   infile.open(path, ios::binary | ios::in); 
 
-  unordered_map<uint32_t,uint32_t> *extern_ids = new unordered_map<uint32_t,uint32_t>();
+  vector<uint64_t> *id_map = new vector<uint64_t>();
+  unordered_map<uint64_t,uint32_t> *extern_ids = new unordered_map<uint64_t,uint32_t>();
   vector< vector<uint32_t>*  > *out_neighborhoods = new vector< vector<uint32_t>* >();
   vector< vector<uint32_t>*  > *in_neighborhoods = new vector< vector<uint32_t>* >();
 
@@ -444,7 +450,7 @@ MutableGraph* MutableGraph::directedFromBinary(const string path) {
   }
   infile.close();
 
-  return new MutableGraph(out_neighborhoods->size(),num_edges,max_nbrhood_size,true,extern_ids,out_neighborhoods,in_neighborhoods); 
+  return new MutableGraph(out_neighborhoods->size(),num_edges,max_nbrhood_size,true,id_map,extern_ids,out_neighborhoods,in_neighborhoods); 
 } 
 /*
 File format
@@ -459,7 +465,8 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path) {
   //store the graph.
   size_t num_edges = 0;
 
-  unordered_map<uint32_t,uint32_t> *extern_ids = new unordered_map<uint32_t,uint32_t>();
+  vector<uint64_t> *id_map = new vector<uint64_t>();
+  unordered_map<uint64_t,uint32_t> *extern_ids = new unordered_map<uint64_t,uint32_t>();
   vector< vector<uint32_t>*  > *in_neighborhoods = new vector< vector<uint32_t>* >();
   vector< vector<uint32_t>*  > *out_neighborhoods = new vector< vector<uint32_t>* >();
 
@@ -481,12 +488,12 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path) {
 
   char *test = strtok(buffer," \t\nA");
   while(test != NULL){
-    uint32_t src;
-    sscanf(test,"%u",&src);
+    uint64_t src;
+    sscanf(test,"%lu",&src);
     test = strtok(NULL," \t\nA");
     
-    uint32_t dst;
-    sscanf(test,"%u",&dst);
+    uint64_t dst;
+    sscanf(test,"%lu",&dst);
     test = strtok(NULL," \t\nA");
 
     num_edges++;
@@ -494,6 +501,7 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path) {
     vector<uint32_t> *src_row;
     if(extern_ids->find(src) == extern_ids->end()){
       extern_ids->insert(make_pair(src,extern_ids->size()));
+      id_map->push_back(src);
       src_row = new vector<uint32_t>();
       vector<uint32_t> *new_row = new vector<uint32_t>();
       in_neighborhoods->push_back(new_row);
@@ -505,6 +513,7 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path) {
     vector<uint32_t> *dst_row;
     if(extern_ids->find(dst) == extern_ids->end()){
       extern_ids->insert(make_pair(dst,extern_ids->size()));
+      id_map->push_back(dst);
       dst_row = new vector<uint32_t>();
       vector<uint32_t> *new_row = new vector<uint32_t>();
       out_neighborhoods->push_back(new_row);
@@ -539,5 +548,5 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path) {
     row->erase(unique(row->begin(),row->begin()+row->size()),row->end());
   }
 
-  return new MutableGraph(in_neighborhoods->size(),num_edges,max_nbrhood_size,false,extern_ids,out_neighborhoods,in_neighborhoods); 
+  return new MutableGraph(in_neighborhoods->size(),num_edges,max_nbrhood_size,false,id_map,extern_ids,out_neighborhoods,in_neighborhoods); 
 }

@@ -8,7 +8,7 @@ namespace array32 {
     cout << "reg[3]: " << _mm_extract_epi32(reg,3) << endl << endl;   
   }
   static char max = char(0xff);
-  static unsigned int difference_incrementer[16] = {        
+  static uint32_t difference_incrementer[16] = {        
     0,1,2,2,
     3,3,3,3,
     3,3,3,3,
@@ -110,15 +110,15 @@ namespace array32 {
     _mm_set_epi8(max,max,max,max,max,max,max,max,max,max,max,max,max,max,max,max), //15
   }; 
 
-  inline size_t intersect(uint8_t *C_in, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
+  inline size_t intersect(uint8_t *C_in, const uint32_t *A, const uint32_t *B, size_t s_a, size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
 
     #if WRITE_VECTOR == 1
     C_in[0] = common::ARRAY32;
-    unsigned int *C = (unsigned int*)&C_in[1];
+    uint32_t *C = (uint32_t*)&C_in[1];
     #else
-    unsigned int *C = (unsigned int*) C_in;
+    uint32_t *C = (uint32_t*) C_in;
     #endif
 
     // trim lengths to be a multiple of 4
@@ -132,14 +132,14 @@ namespace array32 {
       //]
 
       //[ move pointers
-      unsigned int a_max = A[i_a+3];
-      unsigned int b_max = B[i_b+3];
+      uint32_t a_max = A[i_a+3];
+      uint32_t b_max = B[i_b+3];
       i_a += (a_max <= b_max) * 4;
       i_b += (a_max >= b_max) * 4;
       //]
 
       //[ compute mask of common elements
-      unsigned int right_cyclic_shift = _MM_SHUFFLE(0,3,2,1);
+      uint32_t right_cyclic_shift = _MM_SHUFFLE(0,3,2,1);
       __m128i cmp_mask1 = _mm_cmpeq_epi32(v_a, v_b);    // pairwise comparison
       v_b = _mm_shuffle_epi32(v_b, right_cyclic_shift);       // shuffling
       __m128i cmp_mask2 = _mm_cmpeq_epi32(v_a, v_b);    // again...
@@ -152,7 +152,7 @@ namespace array32 {
               _mm_or_si128(cmp_mask3, cmp_mask4)
       ); // OR-ing of comparison masks
       // convert the 128-bit mask to the 4-bit mask
-      unsigned int mask = _mm_movemask_ps((__m128)cmp_mask);
+      uint32_t mask = _mm_movemask_ps((__m128)cmp_mask);
       //]
 
       //[ copy out common elements
@@ -193,16 +193,16 @@ namespace array32 {
     
     return count;
   }
-  inline size_t set_union_std(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
-    unsigned int *itv = std::set_union(&A[0],&A[s_a],&B[0],&B[s_b],&C[0]);
+  inline size_t set_union_std(uint32_t *C, const uint32_t *A, const uint32_t *B, size_t s_a, size_t s_b) {
+    uint32_t *itv = std::set_union(&A[0],&A[s_a],&B[0],&B[s_b],&C[0]);
     itv = std::unique(&C[0],itv);  
     return (itv - C);
   }
-  inline size_t set_difference_std(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
-    unsigned int *itv = std::set_difference(&A[0],&A[s_a],&B[0],&B[s_b],&C[0]);
+  inline size_t set_difference_std(uint32_t *C, const uint32_t *A, const uint32_t *B, size_t s_a, size_t s_b) {
+    uint32_t *itv = std::set_difference(&A[0],&A[s_a],&B[0],&B[s_b],&C[0]);
     return (itv - C);
   }
-  inline size_t set_union(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
+  inline size_t set_union(uint32_t *C, const uint32_t *A, const uint32_t *B, size_t s_a, size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
     // trim lengths to be a multiple of 4
@@ -210,18 +210,18 @@ namespace array32 {
     size_t st_a = (s_a / 4) * 4;
     size_t st_b = (s_b / 4) * 4;
     if(i_a < st_a && i_b < st_b){
-      unsigned int num_hit = 0;
+      uint32_t num_hit = 0;
       size_t next_i_a = 0, next_i_b = 0;
       __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
       __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
-      unsigned int a_max = _mm_extract_epi32(v_a, 3);
-      unsigned int b_max = _mm_extract_epi32(v_b, 3);
+      uint32_t a_max = _mm_extract_epi32(v_a, 3);
+      uint32_t b_max = _mm_extract_epi32(v_b, 3);
       while(i_a < st_a && i_b < st_b) {
         next_i_a = i_a + 4;
         next_i_b = i_b + 4;
 
         //[ compute mask of common elements
-        unsigned int right_cyclic_shift = _MM_SHUFFLE(0,3,2,1);
+        uint32_t right_cyclic_shift = _MM_SHUFFLE(0,3,2,1);
         
         __m128i cmp_a_mask0 = _mm_cmpeq_epi32(v_a, v_b);    // pairwise comparison
         v_b = _mm_shuffle_epi32(v_b, right_cyclic_shift);       // shuffling
@@ -241,7 +241,7 @@ namespace array32 {
         ); // OR-ing of comparison masks
         
         // convert the 128-bit mask to the 4-bit mask
-        unsigned int mask_a = _mm_movemask_ps((__m128)cmp_a_mask);
+        uint32_t mask_a = _mm_movemask_ps((__m128)cmp_a_mask);
         
         num_hit = _mm_popcnt_u32(mask_a);
         //[ copy out common elements
@@ -252,7 +252,7 @@ namespace array32 {
         __m128i l_1 = _mm_min_epu32(p_a,p_b);
         __m128i h_1 = _mm_max_epu32(p_a,p_b);      
 
-        unsigned int left_cyclic_shift = _MM_SHUFFLE(2,1,0,3);
+        uint32_t left_cyclic_shift = _MM_SHUFFLE(2,1,0,3);
 
         // x x x v = l1 (v = valid data, x = tbd)
         // v x x x = h1 
@@ -285,7 +285,7 @@ namespace array32 {
    
         #endif
 
-        unsigned int new_a_max = a_max;
+        uint32_t new_a_max = a_max;
         if(a_max < b_max){
           i_a = next_i_a;
           v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
@@ -339,7 +339,7 @@ namespace array32 {
     
     return count;
   }
-  inline size_t set_difference(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b) {
+  inline size_t set_difference(uint32_t *C, const uint32_t *A, const uint32_t *B, size_t s_a, size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
 
@@ -350,7 +350,7 @@ namespace array32 {
     size_t st_b = (s_b / 4) * 4;
     size_t mask_a = 0;
     __m128i v_a = _mm_setzero_si128();
-    unsigned int num_hit = 0;
+    uint32_t num_hit = 0;
     while(i_a < st_a && i_b < st_b) {
       //xcout << i_a << " " << st_a << " " << i_b << " " << st_b << endl;
       //[ load segments of four 32-bit elements
@@ -366,14 +366,14 @@ namespace array32 {
       }
       */
       //[ move pointers
-      unsigned int a_max = _mm_extract_epi32(v_a, 3);
-      unsigned int b_max = _mm_extract_epi32(v_b, 3);
+      uint32_t a_max = _mm_extract_epi32(v_a, 3);
+      uint32_t b_max = _mm_extract_epi32(v_b, 3);
       i_a += (a_max <= b_max) * 4;
       i_b += (a_max >= b_max) * 4;
       //] 
 
       //[ compute mask of common elements
-      unsigned int right_cyclic_shift = _MM_SHUFFLE(0,3,2,1);     
+      uint32_t right_cyclic_shift = _MM_SHUFFLE(0,3,2,1);     
 
       __m128i cmp_a_mask0 = _mm_cmpeq_epi32(v_a, v_b);    // pairwise comparison
       v_b = _mm_shuffle_epi32(v_b, right_cyclic_shift);       // shuffling
@@ -424,7 +424,7 @@ namespace array32 {
     return count;
   }
   template<typename T> 
-  inline T sum(std::function<T(unsigned int,unsigned int)> function,unsigned int col,unsigned int *data, size_t length){
+  inline T sum(std::function<T(uint32_t,uint32_t)> function,uint32_t col,uint32_t *data, size_t length){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
       result += function(col,data[i]);
@@ -432,20 +432,20 @@ namespace array32 {
     return result;
   }
   template<typename T> 
-  inline T sum(std::function<T(unsigned int)> function,unsigned int *data, size_t length){
+  inline T sum(std::function<T(uint32_t)> function,uint32_t *data, size_t length){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
       result += function(data[i]);
     }
     return result;
   }
-  inline void print_data(unsigned int *data,size_t length,ofstream &file){
+  inline void print_data(uint32_t *data,size_t length,ofstream &file){
     //cout << "LEN: " << length << endl;
     for(size_t i = 0; i < length; i++){
       file << " Data: " << data[i] << endl;
     }
   }
-  inline size_t preprocess(unsigned int *r, unsigned int *data, size_t length){
+  inline size_t preprocess(uint32_t *r, uint32_t *data, size_t length){
     std::copy(data,data+length,r);
     return length*4;
 	}

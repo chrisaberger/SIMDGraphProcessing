@@ -5,13 +5,13 @@ namespace a32bitpacked {
   inline size_t get_num_simd_packed(size_t cardinality){
     return ((cardinality/INTS_PER_REG)*INTS_PER_REG*(cardinality >= INTS_PER_REG*2));
   }
-  inline size_t simd_bit_pack(const uint8_t bits_used, unsigned int *data, size_t data_index, size_t num_simd_packed, uint8_t *result_in, size_t result_i){
+  inline size_t simd_bit_pack(const uint8_t bits_used, uint32_t *data, size_t data_index, size_t num_simd_packed, uint8_t *result_in, size_t result_i){
     size_t num_packed = 0;
     size_t bit_i = 0;
     size_t data_i = data_index;
     __m128i packed_register = _mm_set1_epi32(0);
 
-    unsigned int *result = (unsigned int*)(result_in+result_i);
+    uint32_t *result = (uint32_t*)(result_in+result_i);
     size_t result_integer_i = 0;
     while(num_packed < num_simd_packed){
       while(bit_i+bits_used <= 32 && data_i < num_simd_packed){
@@ -53,9 +53,9 @@ namespace a32bitpacked {
     //cout << result_i << " " << result_integer_i << endl;
     return (result_i+(result_integer_i*4));
   }
-  inline unsigned int produce_deltas(unsigned int *data_in, size_t length, unsigned int *data, size_t num_simd_packed){    
+  inline uint32_t produce_deltas(uint32_t *data_in, size_t length, uint32_t *data, size_t num_simd_packed){    
     size_t max = 0;
-    unsigned int prev = 0;
+    uint32_t prev = 0;
     if(length > 0){
       prev = data_in[0];
     }
@@ -86,19 +86,19 @@ namespace a32bitpacked {
     }
 
     for(size_t i = num_simd_packed; i < length; i++){
-      unsigned int cur = data_in[i] - prev;
+      uint32_t cur = data_in[i] - prev;
       //cout  << "Writing delta index: " << i << "  " << cur << endl;
       data[i] = cur;
       prev = data_in[i];
     }
     return max;
   }
-    inline size_t preprocess(uint8_t *result_in, unsigned int *data_in, size_t length){
+    inline size_t preprocess(uint8_t *result_in, uint32_t *data_in, size_t length){
     if(length > 0){
-      unsigned int *data = new unsigned int[length];
+      uint32_t *data = new uint32_t[length];
       const size_t num_simd_packed = get_num_simd_packed(length);
-      const unsigned int max = produce_deltas(data_in,length,data,num_simd_packed);
-      const uint8_t bits_used = (unsigned int)log2(max)+1;
+      const uint32_t max = produce_deltas(data_in,length,data,num_simd_packed);
+      const uint8_t bits_used = (uint32_t)log2(max)+1;
       result_in[0] = bits_used;
 
       size_t result_i = variant::variant_encode(data_in,0,1,result_in,1);
@@ -157,11 +157,11 @@ namespace a32bitpacked {
     size_t data_i = 1;
     const uint8_t bits_used = data[0];
     size_t num_decoded = 0;
-    unsigned int prev = variant::variant_decode(data,data_i);
+    uint32_t prev = variant::variant_decode(data,data_i);
 
     size_t num_simd_packed = get_num_simd_packed(cardinality);
     if(num_simd_packed > 0){
-      unsigned int mask32 = (long)((long)1 << (long)bits_used)-1;
+      uint32_t mask32 = (long)((long)1 << (long)bits_used)-1;
       __m128i mask = _mm_set1_epi32(mask32);
       __m128i prev_result = _mm_set1_epi32(prev);
       size_t bit_i = 0;
@@ -170,7 +170,7 @@ namespace a32bitpacked {
         num_decoded += INTS_PER_REG;
         __m128i actual_data = get_next_see(data,bits_used,data_i,prev_result,mask,bit_i,num_decoded >= num_simd_packed);
 
-        unsigned int uint_data = _mm_extract_epi32(actual_data, 0);
+        uint32_t uint_data = _mm_extract_epi32(actual_data, 0);
         cout << " Data: " << uint_data << endl;
         uint_data = _mm_extract_epi32(actual_data, 1);
         cout << " Data: " << uint_data << endl;
@@ -186,23 +186,23 @@ namespace a32bitpacked {
     //cout << "Decoding at: " << data_i  << " Num decoded: " << num_decoded << " card: " << cardinality << endl;
 
     while(num_decoded < cardinality){
-      unsigned int cur = variant::variant_decode(data,data_i)+prev;
+      uint32_t cur = variant::variant_decode(data,data_i)+prev;
       cout << " Data: " << cur << endl;
       prev = cur;
       num_decoded++;
     }
   }
   template<typename T> 
-  inline T sum(std::function<T(unsigned int,unsigned int,unsigned int*)> function,unsigned int col,uint8_t *data, size_t cardinality){
+  inline T sum(std::function<T(uint32_t,uint32_t,uint32_t*)> function,uint32_t col,uint8_t *data, size_t cardinality){
     T return_value = (T) 0;
     size_t data_i = 1;
     const uint8_t bits_used = data[0];
     size_t num_decoded = 0;
-    unsigned int prev = variant::variant_decode(data,data_i);
+    uint32_t prev = variant::variant_decode(data,data_i);
 
     size_t num_simd_packed = get_num_simd_packed(cardinality);
     if(num_simd_packed > 0){
-      unsigned int mask32 = (long)((long)1 << (long)bits_used)-1;
+      uint32_t mask32 = (long)((long)1 << (long)bits_used)-1;
       __m128i mask = _mm_set1_epi32(mask32);
       __m128i prev_result = _mm_set1_epi32(prev);
       
@@ -273,23 +273,23 @@ namespace a32bitpacked {
     //cout << "prev: " << prev << endl;
 
     while(num_decoded < cardinality){
-      unsigned int cur = variant::variant_decode(data,data_i)+prev;
+      uint32_t cur = variant::variant_decode(data,data_i)+prev;
       return_value += function(col,cur);
       prev = cur;
       num_decoded++;
     }
     return return_value;
   }
-  inline void decode(unsigned int *output,uint8_t *data, size_t cardinality){
+  inline void decode(uint32_t *output,uint8_t *data, size_t cardinality){
     size_t output_i = 0;
     size_t data_i = 1;
     const uint8_t bits_used = data[0];
     size_t num_decoded = 0;
-    unsigned int prev = variant::variant_decode(data,data_i);
+    uint32_t prev = variant::variant_decode(data,data_i);
 
     size_t num_simd_packed = get_num_simd_packed(cardinality);
     if(num_simd_packed > 0){
-      unsigned int mask32 = (long)((long)1 << (long)bits_used)-1;
+      uint32_t mask32 = (long)((long)1 << (long)bits_used)-1;
       __m128i mask = _mm_set1_epi32(mask32);
       __m128i prev_result = _mm_set1_epi32(prev);
       
@@ -346,7 +346,7 @@ namespace a32bitpacked {
     //cout << "prev: " << prev << endl;
 
     while(num_decoded < cardinality){
-      unsigned int cur = variant::variant_decode(data,data_i)+prev;
+      uint32_t cur = variant::variant_decode(data,data_i)+prev;
       output[output_i++] = cur;
       prev = cur;
       num_decoded++;
@@ -356,11 +356,11 @@ namespace a32bitpacked {
     size_t data_i = 1;
     const uint8_t bits_used = data[0];
     size_t num_decoded = 0;
-    unsigned int prev = variant::variant_decode(data,data_i);
+    uint32_t prev = variant::variant_decode(data,data_i);
 
     size_t num_simd_packed = get_num_simd_packed(cardinality);
     if(num_simd_packed > 0){
-      unsigned int mask32 = (long)((long)1 << (long)bits_used)-1;
+      uint32_t mask32 = (long)((long)1 << (long)bits_used)-1;
       __m128i mask = _mm_set1_epi32(mask32);
       __m128i prev_result = _mm_set1_epi32(prev);
       
@@ -427,7 +427,7 @@ namespace a32bitpacked {
     //cout << "prev: " << prev << endl;
 
     while(num_decoded < cardinality){
-      unsigned int cur = variant::variant_decode(data,data_i)+prev;
+      uint32_t cur = variant::variant_decode(data,data_i)+prev;
       file << " Data: " << cur << endl;
       prev = cur;
       num_decoded++;

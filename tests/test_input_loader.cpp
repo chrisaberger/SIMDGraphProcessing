@@ -3,11 +3,11 @@
 #include "Matrix.hpp"
 #include "MutableGraph.hpp"
 
-inline bool myNodeSelection(unsigned int node){
+inline bool myNodeSelection(uint32_t node){
   (void)node;
   return true;
 }
-inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
+inline bool myEdgeSelection(uint32_t node, uint32_t nbr){
   (void)node;
   (void)nbr;
   return true;

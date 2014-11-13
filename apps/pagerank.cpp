@@ -9,11 +9,11 @@ namespace application{
   float *pr_data;
   size_t max_iterations;
   
-  inline bool myNodeSelection(unsigned int node){
+  inline bool myNodeSelection(uint32_t node){
     (void)node;
     return true;
   }
-  inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
+  inline bool myEdgeSelection(uint32_t node, uint32_t nbr){
     (void) node; (void) nbr;
     return true;
   }
@@ -26,10 +26,10 @@ namespace application{
     }
   }
   
-  inline float nbrApply_old(unsigned int nbr){
+  inline float nbrApply_old(uint32_t nbr){
     return pr_data[nbr]/graph->row_lengths[nbr];
   }
-  inline float nbrApply(unsigned int nbr){
+  inline float nbrApply(uint32_t nbr){
     return pr_data[nbr];
   }
   inline void queryOverNew(){

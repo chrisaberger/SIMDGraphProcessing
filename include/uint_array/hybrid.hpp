@@ -7,19 +7,19 @@ namespace hybrid {
   static __m256i load_mask_runs[256];
   static __m256i permutation_mask_runs[256];
 
-  static inline int getBitH(unsigned int value, unsigned int position) {
+  static inline int getBitH(uint32_t value, uint32_t position) {
     return ( ( value & (1 << position) ) >> position);
   }
   static inline void prepare_shuffling_dictionary() {
     //Number of bits that can possibly be set are the lower 8
-    for(unsigned int i = 0; i < 256; i++) { // 2^8 possibilities we need to store masks for
-      unsigned int counter = 0;
-      unsigned int back_counter = 7;
-      unsigned int permutation[8];
-      unsigned int load_permutation[8];
+    for(uint32_t i = 0; i < 256; i++) { // 2^8 possibilities we need to store masks for
+      uint32_t counter = 0;
+      uint32_t back_counter = 7;
+      uint32_t permutation[8];
+      uint32_t load_permutation[8];
 
       memset(load_permutation, 0, sizeof(load_permutation));
-      for(unsigned int b = 0; b < 8; b++) { //Check each possible bit that can be set 1-by-1
+      for(uint32_t b = 0; b < 8; b++) { //Check each possible bit that can be set 1-by-1
         if(getBitH(i, b)) {
           load_permutation[b] = 0xf0000000;
           permutation[counter++] = b;
@@ -35,21 +35,21 @@ namespace hybrid {
     }
   }
 
-  inline size_t preprocess(uint8_t *result_in, unsigned int *data_in, size_t length, size_t mat_size){
+  inline size_t preprocess(uint8_t *result_in, uint32_t *data_in, size_t length, size_t mat_size){
     size_t threshold = 6;
     size_t data_i = 0;
     size_t result_i = 4;
-    unsigned int num_dense = 0;
-    unsigned int *sparse_set = new unsigned int[length];
+    uint32_t num_dense = 0;
+    uint32_t *sparse_set = new uint32_t[length];
     size_t sparse_i = 0;
 
     while(data_i < length){
       //loop
       size_t start = data_i;
-      unsigned int cur = data_in[data_i];
+      uint32_t cur = data_in[data_i];
       uint8_t box_mask = 0;
-      unsigned int num_in_box = 0;
-      unsigned int dist = 0;
+      uint32_t num_in_box = 0;
+      uint32_t dist = 0;
       while(dist < 8 && data_i < length && (cur+8 <= mat_size)){
         dist = (data_in[data_i]-cur);
         if(dist < 8){
@@ -61,7 +61,7 @@ namespace hybrid {
 
       if(num_in_box >= threshold){
         //place in dense
-        unsigned int *dense_start = (unsigned int*)&result_in[result_i];
+        uint32_t *dense_start = (uint32_t*)&result_in[result_i];
         dense_start[0] = cur;
         result_i += 4;
 
@@ -79,7 +79,7 @@ namespace hybrid {
     result_i += (sparse_i*4);
     delete[] sparse_set;
 
-    unsigned int *num_dense_pointer = (unsigned int*) result_in;
+    uint32_t *num_dense_pointer = (uint32_t*) result_in;
     num_dense_pointer[0] = num_dense;
 
     return result_i;
@@ -90,44 +90,44 @@ namespace hybrid {
 
     float result = 0.0;
     
-    unsigned int *num_dense_pointer = (unsigned int*) data;
-    const unsigned int num_dense = num_dense_pointer[0];
+    uint32_t *num_dense_pointer = (uint32_t*) data;
+    const uint32_t num_dense = num_dense_pointer[0];
 
     __m256 avx_result = _mm256_set1_ps(0);
     for(size_t num_dense_processed = 0;num_dense_processed<num_dense;num_dense_processed++){
-      unsigned int *cur_pointer = (unsigned int*) &data[data_i];
-      unsigned int cur = cur_pointer[0];
+      uint32_t *cur_pointer = (uint32_t*) &data[data_i];
+      uint32_t cur = cur_pointer[0];
       
       file << "Dense data: " << cur << endl;
-      file << "Mask: " << hex << (unsigned int)data[data_i+4] << dec << endl;
+      file << "Mask: " << hex << (uint32_t)data[data_i+4] << dec << endl;
 
       data_i += 5;
     }
 
     result = common::_mm256_reduce_add_ps(avx_result);
   
-    unsigned int *data_32 = (unsigned int*) &data[data_i];
+    uint32_t *data_32 = (uint32_t*) &data[data_i];
     size_t sparse_i = 0;
     for(;data_i<length;data_i+=4){
       file << "Sparse data: " << data_32[sparse_i++] << endl;
     }
     return result;
   }
-  inline float sum_pr(uint8_t *data, size_t length, size_t cardinality,float *old_data, unsigned int *lengths){    
+  inline float sum_pr(uint8_t *data, size_t length, size_t cardinality,float *old_data, uint32_t *lengths){    
     (void) lengths; (void) cardinality;
     size_t data_i = 4;
 
     float result = 0.0;
     
-    unsigned int *num_dense_pointer = (unsigned int*) data;
-    const unsigned int num_dense = num_dense_pointer[0];
+    uint32_t *num_dense_pointer = (uint32_t*) data;
+    const uint32_t num_dense = num_dense_pointer[0];
 
     __m256 avx_result = _mm256_set1_ps(0);
     for(size_t num_dense_processed = 0;num_dense_processed<num_dense;num_dense_processed++){
-      unsigned int *cur_pointer = (unsigned int*) &data[data_i];
-      unsigned int cur = cur_pointer[0];
+      uint32_t *cur_pointer = (uint32_t*) &data[data_i];
+      uint32_t cur = cur_pointer[0];
       
-      __m256 my_data = _mm256_maskload_ps(&old_data[cur],load_mask_runs[(unsigned int)data[data_i+4]]);
+      __m256 my_data = _mm256_maskload_ps(&old_data[cur],load_mask_runs[(uint32_t)data[data_i+4]]);
      // my_data = _mm256_mul_ps(my_data,_mm256_set1_ps(2.25));
       __m256 divisor = _mm256_cvtepi32_ps(_mm256_loadu_si256((__m256i*)&lengths[cur]));
       my_data = _mm256_div_ps(my_data,divisor);
@@ -139,7 +139,7 @@ namespace hybrid {
 
     result = common::_mm256_reduce_add_ps(avx_result);
   
-    unsigned int *data_32 = (unsigned int*) &data[data_i];
+    uint32_t *data_32 = (uint32_t*) &data[data_i];
     size_t sparse_i = 0;
     for(;data_i<length;data_i+=4){
       result += (old_data[data_32[sparse_i]]/lengths[data_32[sparse_i]]);
@@ -147,21 +147,21 @@ namespace hybrid {
     }
     return result;
   }
-  inline float sum(uint8_t *data, size_t length, size_t cardinality,float *old_data, unsigned int *lengths){    
+  inline float sum(uint8_t *data, size_t length, size_t cardinality,float *old_data, uint32_t *lengths){    
     (void) lengths; (void) cardinality;
     size_t data_i = 4;
 
     float result = 0.0;
     
-    unsigned int *num_dense_pointer = (unsigned int*) data;
-    const unsigned int num_dense = num_dense_pointer[0];
+    uint32_t *num_dense_pointer = (uint32_t*) data;
+    const uint32_t num_dense = num_dense_pointer[0];
 
     __m256 avx_result = _mm256_set1_ps(0);
     for(size_t num_dense_processed = 0;num_dense_processed<num_dense;num_dense_processed++){
-      unsigned int *cur_pointer = (unsigned int*) &data[data_i];
-      unsigned int cur = cur_pointer[0];
+      uint32_t *cur_pointer = (uint32_t*) &data[data_i];
+      uint32_t cur = cur_pointer[0];
       
-      __m256 my_data = _mm256_maskload_ps(&old_data[cur],load_mask_runs[(unsigned int)data[data_i+4]]);
+      __m256 my_data = _mm256_maskload_ps(&old_data[cur],load_mask_runs[(uint32_t)data[data_i+4]]);
       //my_data = _mm256_mul_ps(my_data,_mm256_set1_ps(2.25));
       avx_result = _mm256_add_ps(my_data,avx_result);
       
@@ -171,7 +171,7 @@ namespace hybrid {
 
     result = common::_mm256_reduce_add_ps(avx_result);
   
-    unsigned int *data_32 = (unsigned int*) &data[data_i];
+    uint32_t *data_32 = (uint32_t*) &data[data_i];
     size_t sparse_i = 0;
     for(;data_i<length;data_i+=4){
       result += old_data[data_32[sparse_i++]];
@@ -184,18 +184,18 @@ namespace hybrid {
     #endif 
 
     #if WRITE_VECTOR == 1
-    unsigned int *C = (unsigned int*)&C_in[1];
+    uint32_t *C = (uint32_t*)&C_in[1];
     #endif
 
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
-      unsigned int prefix = (A[i] << 16);
+      uint32_t prefix = (A[i] << 16);
       unsigned short size = A[i+1];
       i += 2;
 
       size_t inner_end = i+size;
       while(i < inner_end){
-        unsigned int cur = prefix | A[i];
+        uint32_t cur = prefix | A[i];
         if(bitset::word_index(cur) < s_b && bitset::is_set(cur,B)){
           #if WRITE_VECTOR == 1
           C[count] = cur;
@@ -209,18 +209,18 @@ namespace hybrid {
     return count;
   }
   //untested
-  inline size_t intersect_a32_bs(uint8_t *C_in, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+  inline size_t intersect_a32_bs(uint8_t *C_in, const uint32_t *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
     (void) C_in;   
     #endif
 
     #if WRITE_VECTOR == 1
-    unsigned int *C = (unsigned int*)&C_in[1];
+    uint32_t *C = (uint32_t*)&C_in[1];
     #endif
 
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
-      unsigned int cur = A[i];
+      uint32_t cur = A[i];
       if(bitset::word_index(cur) < s_b && bitset::is_set(cur,B)){
         #if WRITE_VECTOR == 1
         C[count] = cur;
@@ -231,13 +231,13 @@ namespace hybrid {
 
     return count;
   }
-  inline size_t intersect_a32_a16(uint8_t *C_in, const unsigned int *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
+  inline size_t intersect_a32_a16(uint8_t *C_in, const uint32_t *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
     (void)C_in;
     #endif
 
     #if WRITE_VECTOR == 1
-    unsigned int *C = (unsigned int*)&C_in[1];
+    uint32_t *C = (uint32_t*)&C_in[1];
     #endif
 
     size_t a_i = 0;
@@ -246,9 +246,9 @@ namespace hybrid {
 
     bool not_finished = a_i < s_a && b_i < s_b;
     while(not_finished){
-      unsigned int prefix = (B[b_i] << 16);
+      uint32_t prefix = (B[b_i] << 16);
       unsigned short b_inner_size = B[b_i+1];
-      unsigned int cur_match = A[a_i];
+      uint32_t cur_match = A[a_i];
       size_t inner_end = b_i+b_inner_size+2;
       //cout << endl;
       //cout << "Bi: " << b_i << " Bsize: " << s_b << " InnerEnd: " << inner_end << endl;
@@ -289,11 +289,11 @@ namespace hybrid {
           
           __m128i res_v = _mm_cmpestrm(v_b, SHORTS_PER_REG, v_a, SHORTS_PER_REG,
                   _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
-          unsigned int r = _mm_extract_epi32(res_v, 0);
+          uint32_t r = _mm_extract_epi32(res_v, 0);
 
           #if WRITE_VECTOR == 1
-          unsigned int r_lower = r & 0x0F;
-          unsigned int r_upper = (r & 0xF0) >> 4;
+          uint32_t r_lower = r & 0x0F;
+          uint32_t r_upper = (r & 0xF0) >> 4;
           __m128i p = _mm_shuffle_epi8(v_a_1_32, array32::shuffle_mask32[r_lower]);
           _mm_storeu_si128((__m128i*)&C[count], p);
           
@@ -314,11 +314,11 @@ namespace hybrid {
 
         bool notFinished = a_i < s_a  && i_b < b_inner_size && (A[a_i] & 0xFFFF0000) == prefix;
         while(notFinished){
-          while(notFinished && (unsigned int)(prefix | B[i_b+b_i]) < A[a_i]){
+          while(notFinished && (uint32_t)(prefix | B[i_b+b_i]) < A[a_i]){
             ++i_b;
             notFinished = i_b < b_inner_size;
           }
-          if(notFinished && A[a_i] == (unsigned int)(prefix | B[i_b+b_i])){
+          if(notFinished && A[a_i] == (uint32_t)(prefix | B[i_b+b_i])){
             #if WRITE_VECTOR == 1
             C[count] = A[a_i];
             #endif

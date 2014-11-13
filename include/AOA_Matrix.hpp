@@ -14,27 +14,27 @@ class AOA_Matrix{
     /*
     Stores out neighbors.
     */
-    unsigned int *row_lengths; 
+    uint32_t *row_lengths; 
     uint8_t **row_arrays;
 
     /*
     Stores in neighbors.
     */
-    unsigned int *column_lengths;
+    uint32_t *column_lengths;
     uint8_t **column_arrays;
 
-    const unordered_map<unsigned int,unsigned int> *external_ids;
+    const unordered_map<uint64_t,uint32_t> *external_ids;
 
     AOA_Matrix(size_t matrix_size_in,
       size_t cardinality_in,
       size_t max_nbrhood_size_in,
       common::type t_in, 
       bool symmetric_in, 
-      unsigned int *row_lengths_in,
+      uint32_t *row_lengths_in,
       uint8_t **row_arrays_in, 
-      unsigned int *column_lengths_in, 
+      uint32_t *column_lengths_in, 
       uint8_t **column_arrays_in, 
-      const unordered_map<unsigned int,unsigned int> *external_ids_in):
+      const unordered_map<uint64_t,uint32_t> *external_ids_in):
         matrix_size(matrix_size_in),
         cardinality(cardinality_in),
         max_nbrhood_size(max_nbrhood_size_in),
@@ -65,45 +65,45 @@ class AOA_Matrix{
 
     void *parallel_constructor(void *);
 
-    static AOA_Matrix* from_symmetric(const vector< vector<unsigned int>*  > *g,const size_t matrix_size_in,const size_t cardinality_in,const size_t max_nbrhood_size,
-      const std::function<bool(unsigned int)> node_selection,const std::function<bool(unsigned int,unsigned int)> edge_selection, 
-      const unordered_map<unsigned int,unsigned int> *external_ids_in,const common::type t_in);
+    static AOA_Matrix* from_symmetric(const vector< vector<uint32_t>*  > *g,const size_t matrix_size_in,const size_t cardinality_in,const size_t max_nbrhood_size,
+      const std::function<bool(uint32_t)> node_selection,const std::function<bool(uint32_t,uint32_t)> edge_selection, 
+      const unordered_map<uint64_t,uint32_t> *external_ids_in,const common::type t_in);
 
-    static AOA_Matrix* from_asymmetric(vector< vector<unsigned int>*  > *out_nbrs,vector< vector<unsigned int>*  > *in_nbrs,size_t max_nbrhood_size_in,
+    static AOA_Matrix* from_asymmetric(vector< vector<uint32_t>*  > *out_nbrs,vector< vector<uint32_t>*  > *in_nbrs,size_t max_nbrhood_size_in,
       const size_t matrix_size_in,const size_t cardinality_in, 
-      const std::function<bool(unsigned int)> node_selection,
-      const std::function<bool(unsigned int,unsigned int)> edge_selection, 
-      const unordered_map<unsigned int,unsigned int> *external_ids_in, 
+      const std::function<bool(uint32_t)> node_selection,
+      const std::function<bool(uint32_t,uint32_t)> edge_selection, 
+      const unordered_map<uint64_t,uint32_t> *external_ids_in, 
       const common::type t_in);
 
     UnsignedIntegerArray* get_distinct_neighbors(UnsignedIntegerArray *result,UnsignedIntegerArray *frontier,UnsignedIntegerArray *tmp);
-    size_t row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a);
-    size_t buffer_intersect(uint8_t *R, unsigned int j, uint8_t *A, unsigned int card_a);
+    size_t row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a);
+    size_t buffer_intersect(uint8_t *R, uint32_t j, uint8_t *A, uint32_t card_a);
 
     template<typename T> 
-    T map_columns(std::function<T(unsigned int, std::function<T(unsigned int)>)> rowfunction, std::function<T(unsigned int)> f, T *new_data);
+    T map_columns(std::function<T(uint32_t, std::function<T(uint32_t)>)> rowfunction, std::function<T(uint32_t)> f, T *new_data);
     template<typename T> 
-    T map_columns_pr(std::function<T(unsigned int, std::function<T(unsigned int)>)> rowfunction, std::function<T(unsigned int)> f, T *new_data, T *old_data);
+    T map_columns_pr(std::function<T(uint32_t, std::function<T(uint32_t)>)> rowfunction, std::function<T(uint32_t)> f, T *new_data, T *old_data);
     template<typename T> 
-    T sum_over_rows(std::function<T(unsigned int, unsigned int*, std::function<T(unsigned int,unsigned int,unsigned int*)>)> rowfunction, std::function<T(unsigned int,unsigned int,unsigned int*)> f);
+    T sum_over_rows(std::function<T(uint32_t, uint32_t*, std::function<T(uint32_t,uint32_t,uint32_t*)>)> rowfunction, std::function<T(uint32_t,uint32_t,uint32_t*)> f);
     
     template<typename T> 
-    T sum_over_columns_in_row(unsigned int col, unsigned int *decoded, std::function<T(unsigned int,unsigned int)> f);
+    T sum_over_columns_in_row(uint32_t col, uint32_t *decoded, std::function<T(uint32_t,uint32_t)> f);
     template<typename T> 
-    T sum_over_rows_in_column(unsigned int row,std::function<T(unsigned int)> f);
+    T sum_over_rows_in_column(uint32_t row,std::function<T(uint32_t)> f);
         
     void print_data(string filename);
 
 };
 
 inline UnsignedIntegerArray* AOA_Matrix::get_distinct_neighbors(UnsignedIntegerArray *result, UnsignedIntegerArray *frontier, UnsignedIntegerArray *tmp){
-  //set_union(unsigned int *C, const unsigned int *A, const unsigned int *B, size_t s_a, size_t s_b);
-  unsigned int *data = (unsigned int*)frontier->data;
+  //set_union(uint32_t *C, const uint32_t *A, const uint32_t *B, size_t s_a, size_t s_b);
+  uint32_t *data = (uint32_t*)frontier->data;
 
   if(frontier->length > 0){
     size_t card = row_lengths[data[0]];
     if(card > 0){
-      unsigned int *cur_row = (unsigned int*) row_arrays[data[0]];
+      uint32_t *cur_row = (uint32_t*) row_arrays[data[0]];
       result->length = cur_row[0]/4;
       std::copy((uint8_t*)&cur_row[1],(uint8_t*)&cur_row[1+cur_row[0]],result->data);
     }
@@ -112,8 +112,8 @@ inline UnsignedIntegerArray* AOA_Matrix::get_distinct_neighbors(UnsignedIntegerA
   for(size_t i=1; i<frontier->length; i++){
     size_t card = row_lengths[data[i]];
     if(card > 0){
-      unsigned int *size_ptr = (unsigned int*) row_arrays[data[i]];
-      tmp->length = array32::set_union((unsigned int*)tmp->data,(unsigned int*)result->data,(unsigned int*)(row_arrays[data[i]]+4),result->length,size_ptr[0]/4);
+      uint32_t *size_ptr = (uint32_t*) row_arrays[data[i]];
+      tmp->length = array32::set_union((uint32_t*)tmp->data,(uint32_t*)result->data,(uint32_t*)(row_arrays[data[i]]+4),result->length,size_ptr[0]/4);
       UnsignedIntegerArray *tmp2 = result;
       result = tmp;
       tmp = tmp2;
@@ -122,7 +122,7 @@ inline UnsignedIntegerArray* AOA_Matrix::get_distinct_neighbors(UnsignedIntegerA
   }
 
   /*
-  unsigned int *rdata = (unsigned int*) result->data;
+  uint32_t *rdata = (uint32_t*) result->data;
   for(size_t i = 0; i < result->length; i++){
     cout << "distinct neighbors: " << i << " data: " << rdata[i] << endl;
   }
@@ -130,7 +130,7 @@ inline UnsignedIntegerArray* AOA_Matrix::get_distinct_neighbors(UnsignedIntegerA
   return result;
 }
 
-inline size_t AOA_Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int j, unsigned int *decoded_a){
+inline size_t AOA_Matrix::row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a){
   size_t card_a = row_lengths[i];
   size_t card_b = row_lengths[j];
   long ncount = 0;
@@ -141,18 +141,18 @@ inline size_t AOA_Matrix::row_intersect(uint8_t *R, unsigned int i, unsigned int
   return ncount;
 }
 
-inline size_t AOA_Matrix::buffer_intersect(uint8_t *R, unsigned int j, uint8_t *A, unsigned int card_a){
+inline size_t AOA_Matrix::buffer_intersect(uint8_t *R, uint32_t j, uint8_t *A, uint32_t card_a){
   size_t card_b = row_lengths[j];
   long ncount = 0;
 
   if(card_a > 0 && card_b > 0){
-    ncount = uint_array::intersect(R,A,row_arrays[j],card_a,card_b,t,(unsigned int*)A); //last variable is foo wont be used
+    ncount = uint_array::intersect(R,A,row_arrays[j],card_a,card_b,t,(uint32_t*)A); //last variable is foo wont be used
   }
   return ncount;
 }
 
 template<typename T> 
-T AOA_Matrix::map_columns(std::function<T(unsigned int, std::function<T(unsigned int)>)> rowfunction, std::function<T(unsigned int)> f, T *new_data){
+T AOA_Matrix::map_columns(std::function<T(uint32_t, std::function<T(uint32_t)>)> rowfunction, std::function<T(uint32_t)> f, T *new_data){
   T diff = (T) 0;
   #pragma omp parallel for default(none) shared(f,new_data,rowfunction) schedule(dynamic) reduction(+:diff) 
   for(size_t i = 0; i < matrix_size; i++){
@@ -162,7 +162,7 @@ T AOA_Matrix::map_columns(std::function<T(unsigned int, std::function<T(unsigned
 }
 
 template<typename T> 
-T AOA_Matrix::map_columns_pr(std::function<T(unsigned int, std::function<T(unsigned int)>)> rowfunction, std::function<T(unsigned int)> f, T *new_data, T *old_data){
+T AOA_Matrix::map_columns_pr(std::function<T(uint32_t, std::function<T(uint32_t)>)> rowfunction, std::function<T(uint32_t)> f, T *new_data, T *old_data){
   T diff = (T) 0;
   #pragma omp parallel for default(none) shared(rowfunction,old_data,f,new_data) schedule(dynamic) reduction(+:diff) 
   for(size_t i = 0; i < matrix_size; i++){
@@ -173,7 +173,7 @@ T AOA_Matrix::map_columns_pr(std::function<T(unsigned int, std::function<T(unsig
 }
 
 template<typename T> 
-T AOA_Matrix::sum_over_columns_in_row(unsigned int row, unsigned int *decoded, std::function<T(unsigned int,unsigned int)> f){    
+T AOA_Matrix::sum_over_columns_in_row(uint32_t row, uint32_t *decoded, std::function<T(uint32_t,uint32_t)> f){    
   T result = (T) 0;
   size_t card = row_lengths[row];
   if(card > 0){
@@ -182,7 +182,7 @@ T AOA_Matrix::sum_over_columns_in_row(unsigned int row, unsigned int *decoded, s
   return result;
 }
 template<typename T> 
-T AOA_Matrix::sum_over_rows_in_column(unsigned int col,std::function<T(unsigned int)> f){    
+T AOA_Matrix::sum_over_rows_in_column(uint32_t col,std::function<T(uint32_t)> f){    
   T result = (T) 0;
   size_t card = column_lengths[col];
   if(card > 0){

@@ -31,7 +31,7 @@ class UnsignedIntegerArray{
 
     static void swap(UnsignedIntegerArray *a,UnsignedIntegerArray *b);
     static UnsignedIntegerArray* fromRange(size_t start, size_t end);
-    static UnsignedIntegerArray* fromArray(unsigned int *data_in, size_t length_in, common::type t_in);
+    static UnsignedIntegerArray* fromArray(uint32_t *data_in, size_t length_in, common::type t_in);
     static UnsignedIntegerArray* alloc(size_t size);
 
 };

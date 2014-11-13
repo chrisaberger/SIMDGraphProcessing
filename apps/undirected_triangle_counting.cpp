@@ -5,43 +5,33 @@
 namespace application{
   AOA_Matrix *graph;
   long num_triangles = 0;
-  unsigned int *thread_local_buffers;
 
-  inline bool myNodeSelection(unsigned int node){
+  inline bool myNodeSelection(uint32_t node){
     (void)node;
     return true;
   }
-  inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
+  inline bool myEdgeSelection(uint32_t node, uint32_t nbr){
     return nbr < node;
   }
   struct thread_data{
     size_t thread_id;
     uint8_t *buffer;
-    unsigned int *decoded_src;
+    uint32_t *decoded_src;
 
     thread_data(size_t buffer_lengths, const size_t thread_id_in){
       thread_id = thread_id_in;
-      decoded_src = new unsigned int[buffer_lengths];
-      buffer = (uint8_t*) decoded_src; //should not be used
+      decoded_src = new uint32_t[buffer_lengths];
+      buffer = new uint8_t[buffer_lengths*sizeof(int)]; //should not be used
     }
 
-    inline long edgeApply(unsigned int src, unsigned int dst){
-      //cout << "src: " << src << " dst: " << dst << endl;
+    inline long edgeApply(uint32_t src, uint32_t dst){
       long count = graph->row_intersect(buffer,src,dst,decoded_src);
-      //cout << count << endl;
       return count;
     }
   };
   thread_data **t_data_pointers;
 
   inline void allocBuffers(size_t num_threads){    
-    //setup
-    #if COMPRESSION == 1
-    thread_local_buffers = new unsigned int[graph->max_nbrhood_size*num_threads];
-    #else
-    thread_local_buffers = graph->row_lengths; //not used; alloc can be expensive
-    #endif
-
     t_data_pointers = new thread_data*[num_threads];
     for(size_t k= 0; k < num_threads; k++){
       t_data_pointers[k] = new thread_data(graph->max_nbrhood_size,k);
@@ -65,7 +55,7 @@ namespace application{
       if(num_threads > 1){
         for(size_t k = 0; k < num_threads; k++){
           auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[k],_1,_2);
-          threads[k] = thread([k, &matrix_size, &next_work, &reducer, &thread_local_buffers, edge_function, &row_function](void) -> void {
+          threads[k] = thread([k, &matrix_size, &next_work, &reducer, &t_data_pointers, edge_function, &row_function](void) -> void {
             long t_local_reducer = 0;
             while(true) {
               size_t work_start = next_work.fetch_add(block_size, std::memory_order_relaxed);
@@ -74,7 +64,7 @@ namespace application{
 
               size_t work_end = min(work_start + block_size, matrix_size);
               for(size_t j = work_start; j < work_end; j++) {
-                t_local_reducer += (row_function)(j,&thread_local_buffers[k*matrix_size],edge_function);
+                t_local_reducer += (row_function)(j,t_data_pointers[k]->decoded_src,edge_function);
               }
             }
              reducer += t_local_reducer;
@@ -89,7 +79,7 @@ namespace application{
         auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[0],_1,_2);
         long t_local_reducer = 0;
         for(size_t i = 0; i  < matrix_size;  i++){
-          t_local_reducer += (row_function)(i,thread_local_buffers,edge_function);
+          t_local_reducer += (row_function)(i,t_data_pointers[0]->decoded_src,edge_function);
         }
         reducer = t_local_reducer;
       }

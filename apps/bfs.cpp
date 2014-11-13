@@ -7,11 +7,11 @@ namespace application{
   uint8_t *result;
   long num_triangles = 0;
   
-  inline bool myNodeSelection(unsigned int node){
+  inline bool myNodeSelection(uint32_t node){
     (void)node;
     return true;
   }
-  inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
+  inline bool myEdgeSelection(uint32_t node, uint32_t nbr){
     (void) node; (void) nbr;
     return true;
   }
@@ -84,7 +84,7 @@ int main (int argc, char* argv[]) {
     UnsignedIntegerArray::intersect(next_frontier,n2x,notVisited); //n2x intersect with notVisited
 
     /*
-    unsigned int *nf = (unsigned int*) next_frontier->data;
+    uint32_t *nf = (uint32_t*) next_frontier->data;
     for(size_t i=0; i<next_frontier->length; i++){
       cout << "next frontier: " << i << " data: " << nf[i] << endl; 
     }
@@ -99,7 +99,7 @@ int main (int argc, char* argv[]) {
     tmp = tmp2;
     
     /*
-    unsigned int *nv_data = (unsigned int*)notVisited->data;
+    uint32_t *nv_data = (uint32_t*)notVisited->data;
     for(size_t i=0; i<notVisited->length; i++){
       cout << "not visited: " << i << " data: " << nv_data[i] << endl; 
     }*/

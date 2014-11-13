@@ -8,14 +8,14 @@ namespace application{
   long num_triangles = 0;
   common::type graphType = common::A32BITPACKED;
   
-  inline bool myNodeSelection(unsigned int node){
+  inline bool myNodeSelection(uint32_t node){
     (void)node;
     return true;
   }
-  inline bool myEdgeSelection(unsigned int node, unsigned int nbr){
+  inline bool myEdgeSelection(uint32_t node, uint32_t nbr){
     return nbr < node;
   }
-  inline long edgeApply(unsigned int src, unsigned int dst, unsigned int *src_nbrhood){
+  inline long edgeApply(uint32_t src, uint32_t dst, uint32_t *src_nbrhood){
     //cout << "src: " << src << " dst: " << dst << endl;
     long count = graph->row_intersect(result,src,dst,src_nbrhood);
     //cout << count << endl;

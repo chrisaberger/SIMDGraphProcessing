@@ -1,7 +1,7 @@
 #include "hybrid.hpp"
 
 namespace uint_array{
-  inline common::type get_perf_hybrid_array_type(unsigned int *r_data, size_t row_size, size_t matrix_size){
+  inline common::type get_perf_hybrid_array_type(uint32_t *r_data, size_t row_size, size_t matrix_size){
     double sparsity = (double) row_size/matrix_size;
     if( sparsity > (double) 1/32 ){
       return common::BITSET;
@@ -13,7 +13,7 @@ namespace uint_array{
     }
   }
 
-  inline common::type get_compressed_hybrid_array_type(unsigned int *r_data, size_t row_size, size_t matrix_size){
+  inline common::type get_compressed_hybrid_array_type(uint32_t *r_data, size_t row_size, size_t matrix_size){
     (void) r_data;
     double sparsity = (double) row_size/matrix_size;
     if( sparsity > (double) 2/32 ){
@@ -26,7 +26,7 @@ namespace uint_array{
     }
   }
 
-  inline common::type get_array_type(common::type t_stat,unsigned int *r_data, size_t len, size_t size){
+  inline common::type get_array_type(common::type t_stat,uint32_t *r_data, size_t len, size_t size){
     #if HYBRID_LAYOUT == 1
     if(t_stat == common::DENSE_RUNS){
       if(len < 8){
@@ -49,7 +49,7 @@ namespace uint_array{
     #endif
   }
 
-  inline size_t preprocess(uint8_t *data, size_t index, unsigned int *data_in, size_t length_in, common::type t){
+  inline size_t preprocess(uint8_t *data, size_t index, uint32_t *data_in, size_t length_in, common::type t){
     #if HYBRID_LAYOUT == 1
     data[index++] = t;    
     #endif
@@ -58,7 +58,7 @@ namespace uint_array{
     size_t start_index = index+sizeof(size_t);
     switch(t){
       case common::ARRAY32:
-        index += array32::preprocess((unsigned int*)(data+index),data_in,length_in);
+        index += array32::preprocess((uint32_t*)(data+index),data_in,length_in);
         break;
       case common::ARRAY16:
         size_ptr = (size_t*)&data[index];
@@ -88,7 +88,7 @@ namespace uint_array{
     return index;
   }
   template<typename T> 
-  inline T sum(std::function<T(unsigned int,unsigned int)> function,unsigned int col,uint8_t *data, size_t card,common::type t, unsigned int *outputA){
+  inline T sum(std::function<T(uint32_t,uint32_t)> function,uint32_t col,uint8_t *data, size_t card,common::type t, uint32_t *outputA){
     #if HYBRID_LAYOUT == 1
     t = (common::type) data[0];
     data++;
@@ -98,7 +98,7 @@ namespace uint_array{
     size_t *size_ptr;
     switch(t){
       case common::ARRAY32:
-        result = array32::sum(function,col,(unsigned int*)data,card);
+        result = array32::sum(function,col,(uint32_t*)data,card);
         break;
       case common::ARRAY16:
         size_ptr = (size_t*)&data[0];
@@ -125,7 +125,7 @@ namespace uint_array{
     return result;
   } 
   template<typename T> 
-  inline T sum(std::function<T(unsigned int)> function,uint8_t *data,size_t card,common::type t){
+  inline T sum(std::function<T(uint32_t)> function,uint8_t *data,size_t card,common::type t){
     #if HYBRID_LAYOUT == 1
     t = (common::type) data[0];
     data++;
@@ -136,7 +136,7 @@ namespace uint_array{
     T result;
     switch(t){
       case common::ARRAY32:
-        result = array32::sum(function,(unsigned int*)data,card);
+        result = array32::sum(function,(uint32_t*)data,card);
         break;
         /*
       case common::ARRAY16:
@@ -146,13 +146,13 @@ namespace uint_array{
         result = bitset::sum(function,col,(unsigned short*)data,length/2,outputA);
         break;
       case common::A32BITPACKED:
-        outputA = new unsigned int[card];
+        outputA = new uint32_t[card];
         a32bitpacked::decode(outputA,data,card);
         result = array32::sum(function,col,outputA,card,outputA);
         delete[] outputA;
         break;
       case common::VARIANT:
-        outputA = new unsigned int[card];
+        outputA = new uint32_t[card];
         variant::decode(outputA,data,card);
         result = array32::sum(function,col,outputA,card,outputA);
         delete[] outputA;
@@ -165,14 +165,14 @@ namespace uint_array{
     return result;
   } 
   inline size_t intersect_homogeneous(uint8_t *R, uint8_t *A, uint8_t *B,
-    unsigned int card_a, unsigned int card_b, common::type t,unsigned int *outputA){
+    uint32_t card_a, uint32_t card_b, common::type t,uint32_t *outputA){
     size_t count = 0;
-    unsigned int *outputB;
+    uint32_t *outputB;
  
     size_t *size_ptr_a; size_t *size_ptr_b;
     switch(t){
       case common::ARRAY32:
-        count = array32::intersect(R,(unsigned int*)A,(unsigned int*)B,card_a,card_b);
+        count = array32::intersect(R,(uint32_t*)A,(uint32_t*)B,card_a,card_b);
         break;
       case common::ARRAY16:
         size_ptr_a = (size_t*)&A[0];
@@ -189,13 +189,13 @@ namespace uint_array{
         count = bitset::intersect(R,(unsigned short*)A,(unsigned short*)B,size_ptr_a[0]/sizeof(short),size_ptr_b[0]/sizeof(short));
         break;
       case common::A32BITPACKED:
-        outputB = new unsigned int[card_b];
+        outputB = new uint32_t[card_b];
         a32bitpacked::decode(outputB,B,card_b);
         count = array32::intersect(R,outputA,outputB,card_a,card_b);
         delete[] outputB;
         break;
       case common::VARIANT:
-        outputB = new unsigned int[card_b];
+        outputB = new uint32_t[card_b];
         variant::decode(outputB,B,card_b);
         count = array32::intersect(R,outputA,outputB,card_a,card_b);
         delete[] outputB;
@@ -206,32 +206,31 @@ namespace uint_array{
     return count;
   }
 
-  inline size_t intersect_heterogenous(uint8_t *R, uint8_t *A, uint8_t *B, unsigned int card_a, unsigned int card_b,
-    common::type t1, common::type t2, unsigned int *outputA){
+  inline size_t intersect_heterogenous(uint8_t *R, uint8_t *A, uint8_t *B, uint32_t card_a, uint32_t card_b,
+    common::type t1, common::type t2, uint32_t *outputA){
 
     size_t *size_ptr_a; size_t *size_ptr_b;
     size_t count = 0;
     if(t1 == common::ARRAY32){
       if(t2 == common::ARRAY16){
-        //cout << "a32 a16" << endl;
         size_ptr_b = (size_t*)&B[0];
         B += sizeof(size_t);
-        count = hybrid::intersect_a32_a16(R,(unsigned int*)A,(unsigned short*)B,card_a,size_ptr_b[0]/sizeof(short));
+        count = hybrid::intersect_a32_a16(R,(uint32_t*)A,(unsigned short*)B,card_a,size_ptr_b[0]/sizeof(short));
       } else if(t2 == common::BITSET){
         size_ptr_b = (size_t*)&B[0];
         B += sizeof(size_t);
-        count = hybrid::intersect_a32_bs(R,(unsigned int*)A,(unsigned short*)B,card_a,size_ptr_b[0]/sizeof(short));
+        count = hybrid::intersect_a32_bs(R,(uint32_t*)A,(unsigned short*)B,card_a,size_ptr_b[0]/sizeof(short));
       } 
       #if COMPRESSION == 1
       else if(t2 == common::VARIANT){
-        unsigned int *outputB = new unsigned int[card_b];
+        uint32_t *outputB = new uint32_t[card_b];
         variant::decode(outputB,B,card_b);
-        count = array32::intersect(R,(unsigned int*)A,outputB,card_a,card_b);
+        count = array32::intersect(R,(uint32_t*)A,outputB,card_a,card_b);
         delete[] outputB;
       } else if(t2 == common::A32BITPACKED){
-        unsigned int *outputB = new unsigned int[card_b];
+        uint32_t *outputB = new uint32_t[card_b];
         a32bitpacked::decode(outputB,B,card_b);
-        count = array32::intersect(R,(unsigned int*)A,outputB,card_a,card_b);
+        count = array32::intersect(R,(uint32_t*)A,outputB,card_a,card_b);
         delete[] outputB;
       }
       #endif
@@ -239,7 +238,7 @@ namespace uint_array{
       if(t2 == common::ARRAY32){
         size_ptr_a = (size_t*)&A[0];
         A += sizeof(size_t);
-        count = hybrid::intersect_a32_a16(R,(unsigned int*)B,(unsigned short*)A,card_b,size_ptr_a[0]/sizeof(short));
+        count = hybrid::intersect_a32_a16(R,(uint32_t*)B,(unsigned short*)A,card_b,size_ptr_a[0]/sizeof(short));
       } else if(t2 == common::BITSET){
         size_ptr_a = (size_t*)&A[0];
         A += sizeof(size_t);
@@ -251,14 +250,14 @@ namespace uint_array{
       else if(t2 == common::VARIANT){
         size_ptr_a = (size_t*)&A[0];
         A += sizeof(size_t);
-        unsigned int *outputB = new unsigned int[card_b];
+        uint32_t *outputB = new uint32_t[card_b];
         variant::decode(outputB,B,card_b);
         count = hybrid::intersect_a32_a16(R,outputB,(unsigned short*)A,card_b,size_ptr_a[0]/sizeof(short));
         delete[] outputB;
       } else if(t2 == common::A32BITPACKED){
         size_ptr_a = (size_t*)&A[0];
         A += sizeof(size_t);
-        unsigned int *outputB = new unsigned int[card_b];
+        uint32_t *outputB = new uint32_t[card_b];
         a32bitpacked::decode(outputB,B,card_b);
         count = hybrid::intersect_a32_a16(R,outputB,(unsigned short*)A,card_b,size_ptr_a[0]/sizeof(short));
         delete[] outputB;
@@ -268,8 +267,7 @@ namespace uint_array{
       if(t2 == common::ARRAY32){
         size_ptr_a = (size_t*)&A[0];
         A += sizeof(size_t);
-        //cout << "bs a32" << endl;
-        count = hybrid::intersect_a32_bs(R,(unsigned int*)B,(unsigned short*)A,card_b,size_ptr_a[0]/sizeof(short));
+        count = hybrid::intersect_a32_bs(R,(uint32_t*)B,(unsigned short*)A,card_b,size_ptr_a[0]/sizeof(short));
       } else if(t2 == common::ARRAY16){
         size_ptr_a = (size_t*)&A[0];
         A += sizeof(size_t);
@@ -281,14 +279,14 @@ namespace uint_array{
       else if(t2 == common::VARIANT){
         size_ptr_a = (size_t*)&A[0];
         A += sizeof(size_t);
-        unsigned int *outputB = new unsigned int[card_b];
+        uint32_t *outputB = new uint32_t[card_b];
         variant::decode(outputB,B,card_b);
         count = hybrid::intersect_a32_bs(R,outputB,(unsigned short*)A,card_b,size_ptr_a[0]/sizeof(short));
         delete[] outputB;
       } else if(t2 == common::A32BITPACKED){
         size_ptr_a = (size_t*)&A[0];
         A += sizeof(size_t);
-        unsigned int *outputB = new unsigned int[card_b];
+        uint32_t *outputB = new uint32_t[card_b];
         a32bitpacked::decode(outputB,B,card_b);
         count = hybrid::intersect_a32_bs(R,outputB,(unsigned short*)A,card_b,size_ptr_a[0]/sizeof(short));
         delete[] outputB;
@@ -298,13 +296,13 @@ namespace uint_array{
     #if COMPRESSION == 1
     else if(t1 == common::A32BITPACKED){
       if(t2 == common::ARRAY32){
-        count = array32::intersect(R,outputA,(unsigned int*)B,card_a,card_b);
+        count = array32::intersect(R,outputA,(uint32_t*)B,card_a,card_b);
       } else if(t2 == common::ARRAY16){
         size_ptr_b = (size_t*)&B[0];
         B += sizeof(size_t);
         count = hybrid::intersect_a32_a16(R,outputA,(unsigned short*)B,card_a,size_ptr_b[0]/sizeof(short));
       } else if(t2 == common::VARIANT){
-        unsigned int *outputB = new unsigned int[card_b];
+        uint32_t *outputB = new uint32_t[card_b];
         variant::decode(outputB,B,card_b);
         count = array32::intersect(R,outputA,outputB,card_a,card_b);
         delete[] outputB;
@@ -315,13 +313,13 @@ namespace uint_array{
       } 
     } else if(t1 == common::VARIANT){
       if(t2 == common::ARRAY32){
-        count = array32::intersect(R,outputA,(unsigned int*)B,card_a,card_b);
+        count = array32::intersect(R,outputA,(uint32_t*)B,card_a,card_b);
       } else if(t2 == common::ARRAY16){
         size_ptr_b = (size_t*)&B[0];
         B += sizeof(size_t);
         count = hybrid::intersect_a32_a16(R,outputA,(unsigned short*)B,card_a,size_ptr_b[0]/sizeof(short));
       } else if(t2 == common::A32BITPACKED){
-        unsigned int *outputB = new unsigned int[card_b];
+        uint32_t *outputB = new uint32_t[card_b];
         a32bitpacked::decode(outputB,B,card_b);
         count = array32::intersect(R,outputA,outputB,card_a,card_b);
         delete[] outputB;
@@ -339,7 +337,7 @@ namespace uint_array{
     return count;
   }
   inline size_t intersect(uint8_t *R, uint8_t *A, uint8_t *B,
-    unsigned int card_a, unsigned int card_b, common::type t, unsigned int *outputA){
+    uint32_t card_a, uint32_t card_b, common::type t, uint32_t *outputA){
 
     #if HYBRID_LAYOUT == 1
     (void) t;
@@ -355,7 +353,7 @@ namespace uint_array{
     #endif
   }
   inline size_t set_union(uint8_t *R, uint8_t *A, uint8_t *B,
-    unsigned int card_a, unsigned int card_b, common::type t, unsigned int *outputA){
+    uint32_t card_a, uint32_t card_b, common::type t, uint32_t *outputA){
     
     (void) card_a; (void) card_b; (void) outputA; (void) t;
     #if HYBRID_LAYOUT == 1
@@ -363,16 +361,16 @@ namespace uint_array{
     const common::type t1 = (common::type) A[0];
     const common::type t2 = (common::type) B[0];
     if(t1 == t2){
-      return array32::intersect(R,(unsigned int*)++A,(unsigned int*)++B,card_a,card_b);
+      return array32::intersect(R,(uint32_t*)++A,(uint32_t*)++B,card_a,card_b);
     } else{
       return 0;
     }
     #else 
-    return array32::intersect(R,(unsigned int*)++A,(unsigned int*)++B,card_a,card_b);
+    return array32::intersect(R,(uint32_t*)++A,(uint32_t*)++B,card_a,card_b);
     #endif  
   }
 
-  inline void decode(unsigned int *result, uint8_t *data, long card){
+  inline void decode(uint32_t *result, uint8_t *data, long card){
     #if HYBRID_LAYOUT == 1
     common::type t = (common::type) data[0];
     data++;
@@ -380,7 +378,7 @@ namespace uint_array{
 
     switch(t){
       case common::ARRAY32:
-        std::copy((unsigned int*)data,(unsigned int*)data+card,result);
+        std::copy((uint32_t*)data,(uint32_t*)data+card,result);
         break;
       case common::ARRAY16:
         data += sizeof(size_t);
@@ -406,12 +404,12 @@ namespace uint_array{
     data++;
     #endif
     
-    cout << "PRINT TYPE: " << (unsigned int) t << endl;
+    cout << "PRINT TYPE: " << (uint32_t) t << endl;
 
     size_t *size_ptr;
     switch(t){
       case common::ARRAY32:
-        array32::print_data((unsigned int*)data,cardinality,file);
+        array32::print_data((uint32_t*)data,cardinality,file);
         break;
       case common::ARRAY16:
         size_ptr = (size_t*)&data[0];

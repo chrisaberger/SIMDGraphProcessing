@@ -10,9 +10,10 @@ struct MutableGraph {
   size_t num_edges;
   size_t max_nbrhood_size;
   bool symmetric;
-  unordered_map<unsigned int,unsigned int> *external_ids;
-  vector< vector<unsigned int>*  > *out_neighborhoods;
-  vector< vector<unsigned int>*  > *in_neighborhoods;
+  vector<uint64_t> *id_map;
+  unordered_map<uint64_t,uint32_t> *external_ids;
+  vector< vector<uint32_t>*  > *out_neighborhoods;
+  vector< vector<uint32_t>*  > *in_neighborhoods;
 
   void reorder_bfs();
   void reorder_random();
@@ -27,13 +28,15 @@ struct MutableGraph {
       size_t num_edges_in,
       size_t max_nbrhood_size_in,
       bool symmetric_in,
-      unordered_map<unsigned int,unsigned int> *external_ids_in,
-      vector< vector<unsigned int>*  > *out_neighborhoods_in,
-      vector< vector<unsigned int>*  > *in_neighborhoods_in): 
+      vector<uint64_t> *id_map_in,
+      unordered_map<uint64_t,uint32_t> *external_ids_in,
+      vector< vector<uint32_t>*  > *out_neighborhoods_in,
+      vector< vector<uint32_t>*  > *in_neighborhoods_in): 
     num_nodes(num_nodes_in), 
     num_edges(num_edges_in),
     max_nbrhood_size(max_nbrhood_size_in),
     symmetric(symmetric_in),
+    id_map(id_map_in), 
     external_ids(external_ids_in), 
     out_neighborhoods(out_neighborhoods_in),
     in_neighborhoods(in_neighborhoods_in){}

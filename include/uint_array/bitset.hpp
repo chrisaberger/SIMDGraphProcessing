@@ -4,17 +4,17 @@
 #define ADDRESS_BITS_PER_WORD 4
 
 namespace bitset {
-	inline size_t word_index(unsigned int bit_index){
+	inline size_t word_index(uint32_t bit_index){
   	return bit_index >> ADDRESS_BITS_PER_WORD;
 	}
-	inline int get_bit(unsigned int value, unsigned int position) {
+	inline int get_bit(uint32_t value, uint32_t position) {
     return ( ( value & (1 << position) ) >> position);
 	}
-	inline bool is_set(unsigned int index, const unsigned short *in_array){
+	inline bool is_set(uint32_t index, const unsigned short *in_array){
   	return (in_array[word_index(index)] & (1 << (index%16)));
 	}
-	inline size_t preprocess(unsigned short *R, unsigned int *A, size_t s_a){
-		unsigned int max = A[s_a-1];
+	inline size_t preprocess(unsigned short *R, uint32_t *A, size_t s_a){
+		uint32_t max = A[s_a-1];
 		size_t num_words = word_index(max);
 		if(s_a != 0){
 			num_words++;
@@ -22,7 +22,7 @@ namespace bitset {
 
 	  size_t i = 0;
 	  while(i<s_a){
-	    unsigned int cur = A[i];
+	    uint32_t cur = A[i];
 	    size_t word = word_index(cur);
 	    unsigned short set_value = 1 << (cur % BITS_PER_WORD);
 	    bool same_word = true;
@@ -101,20 +101,20 @@ namespace bitset {
 	  return count;
 	}
 	template<typename T> 
-  inline T sum(std::function<T(unsigned int,unsigned int)> function,unsigned int col,unsigned short *data, size_t length){
+  inline T sum(std::function<T(uint32_t,uint32_t)> function,uint32_t col,unsigned short *data, size_t length){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
     	unsigned short cur_word = data[i];
     	for(size_t j = 0; j < BITS_PER_WORD; j++){
     		if((cur_word >> j) % 2){
-    			unsigned int cur = BITS_PER_WORD*i + j;
+    			uint32_t cur = BITS_PER_WORD*i + j;
     			result += function(col,cur);
     		}
     	}
     }
     return result;
   }
-  inline void decode(unsigned int *result, unsigned short *A, size_t s_a){
+  inline void decode(uint32_t *result, unsigned short *A, size_t s_a){
     size_t count = 0;
     size_t i = 0;
     while(count < s_a){

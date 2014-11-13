@@ -25,6 +25,7 @@ namespace pcm_helper {
 
    int32_t pcm_init() {
       pcm_m = PCM::getInstance();
+      pcm_m->disableJKTWorkaround();
       int32_t ret_val = 0;
 
       switch(pcm_m->program()) {
@@ -81,9 +82,8 @@ namespace pcm_helper {
             float iMC_Rd_socket_chan = 0.0;
             float iMC_Wr_socket_chan = 0.0;
 
+            //In case of JKT-EN, there are only three channels. Skip one and continue.
             if(getMCCounter(channel,READ,uncState1[skt],uncState2[skt]) == 0.0 && getMCCounter(channel,WRITE,uncState1[skt],uncState2[skt]) == 0.0) {
-               iMC_Rd_socket_chan = -1.0;
-               iMC_Wr_socket_chan = -1.0;
                continue;
             }
 
@@ -123,7 +123,8 @@ namespace pcm_helper {
    int32_t pcm_init() { return 0; }
    int32_t pcm_cleanup() { return 0; }
    system_counter_state_t pcm_get_counter_state() { return 0; }
-   void pcm_print_bandwidth(system_counter_state_t before_sstate, system_counter_state_t after_sstate) {}
+   server_uncore_power_state_t* pcm_get_uncore_power_state() { return 0; }
+   void pcm_print_uncore_power_state(server_uncore_power_state_t* before_uncstate, server_uncore_power_state_t* after_uncstate) {}
    void pcm_print_counter_stats(system_counter_state_t before_sstate, system_counter_state_t after_sstate) {}
 }
 #endif

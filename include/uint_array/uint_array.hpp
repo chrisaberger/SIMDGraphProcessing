@@ -213,7 +213,6 @@ namespace uint_array{
     size_t count = 0;
     if(t1 == common::ARRAY32){
       if(t2 == common::ARRAY16){
-        //cout << "a32 a16" << endl;
         size_ptr_b = (size_t*)&B[0];
         B += sizeof(size_t);
         count = hybrid::intersect_a32_a16(R,(uint32_t*)A,(unsigned short*)B,card_a,size_ptr_b[0]/sizeof(short));
@@ -268,7 +267,6 @@ namespace uint_array{
       if(t2 == common::ARRAY32){
         size_ptr_a = (size_t*)&A[0];
         A += sizeof(size_t);
-        //cout << "bs a32" << endl;
         count = hybrid::intersect_a32_bs(R,(uint32_t*)B,(unsigned short*)A,card_b,size_ptr_a[0]/sizeof(short));
       } else if(t2 == common::ARRAY16){
         size_ptr_a = (size_t*)&A[0];

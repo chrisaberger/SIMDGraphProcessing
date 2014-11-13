@@ -8,7 +8,6 @@ namespace application{
   long num_triangles = 0;
   Table *output;
   size_t num_threads;
-  uint32_t *thread_local_buffers;
 
   inline bool myNodeSelection(uint32_t node){
     (void)node;
@@ -79,13 +78,6 @@ namespace application{
     
     output = new Table(query_depth,num_threads,cardinality);
 
-    //setup
-    #if COMPRESSION == 1
-    thread_local_buffers = new uint32_t[graph->max_nbrhood_size*num_threads];
-    #else
-    thread_local_buffers = graph->row_lengths; //not used; alloc can be expensive
-    #endif
-
     t_data_pointers = new thread_data*[num_threads];
     for(size_t k= 0; k < num_threads; k++){
       t_data_pointers[k] = new thread_data(graph->max_nbrhood_size,3,query_depth,k);
@@ -106,7 +98,7 @@ namespace application{
     if(num_threads > 1){
       for(size_t k = 0; k < num_threads; k++){
         auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[k],_1,_2);
-        threads[k] = thread([k, &matrix_size, &next_work, &reducer, &thread_local_buffers, edge_function, &row_function](void) -> void {
+        threads[k] = thread([k, &matrix_size, &next_work, &reducer, &t_data_pointers, edge_function, &row_function](void) -> void {
           long t_local_reducer = 0;
           while(true) {
             size_t work_start = next_work.fetch_add(block_size, std::memory_order_relaxed);
@@ -115,7 +107,7 @@ namespace application{
 
             size_t work_end = min(work_start + block_size, matrix_size);
             for(size_t j = work_start; j < work_end; j++) {
-              t_local_reducer += (row_function)(j,&thread_local_buffers[k*graph->max_nbrhood_size],edge_function);
+              t_local_reducer += (row_function)(j,t_data_pointers[k]->decoded_src,edge_function);
             }
           }
           reducer += t_local_reducer;
@@ -130,7 +122,7 @@ namespace application{
       auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[0],_1,_2);
       long t_local_reducer = 0;
       for(size_t i = 0; i  < matrix_size;  i++){
-        t_local_reducer += (row_function)(i,thread_local_buffers,edge_function);
+        t_local_reducer += (row_function)(i,t_data_pointers[0]->decoded_src,edge_function);
       }
       reducer = t_local_reducer;
     }

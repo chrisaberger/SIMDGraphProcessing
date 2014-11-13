@@ -44,6 +44,8 @@ namespace application{
     auto row_function = std::bind(&AOA_Matrix::sum_over_columns_in_row<long>, graph, _1, _2, _3);
 
       system_counter_state_t before_sstate = pcm_get_counter_state();
+      server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
+
       size_t matrix_size = graph->matrix_size;
 
       thread* threads = new thread[num_threads];
@@ -85,6 +87,8 @@ namespace application{
         reducer = t_local_reducer;
       }
 
+    server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();
+    pcm_print_uncore_power_state(before_uncstate, after_uncstate);
     system_counter_state_t after_sstate = pcm_get_counter_state();
     pcm_print_counter_stats(before_sstate, after_sstate);
     num_triangles = reducer;
@@ -156,10 +160,7 @@ int main (int argc, char* argv[]) {
   common::stopClock("buffer allocation");
 
   common::startClock();
-  system_counter_state_t before_sstate = pcm_get_counter_state();
   application::queryOver(atoi(argv[2]));
-  system_counter_state_t after_sstate = pcm_get_counter_state();
-  pcm_print_counter_stats(before_sstate, after_sstate);
   common::stopClock(input_layout);
 
   cout << "Count: " << application::num_triangles << endl << endl;

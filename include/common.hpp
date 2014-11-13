@@ -24,7 +24,7 @@
 #include <atomic>
 #include <cstdarg>
 
-// #define ENABLE_PCM
+//#define ENABLE_PCM
 
 #define WRITE_VECTOR 1
 #define VECTORIZE 1

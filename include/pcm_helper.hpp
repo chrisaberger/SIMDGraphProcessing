@@ -73,6 +73,8 @@ namespace pcm_helper {
 
       // The following code is heavly inspired (read: copied from)
       // pcm-memory.cpp in the Intel PCM source
+      float imC_Rd = 0.0;
+      float imC_Wr = 0.0;
       for(uint32_t skt = 0; skt < pcm_m->getNumSockets(); ++skt) {
          float iMC_Rd_socket = 0.0;
          float iMC_Wr_socket = 0.0;
@@ -100,7 +102,14 @@ namespace pcm_helper {
                << " (read/write): " << iMC_Rd_socket_chan
                << "/" << iMC_Wr_socket_chan << std::endl;
          }
+
+         imC_Rd += iMC_Rd_socket;
+         imC_Wr += iMC_Wr_socket;
+         std::cout
+            << "Socket " << skt << " (read/write): "
+            << iMC_Rd_socket << "/" << iMC_Wr_socket << std::endl;
       }
+      std::cout << "Total (read/write): " << imC_Rd << "/" << imC_Wr << std::endl;
    }
 
    void pcm_print_counter_stats(system_counter_state_t before_sstate, system_counter_state_t after_sstate) {

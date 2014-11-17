@@ -49,6 +49,7 @@ namespace application{
       size_t matrix_size = graph->matrix_size;
 
       thread* threads = new thread[num_threads];
+      double* thread_times = new double[num_threads];
       std::atomic<long> reducer;
       reducer = 0;
       const size_t block_size = 1500; //matrix_size / num_threads;
@@ -58,9 +59,10 @@ namespace application{
       if(num_threads > 1){
         for(size_t k = 0; k < num_threads; k++){
           auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[k],_1,_2);
-          threads[k] = thread([k, &matrix_size, &next_work, &reducer, &t_data_pointers, edge_function, &row_function](void) -> void {
+          threads[k] = thread([k, &matrix_size, &next_work, &reducer, &t_data_pointers, edge_function, &row_function, &thread_times](void) -> void {
             size_t local_block_size = block_size;
             long t_local_reducer = 0;
+            double t_begin = omp_get_wtime();
             while(true) {
               size_t work_start = next_work.fetch_add(local_block_size, std::memory_order_relaxed);
               if(work_start > matrix_size)
@@ -72,7 +74,9 @@ namespace application{
                 t_local_reducer += (row_function)(j,t_data_pointers[k]->decoded_src,edge_function);
               }
             }
-             reducer += t_local_reducer;
+            reducer += t_local_reducer;
+            double t_end = omp_get_wtime();
+            thread_times[k] = t_end - t_begin;
            });
         }
 
@@ -83,10 +87,17 @@ namespace application{
       } else{
         auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[0],_1,_2);
         long t_local_reducer = 0;
+        double t_begin = omp_get_wtime();
         for(size_t i = 0; i  < matrix_size;  i++){
           t_local_reducer += (row_function)(i,t_data_pointers[0]->decoded_src,edge_function);
         }
+        double t_end = omp_get_wtime();
+        thread_times[0] = t_end - t_begin;
         reducer = t_local_reducer;
+      }
+
+      for(size_t k = 0; k < num_threads; k++){
+          std::cout << "Execution time of thread " << k << ": " << thread_times[k] << std::endl;
       }
 
     server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();

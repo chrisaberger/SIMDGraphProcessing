@@ -404,8 +404,6 @@ namespace uint_array{
     data++;
     #endif
     
-    cout << "PRINT TYPE: " << (uint32_t) t << endl;
-
     size_t *size_ptr;
     switch(t){
       case common::ARRAY32:

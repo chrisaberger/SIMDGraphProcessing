@@ -18,7 +18,7 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
 
   uint8_t **row_arrays_in = new uint8_t*[matrix_size_in];
   uint32_t *row_lengths_in = new uint32_t[matrix_size_in];
-  uint32_t *node_attributes_in = new uint32_t[matrix_size_in];
+  uint32_t *node_attributes_in = new uint32_t[node_attr->size()];
 
   cout << "Number of edges: " << cardinality_in << endl;
 
@@ -38,7 +38,9 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
     #pragma omp for schedule(static,100)
     for(size_t i = 0; i < matrix_size_in; ++i){
       if(node_selection(i)){
-        node_attributes_in[i] = node_attr->at(imap->at(i));
+        if(node_attr->size() > 0){
+          node_attributes_in[i] = node_attr->at(imap->at(i));
+        }
         vector<uint32_t> *row = g->at(i);
         size_t new_size = 0;
         for(size_t j = 0; j < row->size(); ++j) {
@@ -176,6 +178,7 @@ void AOA_Matrix::print_data(string filename){
   //Printing out neighbors
   cout << "Writing matrix row_data to file: " << filename << endl;
   for(size_t i = 0; i < matrix_size; i++){
+    myfile << "External ID: " << id_map->at(i) << endl;
     myfile << "ROW: " << i <<  " LEN: " << row_lengths[i] << endl;
     size_t card = row_lengths[i];
     if(card > 0){

@@ -51,7 +51,7 @@ namespace application{
       thread* threads = new thread[num_threads];
       std::atomic<long> reducer;
       reducer = 0;
-      const size_t block_size = 150; //matrix_size / num_threads;
+      const size_t block_size = 1500; //matrix_size / num_threads;
       std::atomic<size_t> next_work;
       next_work = 0;
 
@@ -59,13 +59,15 @@ namespace application{
         for(size_t k = 0; k < num_threads; k++){
           auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[k],_1,_2);
           threads[k] = thread([k, &matrix_size, &next_work, &reducer, &t_data_pointers, edge_function, &row_function](void) -> void {
+            size_t local_block_size = block_size;
             long t_local_reducer = 0;
             while(true) {
-              size_t work_start = next_work.fetch_add(block_size, std::memory_order_relaxed);
+              size_t work_start = next_work.fetch_add(local_block_size, std::memory_order_relaxed);
               if(work_start > matrix_size)
                 break;
 
-              size_t work_end = min(work_start + block_size, matrix_size);
+              size_t work_end = min(work_start + local_block_size, matrix_size);
+              local_block_size = 10 + (work_start / matrix_size) * block_size;
               for(size_t j = work_start; j < work_end; j++) {
                 t_local_reducer += (row_function)(j,t_data_pointers[k]->decoded_src,edge_function);
               }

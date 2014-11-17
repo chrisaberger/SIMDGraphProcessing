@@ -6,8 +6,8 @@ start = time.time()
 filename = sys.argv[1]
 
 print "Loading data"
-`edge(int a, (int b)) indexby a, sortby b.
- edgeRaw(int a, int b) indexby a, sortby b.
+`edge(int a:0..2000000, (int b))  indexby a, sortby b.
+ edgeRaw(int a:0..2000000, (int b))  indexby a, sortby b.
  edgeRaw(a, b) :- l = $read($filename), (v1,v2) = $split(l, " "), a = $toInt(v1), b = $toInt(v2).`
 
 print "Preprocessing data"

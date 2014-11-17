@@ -58,9 +58,7 @@ int main (int argc, char* argv[]) {
   cout << endl;
 
   common::startClock();
-  AOA_Matrix *graph = AOA_Matrix::from_asymmetric(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
-    inputGraph->num_nodes,inputGraph->num_edges,inputGraph->max_nbrhood_size,
-    node_selection,edge_selection,inputGraph->external_ids,layout);
+  AOA_Matrix *graph = AOA_Matrix::from_asymmetric(inputGraph,node_selection,edge_selection,layout);
   common::stopClock("selections");
   
   //inputGraph->MutableGraph::~MutableGraph(); 

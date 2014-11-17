@@ -1,14 +1,24 @@
 #include "AOA_Matrix.hpp"
 
-AOA_Matrix* AOA_Matrix::from_symmetric(const vector< vector<uint32_t>*  > *g,const size_t matrix_size_in,const size_t cardinality_in, const size_t max_nbrhood_size_in,
-  const std::function<bool(uint32_t)> node_selection,const std::function<bool(uint32_t,uint32_t)> edge_selection, 
-  const unordered_map<uint64_t,uint32_t> *external_ids_in, const common::type t_in){
+AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
+  const std::function<bool(uint32_t)> node_selection,
+  const std::function<bool(uint32_t,uint32_t)> edge_selection, 
+  const common::type t_in){
   
+  const vector< vector<uint32_t>*  > *g = inputGraph->out_neighborhoods;
+  const size_t matrix_size_in = inputGraph->num_nodes;
+  const size_t cardinality_in = inputGraph->num_edges;
+  const size_t max_nbrhood_size_in = inputGraph->max_nbrhood_size;
+  const unordered_map<uint64_t,uint32_t> *external_ids_in = inputGraph->external_ids;
+  const unordered_map<uint64_t,uint32_t> *node_attr = inputGraph->node_attr;
+  const vector<uint64_t> *imap = inputGraph->id_map;
+
   array16::prepare_shuffling_dictionary16();
   hybrid::prepare_shuffling_dictionary();
 
   uint8_t **row_arrays_in = new uint8_t*[matrix_size_in];
   uint32_t *row_lengths_in = new uint32_t[matrix_size_in];
+  uint32_t *node_attributes_in = new uint32_t[matrix_size_in];
 
   cout << "Number of edges: " << cardinality_in << endl;
 
@@ -28,6 +38,7 @@ AOA_Matrix* AOA_Matrix::from_symmetric(const vector< vector<uint32_t>*  > *g,con
     #pragma omp for schedule(static,100)
     for(size_t i = 0; i < matrix_size_in; ++i){
       if(node_selection(i)){
+        node_attributes_in[i] = node_attr->at(imap->at(i));
         vector<uint32_t> *row = g->at(i);
         size_t new_size = 0;
         for(size_t j = 0; j < row->size(); ++j) {
@@ -56,16 +67,23 @@ AOA_Matrix* AOA_Matrix::from_symmetric(const vector< vector<uint32_t>*  > *g,con
 
   cout << "ROW DATA SIZE (Bytes): " << total_bytes_used << endl;
 
-  return new AOA_Matrix(matrix_size_in,new_cardinality,max_nbrhood_size_in,t_in,true,row_lengths_in,row_arrays_in,row_lengths_in,row_arrays_in,external_ids_in);
+  return new AOA_Matrix(matrix_size_in,new_cardinality,max_nbrhood_size_in,t_in,true,row_lengths_in,row_arrays_in,row_lengths_in,row_arrays_in,external_ids_in,imap,node_attributes_in);
 }
 
-AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<uint32_t>*  > *out_nbrs,vector< vector<uint32_t>*  > *in_nbrs,size_t max_nbrhood_size_in,
-  const size_t matrix_size_in,const size_t cardinality_in, 
+AOA_Matrix* AOA_Matrix::from_asymmetric(MutableGraph *inputGraph,
   const std::function<bool(uint32_t)> node_selection,
   const std::function<bool(uint32_t,uint32_t)> edge_selection, 
-  const unordered_map<uint64_t,uint32_t> *external_ids_in, 
   const common::type t_in){
   
+  const vector< vector<uint32_t>*  > *out_nbrs = inputGraph->out_neighborhoods;
+  const vector< vector<uint32_t>*  > *in_nbrs = inputGraph->in_neighborhoods;
+  const size_t matrix_size_in = inputGraph->num_nodes;
+  const size_t cardinality_in = inputGraph->num_edges;
+  const size_t max_nbrhood_size_in = inputGraph->max_nbrhood_size;
+  const unordered_map<uint64_t,uint32_t> *external_ids_in = inputGraph->external_ids;
+  const unordered_map<uint64_t,uint32_t> *node_attr = inputGraph->node_attr;
+  const vector<uint64_t> *imap = inputGraph->id_map;
+
   array16::prepare_shuffling_dictionary16();
   hybrid::prepare_shuffling_dictionary();
 
@@ -73,6 +91,7 @@ AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<uint32_t>*  > *out_nbrs,v
   uint32_t *row_lengths_in = new uint32_t[matrix_size_in];
   uint8_t **col_arrays_in = new uint8_t*[matrix_size_in];
   uint32_t *col_lengths_in = new uint32_t[matrix_size_in];
+  uint32_t *node_attributes_in = new uint32_t[matrix_size_in];
 
   cout << "Number of edges: " << cardinality_in << endl;
 
@@ -147,7 +166,7 @@ AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<uint32_t>*  > *out_nbrs,v
   cout << "ROW DATA SIZE (Bytes): " << row_total_bytes_used << endl;
   cout << "COLUMN DATA SIZE (Bytes): " << col_total_bytes_used << endl;
 
-  return new AOA_Matrix(matrix_size_in,new_cardinality,max_nbrhood_size_in,t_in,false,row_lengths_in,row_arrays_in,col_lengths_in,col_arrays_in,external_ids_in);
+  return new AOA_Matrix(matrix_size_in,new_cardinality,max_nbrhood_size_in,t_in,false,row_lengths_in,row_arrays_in,col_lengths_in,col_arrays_in,external_ids_in,imap,node_attributes_in);
 }
 
 void AOA_Matrix::print_data(string filename){

@@ -21,15 +21,25 @@ struct OrderNeighborhoodByRevDegree{
   }
 };
 
-void reassign_ids(vector< vector<uint32_t>* > *neighborhoods,vector< vector<uint32_t>* > *new_neighborhoods,uint32_t *new2old_ids,uint32_t *old2new_ids){
+void MutableGraph::reassign_ids(vector< vector<uint32_t>* > *neighborhoods,vector< vector<uint32_t>* > *new_neighborhoods,uint32_t *new2old_ids,uint32_t *old2new_ids){
+  vector<uint64_t> *new_id_map = new vector<uint64_t>();
+  unordered_map<uint64_t,uint32_t> *new_external_ids = new unordered_map<uint64_t,uint32_t>();
+
   for(size_t i = 0; i < neighborhoods->size(); ++i) {
     vector<uint32_t> *hood = neighborhoods->at(new2old_ids[i]);
+    new_id_map->push_back(id_map->at(new2old_ids[i]));
+    new_external_ids->insert(make_pair(id_map->at(new2old_ids[i]),i));
     for(size_t j = 0; j < hood->size(); ++j) {
       hood->at(j) = old2new_ids[hood->at(j)];
     }
     sort(hood->begin(),hood->end());
     new_neighborhoods->push_back(hood);
   }
+
+  delete id_map;
+  delete external_ids;
+  id_map = new_id_map;
+  external_ids = new_external_ids;
 }
 void MutableGraph::reorder_bfs(){
   //Pull out what you are going to reorder.

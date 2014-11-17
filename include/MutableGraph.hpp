@@ -11,6 +11,7 @@ struct MutableGraph {
   size_t max_nbrhood_size;
   bool symmetric;
   vector<uint64_t> *id_map;
+  unordered_map<uint64_t,uint32_t> *node_attr;
   unordered_map<uint64_t,uint32_t> *external_ids;
   vector< vector<uint32_t>*  > *out_neighborhoods;
   vector< vector<uint32_t>*  > *in_neighborhoods;
@@ -29,6 +30,7 @@ struct MutableGraph {
       size_t max_nbrhood_size_in,
       bool symmetric_in,
       vector<uint64_t> *id_map_in,
+      unordered_map<uint64_t,uint32_t> *node_attr_in,
       unordered_map<uint64_t,uint32_t> *external_ids_in,
       vector< vector<uint32_t>*  > *out_neighborhoods_in,
       vector< vector<uint32_t>*  > *in_neighborhoods_in): 
@@ -37,6 +39,7 @@ struct MutableGraph {
     max_nbrhood_size(max_nbrhood_size_in),
     symmetric(symmetric_in),
     id_map(id_map_in), 
+    node_attr(node_attr_in), 
     external_ids(external_ids_in), 
     out_neighborhoods(out_neighborhoods_in),
     in_neighborhoods(in_neighborhoods_in){}
@@ -53,6 +56,7 @@ struct MutableGraph {
       delete in_neighborhoods;
     }
   }
+  static void undirectedFromAttributeList(const string path);
   static MutableGraph* syntheticUndirected(const size_t num_nodes, const size_t degree);
   static MutableGraph* directedFromBinary(const string path);
   static MutableGraph* undirectedFromBinary(const string path);

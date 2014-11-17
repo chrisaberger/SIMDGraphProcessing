@@ -273,6 +273,7 @@ MutableGraph* MutableGraph::undirectedFromBinary(const string path) {
 
   vector<uint64_t> *id_map = new vector<uint64_t>();
   unordered_map<uint64_t,uint32_t> *extern_ids = new unordered_map<uint64_t,uint32_t>();
+  unordered_map<uint64_t,uint32_t> *id_attributes = new unordered_map<uint64_t,uint32_t>();
   vector< vector<uint32_t>*  > *neighborhoods = new vector< vector<uint32_t>* >();
   size_t num_edges = 0;
   size_t num_nodes = 0;
@@ -299,7 +300,130 @@ MutableGraph* MutableGraph::undirectedFromBinary(const string path) {
   }
   infile.close();
 
-  return new MutableGraph(neighborhoods->size(),num_edges,max_nbrhood_size,true,id_map,extern_ids,neighborhoods,neighborhoods); 
+  return new MutableGraph(neighborhoods->size(),num_edges,max_nbrhood_size,true,id_map,id_attributes,extern_ids,neighborhoods,neighborhoods); 
+}
+void MutableGraph::undirectedFromAttributeList(const string path) {
+  ////////////////////////////////////////////////////////////////////////////////////
+  //Place graph into vector of vectors then decide how you want to
+  //store the graph.
+  unordered_map<uint64_t,uint32_t> *extern_ids = new unordered_map<uint64_t,uint32_t>();
+  vector<uint64_t> *id_map = new vector<uint64_t>();
+  vector< vector<uint32_t>*  > *neighborhoods = new vector< vector<uint32_t>* >();
+
+  cout << path << endl;
+  FILE *pFile = fopen(path.c_str(),"r");
+  if (pFile==NULL) {fputs ("File error",stderr); exit (1);}
+
+  // obtain file size:
+  fseek(pFile,0,SEEK_END);
+  size_t lSize = ftell(pFile);
+  rewind(pFile);
+
+  // allocate memory to contain the whole file:
+  char *buffer = (char*) malloc (sizeof(char)*lSize);
+  neighborhoods->reserve(lSize/4);
+  extern_ids->reserve(lSize/4);
+  if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
+
+  // copy the file into the buffer:
+  size_t result = fread (buffer,1,lSize,pFile);
+  if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
+
+  char *test = strtok(buffer," |\t\nA");
+  while(test != NULL){
+    uint64_t src;
+    sscanf(test,"%lu",&src);
+    test = strtok(NULL," |\t\nA");
+    
+    uint64_t dst;
+    sscanf(test,"%lu",&dst);
+    test = strtok(NULL," |\t\nA");
+
+    uint32_t year;
+    sscanf(test,"%u",&year);
+    test = strtok(NULL," -|\t\nA");
+    cout << "src: " << src << " dst: " <<  dst << " " << year << endl;
+
+    vector<uint32_t> *src_row;
+    if(extern_ids->find(src) == extern_ids->end()){
+      extern_ids->insert(make_pair(src,extern_ids->size()));
+      id_map->push_back(src);
+      src_row = new vector<uint32_t>();
+      neighborhoods->push_back(src_row);
+    } else{
+      src_row = neighborhoods->at(extern_ids->at(src));
+    }
+
+    vector<uint32_t> *dst_row;
+    if(extern_ids->find(dst) == extern_ids->end()){
+      extern_ids->insert(make_pair(dst,extern_ids->size()));
+      id_map->push_back(dst);
+      dst_row = new vector<uint32_t>();
+      neighborhoods->push_back(dst_row);
+    } else{
+      dst_row = neighborhoods->at(extern_ids->at(dst));
+    }
+
+    src_row->push_back(extern_ids->at(dst));
+    dst_row->push_back(extern_ids->at(src));
+  }
+  // terminate
+  fclose(pFile);
+  free(buffer);
+
+  cout << "done reading edgelist" << endl;
+  //////////////////////////////////////////////////////////////////////////////
+  unordered_map<uint64_t,uint32_t> *id_attributes = new unordered_map<uint64_t,uint32_t>();
+
+  FILE *pFile2 = fopen("/dfs/scratch0/caberger/ldbc_snb_datagen-0.1.2/social_network/person_isLocatedIn_place_0.csv","r");
+  if (pFile2==NULL) {fputs ("File error",stderr); exit (1);}
+
+  // obtain file size:
+  fseek(pFile2,0,SEEK_END);
+  lSize = ftell(pFile2);
+  rewind(pFile2);
+
+  // allocate memory to contain the whole file:
+  buffer = (char*) malloc (sizeof(char)*lSize);
+  id_attributes->reserve(lSize/4);
+  if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
+
+  // copy the file into the buffer:
+  result = fread (buffer,1,lSize,pFile2);
+  if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
+
+  test = strtok(buffer," |\t\nA");
+  while(test != NULL){
+    uint64_t id;
+    sscanf(test,"%lu",&id);
+    test = strtok(NULL," |\t\nA");
+
+    uint32_t attr;
+    sscanf(test,"%u",&attr);
+    test = strtok(NULL," |\t\nA");
+    cout << "id: " << id << " attr: " << attr << endl;
+
+    id_attributes->insert(make_pair(id,attr));
+  }
+  // terminate
+  fclose(pFile2);
+  free(buffer);
+  //////////////////////////////////////////////////////////////////////////////
+
+  size_t max_nbrhood_size = 0;
+  size_t num_edges = 0;
+  for(size_t i = 0; i < neighborhoods->size(); i++){
+    vector<uint32_t> *row = neighborhoods->at(i);
+    std::sort(row->begin(),row->end());
+
+    if(row->size() > max_nbrhood_size)
+      max_nbrhood_size = row->size();
+
+    row->erase(unique(row->begin(),row->begin()+row->size()),row->end());
+    num_edges += row->size();
+  }
+
+  //return new MutableGraph(neighborhoods->size(),num_edges,max_nbrhood_size,true,id_map,extern_ids,neighborhoods,neighborhoods); 
 } 
 MutableGraph* MutableGraph::undirectedFromEdgeList(const string path) {
   ////////////////////////////////////////////////////////////////////////////////////
@@ -307,7 +431,7 @@ MutableGraph* MutableGraph::undirectedFromEdgeList(const string path) {
   //store the graph.
   unordered_map<uint64_t,uint32_t> *extern_ids = new unordered_map<uint64_t,uint32_t>();
   vector<uint64_t> *id_map = new vector<uint64_t>();
-
+  unordered_map<uint64_t,uint32_t> *id_attributes = new unordered_map<uint64_t,uint32_t>();
   vector< vector<uint32_t>*  > *neighborhoods = new vector< vector<uint32_t>* >();
 
   cout << path << endl;
@@ -379,7 +503,7 @@ MutableGraph* MutableGraph::undirectedFromEdgeList(const string path) {
     num_edges += row->size();
   }
 
-  return new MutableGraph(neighborhoods->size(),num_edges,max_nbrhood_size,true,id_map,extern_ids,neighborhoods,neighborhoods); 
+  return new MutableGraph(neighborhoods->size(),num_edges,max_nbrhood_size,true,id_map,id_attributes,extern_ids,neighborhoods,neighborhoods); 
 }
 
 void MutableGraph::writeDirectedToBinary(const string path) {
@@ -411,6 +535,7 @@ MutableGraph* MutableGraph::directedFromBinary(const string path) {
   unordered_map<uint64_t,uint32_t> *extern_ids = new unordered_map<uint64_t,uint32_t>();
   vector< vector<uint32_t>*  > *out_neighborhoods = new vector< vector<uint32_t>* >();
   vector< vector<uint32_t>*  > *in_neighborhoods = new vector< vector<uint32_t>* >();
+  unordered_map<uint64_t,uint32_t> *id_attributes = new unordered_map<uint64_t,uint32_t>();
 
   size_t num_edges = 0;
   size_t num_nodes = 0;
@@ -450,7 +575,7 @@ MutableGraph* MutableGraph::directedFromBinary(const string path) {
   }
   infile.close();
 
-  return new MutableGraph(out_neighborhoods->size(),num_edges,max_nbrhood_size,true,id_map,extern_ids,out_neighborhoods,in_neighborhoods); 
+  return new MutableGraph(out_neighborhoods->size(),num_edges,max_nbrhood_size,true,id_map,id_attributes,extern_ids,out_neighborhoods,in_neighborhoods); 
 } 
 /*
 File format
@@ -469,6 +594,7 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path) {
   unordered_map<uint64_t,uint32_t> *extern_ids = new unordered_map<uint64_t,uint32_t>();
   vector< vector<uint32_t>*  > *in_neighborhoods = new vector< vector<uint32_t>* >();
   vector< vector<uint32_t>*  > *out_neighborhoods = new vector< vector<uint32_t>* >();
+  unordered_map<uint64_t,uint32_t> *id_attributes = new unordered_map<uint64_t,uint32_t>();
 
   FILE *pFile = fopen(path.c_str(),"r");
   if (pFile==NULL) {fputs ("File error",stderr); exit (1);}
@@ -548,5 +674,5 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path) {
     row->erase(unique(row->begin(),row->begin()+row->size()),row->end());
   }
 
-  return new MutableGraph(in_neighborhoods->size(),num_edges,max_nbrhood_size,false,id_map,extern_ids,out_neighborhoods,in_neighborhoods); 
+  return new MutableGraph(in_neighborhoods->size(),num_edges,max_nbrhood_size,false,id_map,id_attributes,extern_ids,out_neighborhoods,in_neighborhoods); 
 }

@@ -9,11 +9,12 @@ namespace application{
   Table *output;
   size_t num_threads;
 
-  inline bool myNodeSelection(uint32_t node){
-    (void)node;
+  inline bool myNodeSelection(uint32_t node, uint32_t attribute){
+    (void)node; (void) attribute;
     return true;
   }
-  inline bool myEdgeSelection(uint32_t node, uint32_t nbr){
+  inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
+    (void) attribute;
     return nbr < node;
   }
 
@@ -165,8 +166,8 @@ int main (int argc, char* argv[]) {
     exit(0);
   }
 
-  auto node_selection = std::bind(&application::myNodeSelection, _1);
-  auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2);
+  auto node_selection = std::bind(&application::myNodeSelection, _1, _2);
+  auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2, _3);
 
   common::startClock();
   MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files

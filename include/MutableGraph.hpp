@@ -11,10 +11,11 @@ struct MutableGraph {
   size_t max_nbrhood_size;
   bool symmetric;
   vector<uint64_t> *id_map;
-  unordered_map<uint64_t,uint32_t> *node_attr;
-  unordered_map<uint64_t,uint32_t> *external_ids;
+  vector<uint32_t> *node_attr;
   vector< vector<uint32_t>*  > *out_neighborhoods;
   vector< vector<uint32_t>*  > *in_neighborhoods;
+  vector< vector<uint32_t>*  > *out_edge_attributes;
+  vector< vector<uint32_t>*  > *in_edge_attributes;
 
   void reorder_bfs();
   void reorder_random();
@@ -32,19 +33,21 @@ struct MutableGraph {
       size_t max_nbrhood_size_in,
       bool symmetric_in,
       vector<uint64_t> *id_map_in,
-      unordered_map<uint64_t,uint32_t> *node_attr_in,
-      unordered_map<uint64_t,uint32_t> *external_ids_in,
+      vector<uint32_t> *node_attr_in,
       vector< vector<uint32_t>*  > *out_neighborhoods_in,
-      vector< vector<uint32_t>*  > *in_neighborhoods_in): 
+      vector< vector<uint32_t>*  > *in_neighborhoods_in,
+      vector< vector<uint32_t>*  > *out_edge_attributes_in,
+      vector< vector<uint32_t>*  > *in_edge_attributes_in): 
     num_nodes(num_nodes_in), 
     num_edges(num_edges_in),
     max_nbrhood_size(max_nbrhood_size_in),
     symmetric(symmetric_in),
     id_map(id_map_in), 
     node_attr(node_attr_in), 
-    external_ids(external_ids_in), 
     out_neighborhoods(out_neighborhoods_in),
-    in_neighborhoods(in_neighborhoods_in){}
+    in_neighborhoods(in_neighborhoods_in),
+    out_edge_attributes(out_edge_attributes_in),
+    in_edge_attributes(in_edge_attributes_in){}
   ~MutableGraph(){
     for(size_t i = 0; i < out_neighborhoods->size(); ++i) {
       delete out_neighborhoods->at(i);
@@ -58,7 +61,7 @@ struct MutableGraph {
       delete in_neighborhoods;
     }
   }
-  static void undirectedFromAttributeList(const string path);
+  static MutableGraph* undirectedFromAttributeList(const string path,const string node_path);
   static MutableGraph* syntheticUndirected(const size_t num_nodes, const size_t degree);
   static MutableGraph* directedFromBinary(const string path);
   static MutableGraph* undirectedFromBinary(const string path);

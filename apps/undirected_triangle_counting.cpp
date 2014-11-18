@@ -6,11 +6,12 @@ namespace application{
   AOA_Matrix *graph;
   long num_triangles = 0;
 
-  inline bool myNodeSelection(uint32_t node){
-    (void)node;
+  inline bool myNodeSelection(uint32_t node, uint32_t attribute){
+    (void)node; (void) attribute;
     return true;
   }
-  inline bool myEdgeSelection(uint32_t node, uint32_t nbr){
+  inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
+    (void) attribute;
     return nbr < node;
   }
   struct thread_data{
@@ -135,16 +136,12 @@ int main (int argc, char* argv[]) {
     exit(0);
   }
 
-  auto node_selection = std::bind(&application::myNodeSelection, _1);
-  auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2);
+  auto node_selection = std::bind(&application::myNodeSelection, _1, _2);
+  auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2, _3);
 
   common::startClock();
   MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
   common::stopClock("Reading File");
-  
-  common::startClock();
-  inputGraph->reorder_by_degree();
-  common::stopClock("Reordering");
   
   cout << endl;
 

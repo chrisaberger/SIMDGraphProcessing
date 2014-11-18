@@ -25,8 +25,10 @@ class AOA_Matrix{
     uint8_t **column_arrays;
 
     const unordered_map<uint64_t,uint32_t> *external_ids;
-    const vector<uint64_t> *id_map;
+    uint64_t *id_map;
     uint32_t *node_attributes;
+    vector< vector<uint32_t>*  > *out_edge_attributes;
+    vector< vector<uint32_t>*  > *in_edge_attributes;
 
     AOA_Matrix(size_t matrix_size_in,
       size_t cardinality_in,
@@ -37,9 +39,10 @@ class AOA_Matrix{
       uint8_t **row_arrays_in, 
       uint32_t *column_lengths_in, 
       uint8_t **column_arrays_in, 
-      const unordered_map<uint64_t,uint32_t> *external_ids_in,
-      const vector<uint64_t> *id_map_in,
-      uint32_t *node_attributes_in):
+      uint64_t *id_map_in,
+      uint32_t *node_attributes_in,
+      vector< vector<uint32_t>*  > *out_edge_attributes_in,
+      vector< vector<uint32_t>*  > *in_edge_attributes_in):
         matrix_size(matrix_size_in),
         cardinality(cardinality_in),
         max_nbrhood_size(max_nbrhood_size_in),
@@ -49,9 +52,10 @@ class AOA_Matrix{
         row_arrays(row_arrays_in),
         column_lengths(column_lengths_in),
         column_arrays(column_arrays_in),
-        external_ids(external_ids_in),
         id_map(id_map_in),
-        node_attributes(node_attributes_in){}
+        node_attributes(node_attributes_in),
+        out_edge_attributes(out_edge_attributes_in),
+        in_edge_attributes(in_edge_attributes_in){}
 
     ~AOA_Matrix(){
       #pragma omp parallel for default(none)
@@ -73,8 +77,8 @@ class AOA_Matrix{
     void *parallel_constructor(void *);
 
     static AOA_Matrix* from_symmetric(MutableGraph *inputGraph,
-      const std::function<bool(uint32_t)> node_selection,
-      const std::function<bool(uint32_t,uint32_t)> edge_selection, 
+      const std::function<bool(uint32_t,uint32_t)> node_selection,
+      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, 
       const common::type t_in);
 
     static AOA_Matrix* from_asymmetric(MutableGraph *inputGraph,

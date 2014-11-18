@@ -160,7 +160,6 @@ int main (int argc, char* argv[]) {
   application::graph = AOA_Matrix::from_symmetric(inputGraph->out_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,inputGraph->max_nbrhood_size,
     node_selection,edge_selection,NULL,layout)->clone_on_node(0);
-  application::graph->print_data("tmp3.txt");
   common::stopClock("selections");
 
   if(pcm_init() < 0)

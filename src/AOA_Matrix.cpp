@@ -215,17 +215,15 @@ AOA_Matrix* AOA_Matrix::clone_on_node(int node) {
          cloned_row_lengths);
 
    uint8_t** cloned_row_arrays =
-      (uint8_t**) numa_alloc_onnode(matrix_size * sizeof(uint8_t*), node);
+      (uint8_t**) numa_alloc_onnode(matrix_size * sizeof(uint8_t*) * 4, node);
    uint8_t* neighborhood =
-      (uint8_t*) numa_alloc_onnode(this->cardinality * sizeof(uint32_t), node);
-   size_t counter = 0;
+      (uint8_t*) numa_alloc_onnode(this->cardinality * sizeof(uint32_t) * 4, node);
    for(uint64_t i = 0; i < matrix_size; i++) {
       uint32_t row_length = cloned_row_lengths[i];
-      size_t nbr_bytes = row_length * 4;
-      std::copy(this->row_arrays[i], this->row_arrays[i] + nbr_bytes, neighborhood);
+      size_t num_bytes = row_length * 4 + 1;
+      std::copy(this->row_arrays[i], this->row_arrays[i] + num_bytes, neighborhood);
       cloned_row_arrays[i] = (uint8_t*) neighborhood;
-      neighborhood += row_length * 4;
-      counter += row_length;
+      neighborhood += num_bytes;
    }
 
    uint32_t* cloned_column_lengths = NULL;

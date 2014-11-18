@@ -49,7 +49,7 @@ void Table::print_data(string filename, uint64_t *id_map){
     for(size_t i = 0; i < t_size; i++){
       for(size_t j = 0; j < num_tuples; j++){
         uint32_t *column = table_pointers[t*num_tuples+j];
-        myfile << column[i] << "\t";
+        myfile << id_map[column[i]] << "\t";
       }
       myfile << endl;
     }

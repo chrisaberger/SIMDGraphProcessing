@@ -24,7 +24,6 @@ class AOA_Matrix{
     uint32_t *column_lengths;
     uint8_t **column_arrays;
 
-    const unordered_map<uint64_t,uint32_t> *external_ids;
     uint64_t *id_map;
     uint32_t *node_attributes;
     vector< vector<uint32_t>*  > *out_edge_attributes;

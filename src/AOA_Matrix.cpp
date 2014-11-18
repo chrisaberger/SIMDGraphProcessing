@@ -16,6 +16,7 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
   array16::prepare_shuffling_dictionary16();
   hybrid::prepare_shuffling_dictionary();
 
+  cout << "Number of nodes: " << matrix_size_in << endl;
   cout << "Number of edges: " << cardinality_in << endl;
 
   uint8_t **row_arrays_in = new uint8_t*[matrix_size_in];
@@ -229,6 +230,7 @@ void AOA_Matrix::print_data(string filename){
   ofstream myfile;
   myfile.open(filename);
 
+  cout << "printing neighbors" << endl;
   //Printing out neighbors
   cout << "Writing matrix row_data to file: " << filename << endl;
   for(size_t i = 0; i < matrix_size; i++){
@@ -239,7 +241,7 @@ void AOA_Matrix::print_data(string filename){
       uint_array::print_data(row_arrays[i],card,t,myfile);
     }
     for(size_t j = 0; j < out_edge_attributes->at(i)->size(); j++){
-      cout << "Edge attribute: " << out_edge_attributes->at(i)->at(j) << endl;
+      myfile << "Edge attribute: " << out_edge_attributes->at(i)->at(j) << endl;
     }
   }
   myfile << endl;

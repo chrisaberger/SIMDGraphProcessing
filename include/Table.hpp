@@ -35,10 +35,10 @@ class Table{
       }
     }
 
-    void print_data(string filename);
+    void print_data(string filename, uint64_t *id_map);
 };
 
-void Table::print_data(string filename){
+void Table::print_data(string filename, uint64_t *id_map){
   ofstream myfile;
   myfile.open(filename);
 

@@ -21,9 +21,7 @@ namespace application{
   inline void print_pr_data(string file){
     ofstream myfile;
     myfile.open(file);
-    for (auto iter = graph->external_ids->begin(); iter != graph->external_ids->end(); iter++){
-      myfile << "Node: " << iter->first <<"(" << iter->second << ")" << " PR: " << pr_data[iter->second] << endl;
-    }
+
   }
   
   inline float nbrApply_old(uint32_t nbr){

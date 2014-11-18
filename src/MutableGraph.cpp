@@ -355,7 +355,7 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
     uint32_t year;
     sscanf(test,"%u",&year);
     test = strtok(NULL," -|\t\nA");
-    cout << "src: " << src << " dst: " <<  dst << " " << year << endl;
+    //cout << "src: " << src << " dst: " <<  dst << " " << year << endl;
 
     vector<uint32_t> *src_row;
     vector<uint32_t> *src_attr;
@@ -394,7 +394,6 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
   fclose(pFile);
   free(buffer);
 
-  cout << "done reading edgelist" << endl;
   //////////////////////////////////////////////////////////////////////////////
   vector<uint32_t> *id_attributes = new vector<uint32_t>();
   id_attributes->resize(neighborhoods->size()); 
@@ -424,9 +423,10 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
     uint32_t attr;
     sscanf(test,"%u",&attr);
     test = strtok(NULL," |\t\nA");
-    cout << "id: " << id << " attr: " << attr << endl;
 
-    id_attributes->at(extern_ids->at(id)) = attr;
+    if(extern_ids->find(id) != extern_ids->end()){
+      id_attributes->at(extern_ids->at(id)) = attr;
+    }
   }
   // terminate
   fclose(pFile2);

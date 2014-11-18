@@ -208,6 +208,6 @@ int main (int argc, char* argv[]) {
   //application::graph->AOA_Matrix::~AOA_Matrix();
   cout << "Count: " << application::num_triangles << endl << endl;
 
-  application::output->print_data("table.txt");
+  application::output->print_data("table.txt",application::graph->id_map);
   return 0;
 }

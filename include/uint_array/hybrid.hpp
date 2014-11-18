@@ -184,6 +184,7 @@ namespace hybrid {
     #endif 
 
     #if WRITE_VECTOR == 1
+    C_in[0] = common::ARRAY32;
     uint32_t *C = (uint32_t*)&C_in[1];
     #endif
 
@@ -211,6 +212,7 @@ namespace hybrid {
   //untested
   inline size_t intersect_a32_bs(uint8_t *C_in, const uint32_t *A, const unsigned short *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
+    C_in[0] = common::ARRAY32;
     (void) C_in;   
     #endif
 
@@ -237,6 +239,7 @@ namespace hybrid {
     #endif
 
     #if WRITE_VECTOR == 1
+    C_in[0] = common::ARRAY32;
     uint32_t *C = (uint32_t*)&C_in[1];
     #endif
 

@@ -87,9 +87,7 @@ namespace application{
 
   inline void allocBuffers(const size_t query_depth){
     const size_t cardinality = graph->cardinality;
-    
     output = new Table(query_depth,num_threads,cardinality);
-
     t_data_pointers = new thread_data*[num_threads];
     for(size_t k= 0; k < num_threads; k++){
       t_data_pointers[k] = new thread_data(graph->max_nbrhood_size,3,query_depth,k);
@@ -184,23 +182,17 @@ int main (int argc, char* argv[]) {
   MutableGraph *inputGraph = MutableGraph::undirectedFromAttributeList(argv[1],argv[2]); //filename, # of files
   common::stopClock("Reading File");
   
-  common::startClock();
-  //inputGraph->reorder_bfs();
-  inputGraph->reorder_by_degree();
-  common::stopClock("Reordering");
-  
   //common::startClock();
-  application::graph = AOA_Matrix::from_symmetric(inputGraph,
-  node_selection,edge_selection,layout);
+  application::graph = AOA_Matrix::from_symmetric(inputGraph,node_selection,edge_selection,layout);
   //common::stopClock("selections");
   
-  application::graph->print_data("graph.txt");
+  //application::graph->print_data("graph.txt");
   cout << endl;
-  /*
+  
   inputGraph->MutableGraph::~MutableGraph(); 
   
   common::startClock();
-  application::allocBuffers(atoi(argv[4]));
+  application::allocBuffers(atoi(argv[5]));
   common::stopClock("buffer allocation");  
 
   common::startClock();
@@ -210,7 +202,7 @@ int main (int argc, char* argv[]) {
   //application::graph->AOA_Matrix::~AOA_Matrix();
   cout << "Count: " << application::num_triangles << endl << endl;
 
-  application::output->print_data("table.txt");
-  */
+  application::output->print_data("table.txt",application::graph->id_map);
+
   return 0;
 }

@@ -7,6 +7,8 @@ class AOA_Matrix{
   public:
     size_t matrix_size;  //number of nodes, number of columns = number of rows
     size_t cardinality;  //number of edges
+    size_t row_total_bytes_used; // the size of all edges combined
+    size_t col_total_bytes_used; // the size of all edges combined
     size_t max_nbrhood_size;
     common::type t; //representation of matrix
     bool symmetric; //undirected?
@@ -27,6 +29,8 @@ class AOA_Matrix{
 
     AOA_Matrix(size_t matrix_size_in,
       size_t cardinality_in,
+      size_t row_total_bytes_used_in,
+      size_t col_total_bytes_used_in,
       size_t max_nbrhood_size_in,
       common::type t_in, 
       bool symmetric_in, 
@@ -37,6 +41,8 @@ class AOA_Matrix{
       const unordered_map<uint64_t,uint32_t> *external_ids_in):
         matrix_size(matrix_size_in),
         cardinality(cardinality_in),
+        row_total_bytes_used(row_total_bytes_used_in),
+        col_total_bytes_used(col_total_bytes_used_in),
         max_nbrhood_size(max_nbrhood_size_in),
         t(t_in),
         symmetric(symmetric_in),
@@ -63,6 +69,7 @@ class AOA_Matrix{
       }
     }
 
+    AOA_Matrix* clone_on_node(int node);
     void *parallel_constructor(void *);
 
     static AOA_Matrix* from_symmetric(const vector< vector<uint32_t>*  > *g,const size_t matrix_size_in,const size_t cardinality_in,const size_t max_nbrhood_size,

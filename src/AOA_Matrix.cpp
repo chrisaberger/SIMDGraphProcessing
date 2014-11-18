@@ -56,7 +56,19 @@ AOA_Matrix* AOA_Matrix::from_symmetric(const vector< vector<uint32_t>*  > *g,con
 
   cout << "ROW DATA SIZE (Bytes): " << total_bytes_used << endl;
 
-  return new AOA_Matrix(matrix_size_in,new_cardinality,max_nbrhood_size_in,t_in,true,row_lengths_in,row_arrays_in,row_lengths_in,row_arrays_in,external_ids_in);
+  return new AOA_Matrix(
+        matrix_size_in,
+        new_cardinality,
+        total_bytes_used,
+        0,
+        max_nbrhood_size_in,
+        t_in,
+        true,
+        row_lengths_in,
+        row_arrays_in,
+        row_lengths_in,
+        row_arrays_in,
+        external_ids_in);
 }
 
 AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<uint32_t>*  > *out_nbrs,vector< vector<uint32_t>*  > *in_nbrs,size_t max_nbrhood_size_in,
@@ -147,7 +159,19 @@ AOA_Matrix* AOA_Matrix::from_asymmetric(vector< vector<uint32_t>*  > *out_nbrs,v
   cout << "ROW DATA SIZE (Bytes): " << row_total_bytes_used << endl;
   cout << "COLUMN DATA SIZE (Bytes): " << col_total_bytes_used << endl;
 
-  return new AOA_Matrix(matrix_size_in,new_cardinality,max_nbrhood_size_in,t_in,false,row_lengths_in,row_arrays_in,col_lengths_in,col_arrays_in,external_ids_in);
+  return new AOA_Matrix(
+        matrix_size_in,
+        new_cardinality,
+        row_total_bytes_used,
+        col_total_bytes_used,
+        max_nbrhood_size_in,
+        t_in,
+        false,
+        row_lengths_in,
+        row_arrays_in,
+        col_lengths_in,
+        col_arrays_in,
+        external_ids_in);
 }
 
 void AOA_Matrix::print_data(string filename){
@@ -177,3 +201,64 @@ void AOA_Matrix::print_data(string filename){
 
   myfile.close();
 }
+
+// XXX: This code only works for a32 for now
+AOA_Matrix* AOA_Matrix::clone_on_node(int node) {
+   numa_run_on_node(node);
+   numa_set_preferred(node);
+
+   size_t matrix_size = this->matrix_size;
+   uint64_t lengths_size = matrix_size * sizeof(uint32_t);
+   uint32_t* cloned_row_lengths =
+      (uint32_t*)numa_alloc_onnode(lengths_size, node);
+   std::copy(this->row_lengths, this->row_lengths + matrix_size + 1,
+         cloned_row_lengths);
+
+   uint8_t** cloned_row_arrays =
+      (uint8_t**) numa_alloc_onnode(matrix_size * sizeof(uint8_t*), node);
+   uint8_t* neighborhood =
+      (uint8_t*) numa_alloc_onnode(this->cardinality * sizeof(uint32_t), node);
+   size_t counter = 0;
+   for(uint64_t i = 0; i < matrix_size; i++) {
+      uint32_t row_length = cloned_row_lengths[i];
+      size_t nbr_bytes = row_length * 4;
+      std::copy(this->row_arrays[i], this->row_arrays[i] + nbr_bytes, neighborhood);
+      cloned_row_arrays[i] = (uint8_t*) neighborhood;
+      neighborhood += row_length * 4;
+      counter += row_length;
+   }
+
+   uint32_t* cloned_column_lengths = NULL;
+   uint8_t** cloned_column_arrays = NULL;
+   /*
+   if(this->symmetric) {
+      cloned_column_lengths = (uint32_t*) numa_alloc_onnode(lengths_size, node);
+      std::copy(column_lengths, column_lengths + matrix_size, cloned_column_lengths);
+
+      cloned_column_arrays =
+         (uint8_t**) numa_alloc_onnode(col_total_bytes_used, node);
+      for(uint64_t i = 0; i < matrix_size; i++) {
+         uint32_t col_length = cloned_column_lengths[i];
+         uint8_t* neighborhood =
+            (uint8_t*) numa_alloc_onnode(col_length * sizeof(uint8_t), node);
+         std::copy(this->column_arrays[i], this->column_arrays[i] + col_length, neighborhood);
+         cloned_column_arrays[i] = neighborhood;
+      }
+   }
+   */
+
+   return new AOA_Matrix(
+         matrix_size,
+         this->cardinality,
+         this->row_total_bytes_used,
+         this->col_total_bytes_used,
+         this->max_nbrhood_size,
+         this->t,
+         this->symmetric,
+         cloned_row_lengths,
+         cloned_row_arrays,
+         cloned_column_lengths,
+         cloned_column_arrays,
+         external_ids);
+}
+

@@ -88,7 +88,7 @@ namespace application{
         auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[0],_1,_2);
         long t_local_reducer = 0;
         double t_begin = omp_get_wtime();
-        for(size_t i = 0; i  < matrix_size;  i++){
+        for(size_t i = 0; i < matrix_size; i++){
           t_local_reducer += (row_function)(i,t_data_pointers[0]->decoded_src,edge_function);
         }
         double t_end = omp_get_wtime();
@@ -147,7 +147,7 @@ int main (int argc, char* argv[]) {
   auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2);
 
   common::startClock();
-  MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
+  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files
   common::stopClock("Reading File");
 
   common::startClock();
@@ -159,7 +159,8 @@ int main (int argc, char* argv[]) {
   common::startClock();
   application::graph = AOA_Matrix::from_symmetric(inputGraph->out_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,inputGraph->max_nbrhood_size,
-    node_selection,edge_selection,inputGraph->external_ids,layout);
+    node_selection,edge_selection,NULL,layout)->clone_on_node(0);
+  application::graph->print_data("tmp3.txt");
   common::stopClock("selections");
 
   if(pcm_init() < 0)

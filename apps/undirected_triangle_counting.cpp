@@ -62,22 +62,21 @@ namespace application{
       int threads_per_node = (num_threads - 1) / num_nodes + 1;
 
       if(num_threads > 1){
-        double t_all_begin = omp_get_wtime();
+        double t_begin_thread_pool = omp_get_wtime();
         for(size_t k = 0; k < num_threads; k++){
-          int node = 0;
-          if(num_nodes > 1) {
-             int node = k / threads_per_node;
-             numa_run_on_node(node);
-          }
+           if(k % threads_per_node == 0 && num_nodes != 1) {
+              int node = k / threads_per_node;
+              numa_run_on_node(node);
+           }
+           threads[k] = thread([](int k, size_t matrix_size, std::atomic<size_t>* next_work, std::atomic<long>* reducer, thread_data** t_data_pointers, double* thread_times) -> void {
 
-          auto row_function = std::bind(&AOA_Matrix::sum_over_columns_in_row<long>, graphs[node], _1, _2, _3);
-          auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[k],_1,_2);
-          threads[k] = thread([&t_all_begin, k, &matrix_size, &next_work, &reducer, &t_data_pointers, edge_function, row_function, &thread_times](void) -> void {
+            auto row_function = std::bind(&AOA_Matrix::sum_over_columns_in_row<long>, t_data_pointers[k]->graph, _1, _2, _3);
+            auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[k],_1,_2);
             size_t local_block_size = block_size;
             long t_local_reducer = 0;
             double t_begin = omp_get_wtime();
             while(true) {
-              size_t work_start = next_work.fetch_add(local_block_size, std::memory_order_relaxed);
+              size_t work_start = next_work->fetch_add(local_block_size, std::memory_order_relaxed);
               if(work_start > matrix_size)
                 break;
 
@@ -87,11 +86,13 @@ namespace application{
                 t_local_reducer += (row_function)(j,t_data_pointers[k]->decoded_src,edge_function);
               }
             }
-            reducer += t_local_reducer;
+            *reducer += t_local_reducer;
             double t_end = omp_get_wtime();
-            thread_times[k] = t_end - t_all_begin;
-           });
+            thread_times[k] = t_end - t_begin;
+           }, k, matrix_size, &next_work, &reducer, t_data_pointers, thread_times);
         }
+        double t_end_thread_pool = omp_get_wtime();
+        std::cout << "Exec time of launching all threads: " << (t_end_thread_pool - t_begin_thread_pool) << std::endl;
 
         //cleanup
         for(size_t k = 0; k < num_threads; k++) {
@@ -165,7 +166,7 @@ int main (int argc, char* argv[]) {
   MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
   common::stopClock("Reading File");
 
-  size_t num_nodes = 4;
+  size_t num_nodes = 1;
   application::graphs = new AOA_Matrix*[num_nodes];
 
   common::startClock();

@@ -6,26 +6,17 @@
 #include <vector>
 
 #define UNION 1
-#define DIFFERENCE 1
+#define DIFFERENCE 0
 #define PRINT 0
 
 //sparsity = length/max
 void create_synthetic_array(uint32_t *data, size_t length, uint32_t max){
   cout << "creating synthetic array" << endl;
-  if(length > 0){
-    set<uint32_t> x;
-    x.insert(max);
-    for(size_t data_i = 1; data_i < length; data_i++){
-      uint32_t rand_num = rand() % max;
-      while(x.find(rand_num) != x.end()){
-        rand_num = rand() % max;
-      }
-      x.insert(rand_num);
-    }
-    size_t data_i = 0;
-    for(set<uint32_t>::iterator iter=x.begin(); iter!=x.end();++iter) {    
-      data[data_i++] = (*iter);
-    }
+  uint32_t prev = 0;
+  for(size_t data_i = 0; data_i < length; data_i++){
+    uint32_t rand_num = rand() % max +1;
+    prev += rand_num;
+    data[data_i] = prev;
   }
 }
 void print_arrays(uint32_t *a_data, uint32_t *b_data, size_t a_size, size_t b_size){
@@ -64,25 +55,34 @@ void read_arrays(uint32_t *a_data, uint32_t *b_data, size_t a_size, size_t b_siz
 
 int main (int argc, char* argv[]) {
   srand ( time(NULL) );
-  size_t a_size = 400000;
-  size_t b_size = 700000;
-  uint32_t max1 = 5000000;
-  uint32_t max2 = 6000000;
+  size_t a_size = 40000000;
+  size_t b_size = 70000000;
+  uint32_t max1 = 50;
+  uint32_t max2 = 60;
 
-  uint32_t num_times = 1000;
+  uint32_t num_times = 1;
 
   uint32_t *a_data = new uint32_t[a_size];
+  uint8_t *a_preproccessed = new uint8_t[a_size*sizeof(size_t)];
+
   uint32_t *b_data = new uint32_t[b_size];
-  uint32_t *result = new uint32_t[a_size+b_size];
+  uint8_t *b_preproccessed = new uint8_t[b_size*sizeof(size_t)];
+
+  uint8_t *result = new uint8_t[(a_size+b_size)*sizeof(size_t)];
 
   common::startClock();
   create_synthetic_array(a_data,a_size,max1);
   create_synthetic_array(b_data,b_size,max2);
+  //read_arrays(a_data,b_data,a_size,b_size);
+
+
   #if PRINT == 1
   print_arrays(a_data,b_data,a_size,b_size);
   #endif 
 
-  //read_arrays(a_data,b_data,a_size,b_size);
+  uint_array::preprocess(a_preproccessed,0,a_data,a_size,common::ARRAY32);
+  uint_array::preprocess(b_preproccessed,0,b_data,b_size,common::ARRAY32);
+
   common::stopClock("CREATING ARRAYS");
 
   ofstream myfile;
@@ -93,33 +93,33 @@ int main (int argc, char* argv[]) {
   #if UNION == 1
   common::startClock();
   for(size_t i = 0; i < num_times; i++){
-    count  = array32::set_union_std(result,a_data,b_data,a_size,b_size);
+    count  = uint_array::set_union(result,a_preproccessed,b_preproccessed,a_size,b_size,common::HYBRID_PERF);
   }
-  common::stopClock("STD UNION");  
+  common::stopClock("SIMD UNION");  
   
+  #if PRINT == 1
+  myfile.open("simd_union.txt");
+  uint_array::print_data(result,count,common::HYBRID_PERF,myfile);
+  myfile.close();
+  #endif
+
+  uint32_t *result_32 = new uint32_t[a_size+b_size];
+  common::startClock();
+  for(size_t i = 0; i < num_times; i++){
+    count = array32::set_union_std(result_32,a_data,b_data,a_size,b_size);
+  }
+  common::stopClock("STD UNION");
+
   #if PRINT == 1
   myfile.open("std_union.txt");
   for(size_t i = 0; i < count; i++){
-    myfile << "union[" << i << "]: " << result[i] << endl;
-  }
-  myfile.close();
-  #endif
-
-  common::startClock();
-  for(size_t i = 0; i < num_times; i++){
-    count = array32::set_union(result,a_data,b_data,a_size,b_size);
-  }
-  common::stopClock("SIMD UNION");
-
-  #if PRINT == 1
-  myfile.open("simd_union.txt");
-  for(size_t i = 0; i < count; i++){
-    myfile << "union[" << i << "]: " << result[i] << endl;
+    myfile << " Data: " << result_32[i] << endl;
   }
   myfile.close();
   #endif
 
   #endif
+  /*
   ///////////////////////////////////////////////////////////////////////////////////////
   #if DIFFERENCE == 1
   common::startClock();
@@ -151,6 +151,6 @@ int main (int argc, char* argv[]) {
   #endif
 
   #endif
-
+  */
   return 0;
 }

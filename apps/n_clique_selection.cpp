@@ -11,11 +11,11 @@ namespace application{
 
   inline bool myNodeSelection(uint32_t node, uint32_t attribute){
     (void)node; (void) attribute;
-    return true;
+    return attribute > 100;
   }
   inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
     (void) attribute;
-    return nbr < node;
+    return nbr < node && attribute == 2012;
   }
 
   struct thread_data{
@@ -66,7 +66,7 @@ namespace application{
       if(depth == query_depth){
         size_t cur_size = output->table_size[thread_id];
         uint32_t *output_table = (output->table_pointers[index])+cur_size;
-        uint_array::decode(output_table,buffers[buffer_index],count);
+        uint_array::decode(output_table,buffers[buffer_index],count,graph->t);
         for(long i = 0; i < count; i++){
           for(size_t j = 0; j < output->num_tuples-1; j++){ //the last row is taken care of in decode
             uint32_t *tmp_row = output->table_pointers[query_depth*thread_id+j];

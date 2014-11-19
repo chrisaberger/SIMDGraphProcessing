@@ -55,7 +55,7 @@ namespace application{
         count = graph->row_intersect(buffer,src,dst,decoded_src);
         size_t cur_size = output->table_size[thread_id];
         uint32_t *output_table = (output->table_pointers[index])+cur_size;
-        uint_array::decode(output_table,buffer,count);
+        uint_array::decode(output_table,buffer,count,graph->t);
         for(long i = 0; i < count; i++){
           for(size_t j = 0; j < output->num_tuples-1; j++){ //the last row is taken care of in decode
             uint32_t *tmp_row = output->table_pointers[query_depth*thread_id+j];

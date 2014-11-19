@@ -202,7 +202,14 @@ namespace array32 {
     uint32_t *itv = std::set_difference(&A[0],&A[s_a],&B[0],&B[s_b],&C[0]);
     return (itv - C);
   }
-  inline size_t set_union(uint32_t *C, const uint32_t *A, const uint32_t *B, size_t s_a, size_t s_b) {
+  inline size_t set_union(uint8_t *C_in, const uint32_t *A, const uint32_t *B, size_t s_a, size_t s_b) {
+   #if WRITE_VECTOR == 1
+    C_in[0] = common::ARRAY32;
+    uint32_t *C = (uint32_t*)&C_in[1];
+    #else
+    uint32_t *C = (uint32_t*) C_in;
+    #endif
+
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
     // trim lengths to be a multiple of 4
@@ -276,12 +283,13 @@ namespace array32 {
         _mm_storeu_si128((__m128i*)&C[count+INTS_PER_REG], h_4);
 
         /*
-        if(count > 1970 && count < 1980){
-          cout << "result:" << endl;
+        if(count > 157525 && count < 157555){
+          cout << "count: " << count << " amax: " << a_max << " bmax: " << b_max << " num_hit: " << num_hit << endl;
           print_sse_register(l_4);
           print_sse_register(h_4); 
         }
         */
+        
    
         #endif
 
@@ -307,10 +315,14 @@ namespace array32 {
           b_max = _mm_extract_epi32(v_b, 3);
           count += INTS_PER_REG + (INTS_PER_REG-num_hit);
         }
+        /*
+        if(count > 157525 && count < 157555){
+          cout << endl << "count:" << count << endl;
+        }
+        */
 
         a_max = new_a_max;
         // a number of elements is a weight of the mask
-        //cout << "i_a: " << i_a  << " i_b: " << i_b << endl; 
       }
 
       if(a_max < b_max && i_b < s_b){

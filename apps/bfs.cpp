@@ -61,55 +61,10 @@ int main (int argc, char* argv[]) {
   AOA_Matrix *graph = AOA_Matrix::from_asymmetric(inputGraph,node_selection,edge_selection,layout);
   common::stopClock("selections");
   
-  //inputGraph->MutableGraph::~MutableGraph(); 
-
-  //graph->print_data("out.txt");
+  graph->print_data("directed_graph.txt");
   
   common::startClock();
-  UnsignedIntegerArray *frontier = UnsignedIntegerArray::fromRange(0,graph->matrix_size);
-  frontier->length = 1;
-  UnsignedIntegerArray *next_frontier = UnsignedIntegerArray::alloc(graph->matrix_size);
-
-  UnsignedIntegerArray *notVisited = UnsignedIntegerArray::fromRange(1,graph->matrix_size);
-  
-  UnsignedIntegerArray *n2x = UnsignedIntegerArray::alloc(graph->matrix_size);
-  UnsignedIntegerArray *tmp = UnsignedIntegerArray::alloc(graph->matrix_size);
-
-  while(frontier->length != 0){
-    //union up neighborhoods to get distinct
-    n2x = graph->get_distinct_neighbors(n2x,frontier,tmp);
-
-    UnsignedIntegerArray::intersect(next_frontier,n2x,notVisited); //n2x intersect with notVisited
-
-    /*
-    uint32_t *nf = (uint32_t*) next_frontier->data;
-    for(size_t i=0; i<next_frontier->length; i++){
-      cout << "next frontier: " << i << " data: " << nf[i] << endl; 
-    }
-    cout << endl;
-    */
-    
-    //cout << "trippy: " << notVisited->length << " " << next_frontier->length << endl;
-    UnsignedIntegerArray::difference(tmp,notVisited,next_frontier);     
-
-    UnsignedIntegerArray *tmp2 = notVisited;
-    notVisited = tmp;
-    tmp = tmp2;
-    
-    /*
-    uint32_t *nv_data = (uint32_t*)notVisited->data;
-    for(size_t i=0; i<notVisited->length; i++){
-      cout << "not visited: " << i << " data: " << nv_data[i] << endl; 
-    }*/
-    
-    //not_visited = notVisited-next_frontier
-
-    //switch cur and result;
-    tmp2 = frontier;
-    frontier = next_frontier;
-    next_frontier = tmp2;
-  }
-
+  size_t count = graph->get_distinct_neighbors();
   common::stopClock("BFS");
   /*
   common::startClock();

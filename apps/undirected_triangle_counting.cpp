@@ -196,6 +196,7 @@ int main (int argc, char* argv[]) {
   application::queryOver(atoi(argv[2]));
   common::stopClock(input_layout);
 
+
 #ifdef ENABLE_PCM
   SystemCounterState after_sstate = getSystemCounterState();
   cout << "Instructions per clock: " << getIPC(before_sstate,after_sstate) << endl

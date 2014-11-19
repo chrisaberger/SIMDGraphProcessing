@@ -50,7 +50,7 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
 
   common::stopClock("Node Selections");
 
-  //cout << "Filtered nodes: " << new_num_nodes << endl;
+  cout << "Filtered nodes: " << new_num_nodes << endl;
   uint64_t *new_imap = new uint64_t[new_num_nodes];
 
   uint32_t *node_attributes_in;
@@ -62,7 +62,7 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
   
   size_t new_cardinality = 0;
   size_t total_bytes_used = 0;
-  size_t alloc_size = sizeof(uint32_t)*(cardinality_in/omp_get_num_threads());
+  size_t alloc_size = cardinality_in*sizeof(int);//sizeof(size_t)*(cardinality_in/omp_get_num_threads());
   if(alloc_size < new_num_nodes){
     alloc_size = new_num_nodes;
   }
@@ -74,7 +74,7 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
     uint32_t *selected_row = new uint32_t[new_num_nodes];
     size_t index = 0;
     
-    #pragma omp for schedule(dynamic,100)
+    #pragma omp for schedule(static)
     for(size_t i = 0; i < matrix_size_in; ++i){
       if(old2newids[i] != -1){
         new_imap[old2newids[i]] = imap->at(i);
@@ -101,6 +101,7 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
             } 
           }          
         }
+        //cout << "here" << endl; 
 
         row_lengths_in[i] = new_size;
         row_arrays_in[i] = &row_data_in[index];
@@ -234,21 +235,23 @@ void AOA_Matrix::print_data(string filename){
   //Printing out neighbors
   cout << "Writing matrix row_data to file: " << filename << endl;
   for(size_t i = 0; i < matrix_size; i++){
-    myfile << "External ID: " << id_map[i] << " ATTRIBUTE: " << node_attributes[i] << endl;
-    myfile << "ROW: " << i <<  " LEN: " << row_lengths[i] << endl;
+    if(out_edge_attributes->size() > 0){
+      myfile << " ATTRIBUTE: " << node_attributes[i] << endl;
+      for(size_t j = 0; j < out_edge_attributes->at(i)->size(); j++){
+        myfile << "Edge attribute: " << out_edge_attributes->at(i)->at(j) << endl;
+      }
+    }
+    myfile << "External ID: " << id_map[i] << " ROW: " << i <<  " LEN: " << row_lengths[i] << endl;
     size_t card = row_lengths[i];
     if(card > 0){
       uint_array::print_data(row_arrays[i],card,t,myfile);
-    }
-    for(size_t j = 0; j < out_edge_attributes->at(i)->size(); j++){
-      myfile << "Edge attribute: " << out_edge_attributes->at(i)->at(j) << endl;
     }
   }
   myfile << endl;
   //Printing in neighbors
   if(!symmetric){
     for(size_t i = 0; i < matrix_size; i++){
-      myfile << "COLUMN: " << i << " LEN: " << column_lengths[i] << endl;
+      myfile << "External ID: " << id_map[i] << " COLUMN: " << i << " LEN: " << column_lengths[i] << endl;
       size_t card = column_lengths[i];
       if(card > 0){
         uint_array::print_data(column_arrays[i],card,t,myfile);

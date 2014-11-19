@@ -333,7 +333,7 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
   rewind(pFile);
 
   // allocate memory to contain the whole file:
-  char *buffer = (char*) malloc (sizeof(char)*lSize);
+  char *buffer = (char*) malloc (sizeof(char)*lSize + 1);
   neighborhoods->reserve(lSize/4);
   extern_ids->reserve(lSize/4);
   if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
@@ -341,6 +341,7 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
   // copy the file into the buffer:
   size_t result = fread (buffer,1,lSize,pFile);
   if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
+  buffer[result] = '\0';
 
   char *test = strtok(buffer," |\t\nA");
   while(test != NULL){
@@ -408,12 +409,13 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
   rewind(pFile2);
 
   // allocate memory to contain the whole file:
-  buffer = (char*) malloc (sizeof(char)*lSize);
+  buffer = (char*) malloc (sizeof(char)*lSize + 1);
   if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
 
   // copy the file into the buffer:
   result = fread (buffer,1,lSize,pFile2);
   if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
+  buffer[result] = '\0';
 
   test = strtok(buffer," |\t\nA");
   while(test != NULL){
@@ -632,12 +634,13 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path) {
   rewind(pFile);
 
   // allocate memory to contain the whole file:
-  char *buffer = (char*) malloc (sizeof(char)*lSize);
+  char *buffer = (char*) malloc (sizeof(char)*lSize + 1);
   if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
 
   // copy the file into the buffer:
   size_t result = fread (buffer,1,lSize,pFile);
   if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
+  buffer[result] = '\0';
 
   char *test = strtok(buffer," \t\nA");
   while(test != NULL){

@@ -245,6 +245,11 @@ AOA_Matrix* AOA_Matrix::clone_on_node(int node) {
    }
    */
 
+   std::cout << "Target node: " << node << std::endl;
+   std::cout << "Node of row_lengths: " << common::find_memory_node_for_addr(cloned_row_lengths) << std::endl;
+   std::cout << "Node of row_arrays: " << common::find_memory_node_for_addr(cloned_row_arrays) << std::endl;
+   std::cout << "Node of neighborhood: " << common::find_memory_node_for_addr(neighborhood) << std::endl;
+
    return new AOA_Matrix(
          matrix_size,
          this->cardinality,

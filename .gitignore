@@ -1,0 +1,6 @@
+*.swp
+/bin
+/build
+/logs
+/benchmarking/logs
+/benchmarking/graphx/target

@@ -15,10 +15,8 @@ AOA_Matrix* AOA_Matrix::from_symmetric(const vector< vector<uint32_t>*  > *g,con
   size_t new_cardinality = 0;
   size_t total_bytes_used = 0;
     
-  size_t alloc_size = sizeof(uint32_t)*(cardinality_in/omp_get_num_threads());
-  if(alloc_size < matrix_size_in){
-    alloc_size = matrix_size_in;
-  }
+  size_t alloc_size = sizeof(uint32_t)*cardinality_in / 4;
+  
   #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
   {
     uint8_t *row_data_in = new uint8_t[alloc_size];
@@ -202,7 +200,7 @@ void AOA_Matrix::print_data(string filename){
   myfile.close();
 }
 
-// XXX: This code only works for a32 for now
+// XXX: This code only works for undirected graphs
 AOA_Matrix* AOA_Matrix::clone_on_node(int node) {
    numa_run_on_node(node);
    numa_set_preferred(node);
@@ -214,14 +212,17 @@ AOA_Matrix* AOA_Matrix::clone_on_node(int node) {
    std::copy(this->row_lengths, this->row_lengths + matrix_size + 1,
          cloned_row_lengths);
 
+   std::cout << this->cardinality * sizeof(uint32_t) << std::endl;
+   std::cout << this->row_total_bytes_used << std::endl;
    uint8_t** cloned_row_arrays =
-      (uint8_t**) numa_alloc_onnode(matrix_size * sizeof(uint8_t*) * 4, node);
+      (uint8_t**) numa_alloc_onnode(matrix_size * sizeof(uint8_t*), node);
    uint8_t* neighborhood =
-      (uint8_t*) numa_alloc_onnode(this->cardinality * sizeof(uint32_t) * 4, node);
+      (uint8_t*) numa_alloc_onnode(this->row_total_bytes_used + matrix_size, node);
    for(uint64_t i = 0; i < matrix_size; i++) {
       uint32_t row_length = cloned_row_lengths[i];
-      size_t num_bytes = row_length * 4 + 1;
-      std::copy(this->row_arrays[i], this->row_arrays[i] + num_bytes, neighborhood);
+      uint8_t* data = this->row_arrays[i];
+      size_t num_bytes = uint_array::size_of_array(data, row_length, this->t);
+      std::copy(data, data + num_bytes, neighborhood);
       cloned_row_arrays[i] = (uint8_t*) neighborhood;
       neighborhood += num_bytes;
    }

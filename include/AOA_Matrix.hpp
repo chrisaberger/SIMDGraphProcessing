@@ -83,7 +83,7 @@ class AOA_Matrix{
       const unordered_map<uint64_t,uint32_t> *external_ids_in, 
       const common::type t_in);
 
-    UnsignedIntegerArray* get_distinct_neighbors(UnsignedIntegerArray *result,UnsignedIntegerArray *frontier,UnsignedIntegerArray *tmp);
+    size_t get_distinct_neighbors();
     size_t row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a);
     size_t buffer_intersect(uint8_t *R, uint32_t j, uint8_t *A, uint32_t card_a);
 
@@ -103,38 +103,33 @@ class AOA_Matrix{
 
 };
 
-inline UnsignedIntegerArray* AOA_Matrix::get_distinct_neighbors(UnsignedIntegerArray *result, UnsignedIntegerArray *frontier, UnsignedIntegerArray *tmp){
-  //set_union(uint32_t *C, const uint32_t *A, const uint32_t *B, size_t s_a, size_t s_b);
-  uint32_t *data = (uint32_t*)frontier->data;
-
-  if(frontier->length > 0){
-    size_t card = row_lengths[data[0]];
-    if(card > 0){
-      uint32_t *cur_row = (uint32_t*) row_arrays[data[0]];
-      result->length = cur_row[0]/4;
-      std::copy((uint8_t*)&cur_row[1],(uint8_t*)&cur_row[1+cur_row[0]],result->data);
-    }
+inline size_t AOA_Matrix::get_distinct_neighbors(){
+  size_t frontier_length = 4;
+  uint32_t *data = new uint32_t[frontier_length];
+  for(size_t i = 0; i < frontier_length; i++){
+    data[i] = i;
   }
-  
-  for(size_t i=1; i<frontier->length; i++){
+
+  uint32_t *result = new uint32_t[matrix_size];
+  size_t result_length = 0;
+  uint32_t *tmp = new uint32_t[matrix_size];
+
+  for(size_t i=0; i<frontier_length; i++){
     size_t card = row_lengths[data[i]];
     if(card > 0){
-      uint32_t *size_ptr = (uint32_t*) row_arrays[data[i]];
-      tmp->length = array32::set_union((uint32_t*)tmp->data,(uint32_t*)result->data,(uint32_t*)(row_arrays[data[i]]+4),result->length,size_ptr[0]/4);
-      UnsignedIntegerArray *tmp2 = result;
+      result_length = array32::set_union((uint8_t*)tmp,result,(uint32_t*)row_arrays[data[i]],result_length,card);
+      uint32_t *tmp2 = result;
       result = tmp;
       tmp = tmp2;
 
     }
   }
 
-  /*
-  uint32_t *rdata = (uint32_t*) result->data;
-  for(size_t i = 0; i < result->length; i++){
-    cout << "distinct neighbors: " << i << " data: " << rdata[i] << endl;
+  for(size_t i=0; i < result_length; i++){
+    cout << "Neighbor: " << result[i] << endl;
   }
-  */
-  return result;
+
+  return result_length;
 }
 
 inline size_t AOA_Matrix::row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a){

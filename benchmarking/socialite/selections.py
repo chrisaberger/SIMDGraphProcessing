@@ -36,6 +36,11 @@ for k in range(0, num_runs):
      filtered_edge(frm, to) :- edge(frm, to, year), year == 2012, filtered_node(frm), filtered_node(to).
      total(0, $sum(1)) :- filtered_edge(x, y), filtered_edge(y, z), filtered_edge(x, z).`
 
+# count = 0
+# for a,b in `filtered_edge(a, b)`:
+#    count += 1
+# print count
+
 print "Triangle time: " + str((time.time() - start) / num_runs)
 for i, s in `total(i, s)`:
     print "Triangles: " + str(s / num_runs)

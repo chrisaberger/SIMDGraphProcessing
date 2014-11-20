@@ -11,7 +11,7 @@ namespace bitset {
     return ( ( value & (1 << position) ) >> position);
 	}
 	inline bool is_set(uint32_t index, const uint8_t *in_array){
-  	return (in_array[word_index(index)] & (1 << (index%16)));
+  	return (in_array[word_index(index)] & (1 << (index%BITS_PER_WORD)));
 	}
 	inline size_t preprocess(uint8_t *R, uint32_t *A, size_t s_a){
 		uint32_t max = A[s_a-1];

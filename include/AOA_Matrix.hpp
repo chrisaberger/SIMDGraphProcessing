@@ -85,8 +85,10 @@ class AOA_Matrix{
       const std::function<bool(uint32_t,uint32_t)> edge_selection, 
       const common::type t_in);
 
+    size_t union_sparse_neighbors(uint32_t node, uint32_t *union_data, uint8_t *visited);
+    size_t union_dense_neighbors(uint32_t offset, uint8_t &visited, uint32_t *union_data, uint8_t *parents);
+
     size_t get_union_distinct_neighbors();
-    size_t get_threaded_distinct_neighbors();
 
     size_t row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a);
     size_t buffer_intersect(uint8_t *R, uint32_t j, uint8_t *A, uint32_t card_a);
@@ -108,6 +110,7 @@ class AOA_Matrix{
 };
 
 inline size_t AOA_Matrix::get_union_distinct_neighbors(){
+  /*
   size_t frontier_length = 40;
   uint32_t *data = new uint32_t[frontier_length];
   for(size_t i = 0; i < frontier_length; i++){
@@ -141,39 +144,51 @@ inline size_t AOA_Matrix::get_union_distinct_neighbors(){
   common::stopClock("Ending intersection");
 
   return result_length;
+  */
+  return 0;
 }
-inline size_t AOA_Matrix::get_threaded_distinct_neighbors(){
-  size_t frontier_length = 40;
-  uint32_t *data = new uint32_t[frontier_length];
-  for(size_t i = 0; i < frontier_length; i++){
-    data[i] = i;
-  }
 
-  uint32_t *result = new uint32_t[matrix_size];
-  size_t result_length = 0;
-  int *visited = new int[matrix_size];
-  for(size_t i=0;i<matrix_size;i++){
-    visited[i] = -1;
+inline size_t AOA_Matrix::union_sparse_neighbors(uint32_t i, uint32_t *union_data, uint8_t *visited){
+  size_t next_union_length = 0;
+  size_t card = row_lengths[i];
+  if(card > 0){
+    uint32_t *nbrhood = (uint32_t*) (row_arrays[i]+1);
+    for(size_t j = 0; j < card; j++){
+      uint8_t prev = __sync_fetch_and_or(&visited[bitset::word_index(nbrhood[j])],(1 << (nbrhood[j] % 8)));
+      if((prev & (1 << (nbrhood[j] % 8))) == 0){
+        union_data[next_union_length++] = nbrhood[j];
+      }
+    }
   }
+  return next_union_length;
+}
+inline size_t AOA_Matrix::union_dense_neighbors(uint32_t offset, uint8_t &visited, uint32_t *union_data, uint8_t *parents){
+  size_t next_union_length = 0;
 
-  common::startClock();
-  for(size_t i=0; i<frontier_length; i++){
-    size_t card = row_lengths[data[i]];
-    if(card > 0){
-      uint32_t *nbrhood = (uint32_t*) (row_arrays[data[i]]+1);
-      for(size_t j = 0; j < card; j++){
-        if(visited[nbrhood[j]] == -1){
-          result[result_length++] = nbrhood[j];
-          visited[nbrhood[j]] = 1;
+  size_t end = min((matrix_size-offset),(size_t)8);
+
+  for(size_t i = 0; i < end; i++){
+    //if not visited
+    if(((visited >> i) & 0x01) == 0){
+      uint32_t node = offset + i;
+      size_t card = column_lengths[node];
+      if(card > 0){
+        uint32_t *nbrhood = (uint32_t*) (column_arrays[node]+1);
+        for(size_t j = 0; j < card; j++){
+          //if it has a parent in the fronteir
+          if(bitset::is_set(nbrhood[j],parents)){
+            visited |= (1 << i);
+            union_data[next_union_length++] = node;
+            break;
+          }
         }
       }
     }
   }
-  common::stopClock("standard bfs");
-
-
-  return result_length;
+  return next_union_length;
 }
+
+
 
 inline size_t AOA_Matrix::row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a){
   size_t card_a = row_lengths[i];

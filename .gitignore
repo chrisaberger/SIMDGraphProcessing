@@ -3,4 +3,4 @@
 /build
 /logs
 /benchmarking/logs
-/benchmarking/graphx/target
+/benchmarking/graphx/project/target

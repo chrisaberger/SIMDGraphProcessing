@@ -2,6 +2,8 @@ import time
 import sys
 import os
 
+num_runs = 10
+
 @returns(int)
 def getYear(d):
     return int(d.split('-')[0])
@@ -25,13 +27,13 @@ print "Preprocessing data"
 
 print "Triangle counting"
 start = time.time()
-for k in range(0, 10):
+for k in range(0, num_runs):
     print "Run " + str(k)
     `total(int x:0..0, int s).
      filtered_edge(long a, (long b)) indexby a, sortby b.
-     filtered_edge(n1, n2) :- node(n1, p1), node(n2, p2), edge(n1, n2, year), p1 > 100, p2 > 100, year = 2012.
+     filtered_edge(frm, to) :- node(frm, frm_p), node(to, to_p), edge(frm, to, year), frm_p > 500, to_p > 500, year == 2012.
      total(0, $sum(1)) :- filtered_edge(x, y), filtered_edge(y, z), filtered_edge(x, z).`
 
-print "Triangle time: " + str((time.time() - start) / 10)
+print "Triangle time: " + str((time.time() - start) / num_runs)
 for i, s in `total(i, s)`:
-    print "Triangles: " + str(s)
+    print "Triangles: " + str(s / num_runs)

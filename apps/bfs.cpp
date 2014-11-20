@@ -106,29 +106,48 @@ int main (int argc, char* argv[]) {
   
     const size_t block_size = (fronteir_length/(num_threads*4))+1; //matrix_size / num_threads;
 
-    //common::startClock();
-    for(size_t k = 0; k < num_threads; k++){
-      threads[k] = thread([k, block_size, &t_local_fronteir_size, &t_local_fronteirs, &bitset_f, &next_fronteir_length, &fronteir, &fronteir_32, &fronteir_length, &next_work, &graph, &visited](void) -> void {
-        size_t t_local_next_fronteir = 0;
-        uint32_t *mybuffer = t_local_fronteirs[k];
-        while(true) {
-          size_t work_start = next_work.fetch_add(block_size, std::memory_order_relaxed);
-          if(work_start > fronteir_length)
-            break;
+    common::startClock();
+    if(bitset_f){
+      cout << "BITSET" << endl;
+      for(size_t k = 0; k < num_threads; k++){
+        threads[k] = thread([k, block_size, &t_local_fronteir_size, &t_local_fronteirs, &bitset_f, &next_fronteir_length, &fronteir, &fronteir_32, &fronteir_length, &next_work, &graph, &visited](void) -> void {
+          size_t t_local_next_fronteir = 0;
+          uint32_t *mybuffer = t_local_fronteirs[k];
+          while(true) {
+            size_t work_start = next_work.fetch_add(block_size, std::memory_order_relaxed);
+            if(work_start > fronteir_length)
+              break;
 
-          size_t work_end = min(work_start + block_size, fronteir_length);
-          for(size_t j = work_start; j < work_end; j++) {
-            if(bitset_f){
+            size_t work_end = min(work_start + block_size, fronteir_length);
+            for(size_t j = work_start; j < work_end; j++) {
               t_local_next_fronteir += graph->union_dense_neighbors(j,visited[j],&mybuffer[t_local_next_fronteir],fronteir);
-            } else{
+            }
+          }
+          t_local_fronteir_size[k] = t_local_next_fronteir;
+          next_fronteir_length += t_local_next_fronteir;
+       });
+      } 
+    } else{
+      cout << "SPARSE" << endl;
+      for(size_t k = 0; k < num_threads; k++){
+        threads[k] = thread([k, block_size, &t_local_fronteir_size, &t_local_fronteirs, &bitset_f, &next_fronteir_length, &fronteir, &fronteir_32, &fronteir_length, &next_work, &graph, &visited](void) -> void {
+          size_t t_local_next_fronteir = 0;
+          uint32_t *mybuffer = t_local_fronteirs[k];
+          while(true) {
+            size_t work_start = next_work.fetch_add(block_size, std::memory_order_relaxed);
+            if(work_start > fronteir_length)
+              break;
+
+            size_t work_end = min(work_start + block_size, fronteir_length);
+            for(size_t j = work_start; j < work_end; j++) {
               t_local_next_fronteir += graph->union_sparse_neighbors(fronteir_32[j],&mybuffer[t_local_next_fronteir],visited);
             }
           }
-        }
-        t_local_fronteir_size[k] = t_local_next_fronteir;
-        next_fronteir_length += t_local_next_fronteir;
-     });
-    } 
+          t_local_fronteir_size[k] = t_local_next_fronteir;
+          next_fronteir_length += t_local_next_fronteir;
+       });
+      } 
+    }
 
     //cleanup
     size_t fronteir_index = 0;
@@ -137,7 +156,7 @@ int main (int argc, char* argv[]) {
       fronteir_index_array[k] = fronteir_index;
       fronteir_index += t_local_fronteir_size[k];
     } 
-   // common::stopClock("searching neighbors");
+    common::stopClock("searching neighbors");
 
 
     path_length++;
@@ -145,10 +164,11 @@ int main (int argc, char* argv[]) {
     fronteir_length = next_fronteir_length;
 
     if(!done){
-      //common::startClock();
+      common::startClock();
       ////////////////////////////////////
       //depending on density frontier will either be a bitset or  array of ints
-      if(next_fronteir_length*32 > graph->matrix_size){
+      if(0){  //next_fronteir_length*32 > graph->matrix_size){
+        cout << "BITSET COPY" << endl;
         bitset_f = true;
         memset(fronteir,(uint8_t)0,bitset_size);
         for(size_t k = 0; k < num_threads; k++){
@@ -175,6 +195,7 @@ int main (int argc, char* argv[]) {
         }
         fronteir_length = bitset_size;
       } else{
+        cout << "SPARSE COPY" << endl;
         bitset_f = false;
         for(size_t k = 0; k < num_threads; k++){
           threads[k] = thread([k, &t_local_fronteir_size, &fronteir_32, &t_local_fronteirs, &fronteir, &fronteir_index_array](void) -> void {
@@ -182,7 +203,6 @@ int main (int argc, char* argv[]) {
             for(size_t i = 0 ; i < t_local_fronteir_size[k]; i++){
               fronteir_32[i+fronteir_index_array[k]] = copy_dat[i];
             }
-            //std::copy(&copy_dat[0],&copy_dat[t_local_fronteir_size[k]],&fronteir_32[fronteir_index_array[k]]);
           });
         }
         fronteir_length = next_fronteir_length;
@@ -209,11 +229,12 @@ int main (int argc, char* argv[]) {
         }
       }
       */
-      //common::stopClock("Setting up next frontier");
+      common::stopClock("Setting up next frontier");
     } //end if !done
   }
 
   common::stopClock("BFS");
+  cout << "Path Length: " << path_length << endl;
   cout << "Final fronteir size: " << fronteir_length << endl;
 
   return 0;

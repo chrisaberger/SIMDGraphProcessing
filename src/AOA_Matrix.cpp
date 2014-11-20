@@ -30,8 +30,13 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
 
   cout << "attributes set: " << attributes_set << endl;
 
+  uint32_t *node_attributes_in;
+  vector<vector<uint32_t>*> *edge_attributes_in = new vector<vector<uint32_t>*>();
+
   common::startClock();
   if(attributes_set){
+    node_attributes_in= new uint32_t[new_num_nodes];
+    edge_attributes_in->reserve(cardinality_in);
     for(size_t i = 0; i < matrix_size_in; ++i){
       if(node_selection(i,node_attr->at(i))){
         old2newids[i] = new_num_nodes;
@@ -52,13 +57,6 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
 
   cout << "Filtered nodes: " << new_num_nodes << endl;
   uint64_t *new_imap = new uint64_t[new_num_nodes];
-
-  uint32_t *node_attributes_in;
-  vector<vector<uint32_t>*> *edge_attributes_in = new vector<vector<uint32_t>*>();
-  if(attributes_set){
-    node_attributes_in= new uint32_t[new_num_nodes];
-    edge_attributes_in->reserve(cardinality_in);
-  }
   
   size_t new_cardinality = 0;
   size_t total_bytes_used = 0;
@@ -68,20 +66,20 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
   }
 
   common::startClock();
-  #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
-  {
-    uint8_t *row_data_in = new uint8_t[alloc_size];
-    uint32_t *selected_row = new uint32_t[new_num_nodes];
-    size_t index = 0;
-    
-    #pragma omp for schedule(static)
-    for(size_t i = 0; i < matrix_size_in; ++i){
-      if(old2newids[i] != -1){
-        new_imap[old2newids[i]] = imap->at(i);
-        vector<uint32_t> *row = g->at(i);
-        size_t new_size = 0;
 
-        if(attributes_set){
+  if(attributes_set){
+    #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
+    {
+      uint8_t *row_data_in = new uint8_t[alloc_size];
+      uint32_t *selected_row = new uint32_t[new_num_nodes];
+      size_t index = 0;
+      #pragma omp for schedule(static)
+      for(size_t i = 0; i < matrix_size_in; ++i){
+        if(old2newids[i] != -1){
+          new_imap[old2newids[i]] = imap->at(i);
+          vector<uint32_t> *row = g->at(i);
+          size_t new_size = 0;
+
           vector<uint32_t> *new_edge_attribute = new vector<uint32_t>();
           vector<uint32_t> *row_attr = edge_attr->at(i);
           node_attributes_in[old2newids[i]] = node_attr->at(i);
@@ -93,29 +91,53 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
             } 
           }
           edge_attributes_in->push_back(new_edge_attribute);
-        } else{
+        
+          row_lengths_in[i] = new_size;
+          row_arrays_in[i] = &row_data_in[index];
+          if(new_size > 0){
+            common::type row_type = uint_array::get_array_type(t_in,selected_row,new_size,matrix_size_in);
+            index = uint_array::preprocess(row_data_in,index,selected_row,new_size,row_type);
+          }
+          new_cardinality += new_size;
+        }
+      }
+      delete[] selected_row;
+      total_bytes_used += index;
+      row_data_in = (uint8_t*) realloc((void *) row_data_in, index*sizeof(uint8_t));
+    }
+  } else{
+    #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
+    {
+      uint8_t *row_data_in = new uint8_t[alloc_size];
+      uint32_t *selected_row = new uint32_t[new_num_nodes];
+      size_t index = 0;
+      #pragma omp for schedule(static)
+      for(size_t i = 0; i < matrix_size_in; ++i){
+        if(old2newids[i] != -1){
+          new_imap[old2newids[i]] = imap->at(i);
+          vector<uint32_t> *row = g->at(i);
+          size_t new_size = 0;
+
           for(size_t j = 0; j < row->size(); ++j) {
             if(node_selection(row->at(j),0) && edge_selection(i,row->at(j),0)){
               new_cardinality++;
               selected_row[new_size++] = old2newids[row->at(j)];
             } 
           }          
-        }
-        //cout << "here" << endl; 
 
-        row_lengths_in[i] = new_size;
-        row_arrays_in[i] = &row_data_in[index];
-        if(new_size > 0){
-          common::type row_type = uint_array::get_array_type(t_in,selected_row,new_size,matrix_size_in);
-          index = uint_array::preprocess(row_data_in,index,selected_row,new_size,row_type);
+          row_lengths_in[i] = new_size;
+          row_arrays_in[i] = &row_data_in[index];
+          if(new_size > 0){
+            common::type row_type = uint_array::get_array_type(t_in,selected_row,new_size,matrix_size_in);
+            index = uint_array::preprocess(row_data_in,index,selected_row,new_size,row_type);
+          }
+          new_cardinality += new_size;
         }
-        new_cardinality += new_size;
       }
-    }
-
     delete[] selected_row;
     total_bytes_used += index;
     row_data_in = (uint8_t*) realloc((void *) row_data_in, index*sizeof(uint8_t));
+    }
   }
   delete[] old2newids;
 

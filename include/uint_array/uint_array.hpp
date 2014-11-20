@@ -69,7 +69,7 @@ namespace uint_array{
       case common::BITSET:
         size_ptr = (size_t*)&data[index];
         index += sizeof(size_t);
-        index += bitset::preprocess((unsigned short*)(data+index),data_in,length_in);
+        index += bitset::preprocess((data+index),data_in,length_in);
         size_ptr[0] = (index-start_index);
         break;
       case common::A32BITPACKED:
@@ -114,7 +114,7 @@ namespace uint_array{
       case common::BITSET:
         size_ptr = (size_t*)&data[0];
         data += sizeof(size_t);
-        result = bitset::sum(function,col,(unsigned short*)data,size_ptr[0]/sizeof(short));
+        result = bitset::sum(function,col,data,size_ptr[0]);
         break;
       case common::A32BITPACKED:
         data += sizeof(size_t);
@@ -194,7 +194,7 @@ namespace uint_array{
         A += sizeof(size_t);
         size_ptr_b = (size_t*)&B[0];
         B += sizeof(size_t);
-        count = bitset::intersect(R,(unsigned short*)A,(unsigned short*)B,size_ptr_a[0]/sizeof(short),size_ptr_b[0]/sizeof(short));
+        count = bitset::intersect(R,A,B,size_ptr_a[0],size_ptr_b[0]);
         break;
       case common::A32BITPACKED:
         B += sizeof(size_t);
@@ -229,7 +229,7 @@ namespace uint_array{
       } else if(t2 == common::BITSET){
         size_ptr_b = (size_t*)&B[0];
         B += sizeof(size_t);
-        count = hybrid::intersect_a32_bs(R,(uint32_t*)A,(unsigned short*)B,card_a,size_ptr_b[0]/sizeof(short));
+        count = hybrid::intersect_a32_bs(R,(uint32_t*)A,B,card_a,size_ptr_b[0]);
       } 
       #if COMPRESSION == 1
       else if(t2 == common::VARIANT){
@@ -256,7 +256,7 @@ namespace uint_array{
         A += sizeof(size_t);
         size_ptr_b = (size_t*)&B[0];
         B += sizeof(size_t);
-        count = hybrid::intersect_a16_bs(R,(unsigned short*)A,(unsigned short*)B,size_ptr_a[0]/sizeof(short),size_ptr_b[0]/sizeof(short));
+        count = hybrid::intersect_a16_bs(R,(unsigned short*)A,B,size_ptr_a[0]/sizeof(short),size_ptr_b[0]);
       } 
       #if COMPRESSION == 1
       else if(t2 == common::VARIANT){
@@ -281,13 +281,13 @@ namespace uint_array{
       if(t2 == common::ARRAY32){
         size_ptr_a = (size_t*)&A[0];
         A += sizeof(size_t);
-        count = hybrid::intersect_a32_bs(R,(uint32_t*)B,(unsigned short*)A,card_b,size_ptr_a[0]/sizeof(short));
+        count = hybrid::intersect_a32_bs(R,(uint32_t*)B,A,card_b,size_ptr_a[0]);
       } else if(t2 == common::ARRAY16){
         size_ptr_a = (size_t*)&A[0];
         A += sizeof(size_t);
         size_ptr_b = (size_t*)&B[0];
         B += sizeof(size_t);
-        count = hybrid::intersect_a16_bs(R,(unsigned short*)B,(unsigned short*)A,size_ptr_b[0]/sizeof(short),size_ptr_a[0]/sizeof(short));
+        count = hybrid::intersect_a16_bs(R,(unsigned short*)B,A,size_ptr_b[0]/sizeof(short),size_ptr_a[0]);
       } 
       #if COMPRESSION == 1
       else if(t2 == common::VARIANT){
@@ -296,7 +296,7 @@ namespace uint_array{
         A += sizeof(size_t);
         uint32_t *outputB = new uint32_t[card_b];
         variant::decode(outputB,B,card_b);
-        count = hybrid::intersect_a32_bs(R,outputB,(unsigned short*)A,card_b,size_ptr_a[0]/sizeof(short));
+        count = hybrid::intersect_a32_bs(R,outputB,A,card_b,size_ptr_a[0]);
         delete[] outputB;
       } else if(t2 == common::A32BITPACKED){
         B += sizeof(size_t);
@@ -304,7 +304,7 @@ namespace uint_array{
         A += sizeof(size_t);
         uint32_t *outputB = new uint32_t[card_b];
         a32bitpacked::decode(outputB,B,card_b);
-        count = hybrid::intersect_a32_bs(R,outputB,(unsigned short*)A,card_b,size_ptr_a[0]/sizeof(short));
+        count = hybrid::intersect_a32_bs(R,outputB,A,card_b,size_ptr_a[0]);
         delete[] outputB;
       }
       #endif
@@ -330,7 +330,7 @@ namespace uint_array{
         A += sizeof(size_t);
         size_ptr_b = (size_t*)&B[0];
         B += sizeof(size_t);
-        count = hybrid::intersect_a32_bs(R,outputA,(unsigned short*)B,card_a,size_ptr_b[0]/sizeof(short));
+        count = hybrid::intersect_a32_bs(R,outputA,B,card_a,size_ptr_b[0]);
       } 
     } else if(t1 == common::VARIANT){
       if(t2 == common::ARRAY32){
@@ -352,7 +352,7 @@ namespace uint_array{
         A += sizeof(size_t);
         size_ptr_b = (size_t*)&B[0];
         B += sizeof(size_t);
-        count = hybrid::intersect_a32_bs(R,outputA,(unsigned short*)B,card_a,size_ptr_b[0]/sizeof(short));
+        count = hybrid::intersect_a32_bs(R,outputA,B,card_a,size_ptr_b[0]);
       } 
     }
     #else
@@ -453,7 +453,7 @@ namespace uint_array{
         break;
       case common::BITSET:
         data += sizeof(size_t);
-        bitset::decode(result,(unsigned short*)data,card);
+        bitset::decode(result,data,card);
         break;
       case common::A32BITPACKED:
         data += sizeof(size_t);
@@ -486,7 +486,7 @@ namespace uint_array{
       case common::BITSET:
         size_ptr = (size_t*)&data[0];
         data += sizeof(size_t);
-        bitset::print_data((unsigned short*)data,size_ptr[0]/sizeof(short),file);
+        bitset::print_data(data,size_ptr[0],file);
         break;
       case common::A32BITPACKED:
         data += sizeof(size_t);

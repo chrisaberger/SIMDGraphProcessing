@@ -19,7 +19,7 @@ namespace application{
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
-  if(argc != 4){
+  if(argc != 5){
     cout << "Please see usage below: " << endl;
     cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp>" << endl;
     exit(0);
@@ -61,17 +61,14 @@ int main (int argc, char* argv[]) {
   AOA_Matrix *graph = AOA_Matrix::from_asymmetric(inputGraph,node_selection,edge_selection,layout);
   common::stopClock("selections");
   
-  graph->print_data("directed_graph.txt");
-  
-  common::startClock();
-  size_t count = graph->get_distinct_neighbors();
-  common::stopClock("BFS");
+  graph->print_data(argv[4]);
+
   /*
-  common::startClock();
-  application::queryOver();
-  common::stopClock(input_layout);
-  //application::graph->AOA_Matrix::~AOA_Matrix(); 
-  cout << "Count: " << application::num_triangles << endl << endl;
+  size_t count = graph->get_union_distinct_neighbors();
+  cout << "Fronteir size: " << count << endl;
+
+  count = graph->get_threaded_distinct_neighbors();
+  cout << "Fronteir size: " << count << endl;
   */
   return 0;
 }

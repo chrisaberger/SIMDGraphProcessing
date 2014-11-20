@@ -57,8 +57,8 @@ int main (int argc, char* argv[]) {
   srand ( time(NULL) );
   size_t a_size = 40000000;
   size_t b_size = 70000000;
-  uint32_t max1 = 50;
-  uint32_t max2 = 60;
+  uint32_t max1 = 500;
+  uint32_t max2 = 600;
 
   uint32_t num_times = 1;
 

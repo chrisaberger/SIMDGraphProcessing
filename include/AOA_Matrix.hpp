@@ -85,7 +85,9 @@ class AOA_Matrix{
       const std::function<bool(uint32_t,uint32_t)> edge_selection, 
       const common::type t_in);
 
-    size_t get_distinct_neighbors();
+    size_t get_union_distinct_neighbors();
+    size_t get_threaded_distinct_neighbors();
+
     size_t row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a);
     size_t buffer_intersect(uint8_t *R, uint32_t j, uint8_t *A, uint32_t card_a);
 
@@ -105,8 +107,8 @@ class AOA_Matrix{
 
 };
 
-inline size_t AOA_Matrix::get_distinct_neighbors(){
-  size_t frontier_length = 4;
+inline size_t AOA_Matrix::get_union_distinct_neighbors(){
+  size_t frontier_length = 40;
   uint32_t *data = new uint32_t[frontier_length];
   for(size_t i = 0; i < frontier_length; i++){
     data[i] = i;
@@ -116,20 +118,59 @@ inline size_t AOA_Matrix::get_distinct_neighbors(){
   size_t result_length = 0;
   uint32_t *tmp = new uint32_t[matrix_size];
 
+  uint32_t *visited = new uint32_t[matrix_size];
+  for(size_t i=0;i<matrix_size;i++){
+    visited[i] = i;
+  }
+
+  common::startClock();
   for(size_t i=0; i<frontier_length; i++){
     size_t card = row_lengths[data[i]];
     if(card > 0){
-      result_length = array32::set_union((uint8_t*)tmp,result,(uint32_t*)row_arrays[data[i]],result_length,card);
+      result_length = array32::set_union((uint8_t*)tmp,result,(uint32_t*)(row_arrays[data[i]]+1),result_length,card);
       uint32_t *tmp2 = result;
       result = tmp;
       tmp = tmp2;
-
     }
   }
+  common::stopClock("union bfs");
 
-  for(size_t i=0; i < result_length; i++){
-    cout << "Neighbor: " << result[i] << endl;
+  common::startClock();
+  result_length = array32::intersect((uint8_t*)tmp,result,(uint32_t*)visited,result_length,matrix_size);
+  size_t tmp_length = array32::set_difference(result,visited,tmp,result_length,matrix_size);
+  common::stopClock("Ending intersection");
+
+  return result_length;
+}
+inline size_t AOA_Matrix::get_threaded_distinct_neighbors(){
+  size_t frontier_length = 40;
+  uint32_t *data = new uint32_t[frontier_length];
+  for(size_t i = 0; i < frontier_length; i++){
+    data[i] = i;
   }
+
+  uint32_t *result = new uint32_t[matrix_size];
+  size_t result_length = 0;
+  int *visited = new int[matrix_size];
+  for(size_t i=0;i<matrix_size;i++){
+    visited[i] = -1;
+  }
+
+  common::startClock();
+  for(size_t i=0; i<frontier_length; i++){
+    size_t card = row_lengths[data[i]];
+    if(card > 0){
+      uint32_t *nbrhood = (uint32_t*) (row_arrays[data[i]]+1);
+      for(size_t j = 0; j < card; j++){
+        if(visited[nbrhood[j]] == -1){
+          result[result_length++] = nbrhood[j];
+          visited[nbrhood[j]] = 1;
+        }
+      }
+    }
+  }
+  common::stopClock("standard bfs");
+
 
   return result_length;
 }

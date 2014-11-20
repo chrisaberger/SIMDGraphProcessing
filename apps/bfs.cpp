@@ -53,7 +53,7 @@ int main (int argc, char* argv[]) {
   auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2);
 
   common::startClock();
-  MutableGraph *inputGraph = MutableGraph::directedFromEdgeList(argv[1]); //filename, # of files
+  MutableGraph *inputGraph = MutableGraph::directedFromBinary(argv[1]); //filename, # of files
   common::stopClock("Reading File");
   
   cout << endl;
@@ -65,7 +65,7 @@ int main (int argc, char* argv[]) {
   //graph->print_data(argv[4]);
 
   //initialize the fronteir.
-  size_t fronteir_length = 4;
+  size_t fronteir_length = 1;
   uint8_t *fronteir = new uint8_t[graph->matrix_size*sizeof(uint32_t)];
   uint32_t *fronteir_32 = (uint32_t*)fronteir;
   for(size_t i = 0; i < fronteir_length; i++){
@@ -74,6 +74,7 @@ int main (int argc, char* argv[]) {
 
   //allocate a visited bitset
   size_t bitset_size = (graph->matrix_size >> 3) + 1;
+  cout << "matrix size: " << graph->matrix_size << " bs size: " << bitset_size << endl;
   uint8_t *visited = new uint8_t[bitset_size];
   memset(visited,(uint8_t)0,bitset_size);
 
@@ -160,14 +161,17 @@ int main (int argc, char* argv[]) {
 
 
     path_length++;
-    done = path_length >= 10 || next_fronteir_length == 0;
+    done = next_fronteir_length == 0;
     fronteir_length = next_fronteir_length;
+
+    cout << "Frontier length: " << fronteir_length << endl;
+
 
     if(!done){
       common::startClock();
       ////////////////////////////////////
       //depending on density frontier will either be a bitset or  array of ints
-      if(0){  //next_fronteir_length*32 > graph->matrix_size){
+      if(next_fronteir_length*32 > graph->matrix_size){
         cout << "BITSET COPY" << endl;
         bitset_f = true;
         memset(fronteir,(uint8_t)0,bitset_size);

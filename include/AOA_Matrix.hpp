@@ -165,12 +165,16 @@ inline size_t AOA_Matrix::union_sparse_neighbors(uint32_t i, uint32_t *union_dat
 inline size_t AOA_Matrix::union_dense_neighbors(uint32_t offset, uint8_t &visited, uint32_t *union_data, uint8_t *parents){
   size_t next_union_length = 0;
 
-  size_t end = min((matrix_size-offset),(size_t)8);
+  size_t end = min((matrix_size-(offset*8)),(size_t)8);
+
+ // cout << "offset: " << offset  << " visited: "  << hex << (unsigned int)visited << dec << endl;
 
   for(size_t i = 0; i < end; i++){
     //if not visited
     if(((visited >> i) & 0x01) == 0){
-      uint32_t node = offset + i;
+      uint32_t node = offset*8 + i;
+     // cout << "Node: " << node << endl;
+
       size_t card = column_lengths[node];
       if(card > 0){
         uint32_t *nbrhood = (uint32_t*) (column_arrays[node]+1);

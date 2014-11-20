@@ -11,8 +11,31 @@ int main (int argc, char* argv[]) {
   }
   MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]);
   cout << "Loaded edge list" << endl;
-  
-  inputGraph->writeUndirectedToBinary(argv[2]);
+
+  string outfile = argv[2];
+  outfile.append("/u_bfs.bin");
+  inputGraph->reorder_bfs();
+  inputGraph->writeUndirectedToBinary(outfile);
+
+  outfile = argv[2];
+  outfile.append("/u_degree.bin");
+  inputGraph->reorder_by_degree();
+  inputGraph->writeUndirectedToBinary(outfile);
+
+  outfile = argv[2];
+  outfile.append("/u_rev_degree.bin");
+  inputGraph->reorder_by_rev_degree();
+  inputGraph->writeUndirectedToBinary(outfile);
+
+  outfile = argv[2];
+  outfile.append("/u_strong_run.bin");
+  inputGraph->reorder_strong_run();
+  inputGraph->writeUndirectedToBinary(outfile);
+
+  outfile = argv[2];
+  outfile.append("/u_random.bin");
+  inputGraph->reorder_random();
+  inputGraph->writeUndirectedToBinary(outfile);
   
   return 0;
 }

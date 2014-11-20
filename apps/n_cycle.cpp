@@ -9,11 +9,12 @@ namespace application{
   Table *output;
   size_t num_threads;
 
-  inline bool myNodeSelection(uint32_t node){
-    (void)node;
+  inline bool myNodeSelection(uint32_t node, uint32_t attribute){
+    (void)node; (void) attribute;
     return true;
   }
-  inline bool myEdgeSelection(uint32_t node, uint32_t nbr){
+  inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
+    (void) attribute;
     return nbr < node;
   }
 
@@ -54,7 +55,7 @@ namespace application{
         count = graph->row_intersect(buffer,src,dst,decoded_src);
         size_t cur_size = output->table_size[thread_id];
         uint32_t *output_table = (output->table_pointers[index])+cur_size;
-        uint_array::decode(output_table,buffer,count);
+        uint_array::decode(output_table,buffer,count,graph->t);
         for(long i = 0; i < count; i++){
           for(size_t j = 0; j < output->num_tuples-1; j++){ //the last row is taken care of in decode
             uint32_t *tmp_row = output->table_pointers[query_depth*thread_id+j];
@@ -165,8 +166,8 @@ int main (int argc, char* argv[]) {
     exit(0);
   }
 
-  auto node_selection = std::bind(&application::myNodeSelection, _1);
-  auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2);
+  auto node_selection = std::bind(&application::myNodeSelection, _1, _2);
+  auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2, _3);
 
   common::startClock();
   MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files
@@ -180,9 +181,7 @@ int main (int argc, char* argv[]) {
   cout << endl;
 
   common::startClock();
-  application::graph = AOA_Matrix::from_symmetric(inputGraph->out_neighborhoods,
-    inputGraph->num_nodes,inputGraph->num_edges,inputGraph->max_nbrhood_size,
-    node_selection,edge_selection,inputGraph->external_ids,layout);
+  application::graph = AOA_Matrix::from_symmetric(inputGraph,node_selection,edge_selection,layout);
   common::stopClock("selections");
   
   inputGraph->MutableGraph::~MutableGraph(); 
@@ -198,6 +197,6 @@ int main (int argc, char* argv[]) {
   //application::graph->AOA_Matrix::~AOA_Matrix();
   cout << "Count: " << application::num_triangles << endl << endl;
 
-  application::output->print_data("table.txt");
+  application::output->print_data("table.txt",application::graph->id_map);
   return 0;
 }

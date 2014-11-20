@@ -9,11 +9,12 @@ namespace application{
   AOA_Matrix** graphs;
   long num_triangles = 0;
 
-  inline bool myNodeSelection(uint32_t node){
-    (void)node;
+  inline bool myNodeSelection(uint32_t node, uint32_t attribute){
+    (void)node; (void) attribute;
     return true;
   }
-  inline bool myEdgeSelection(uint32_t node, uint32_t nbr){
+  inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
+    (void) attribute;
     return nbr < node;
   }
   struct thread_data{
@@ -159,8 +160,8 @@ int main (int argc, char* argv[]) {
     exit(0);
   }
 
-  auto node_selection = std::bind(&application::myNodeSelection, _1);
-  auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2);
+  auto node_selection = std::bind(&application::myNodeSelection, _1, _2);
+  auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2, _3);
 
   common::startClock();
   MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
@@ -170,9 +171,7 @@ int main (int argc, char* argv[]) {
   application::graphs = new AOA_Matrix*[num_nodes];
 
   common::startClock();
-  application::graphs[0] = AOA_Matrix::from_symmetric(inputGraph->out_neighborhoods,
-    inputGraph->num_nodes,inputGraph->num_edges,inputGraph->max_nbrhood_size,
-    node_selection,edge_selection,NULL,layout);
+  application::graphs[0] = AOA_Matrix::from_symmetric(inputGraph,node_selection,edge_selection,layout);
   common::stopClock("selections");
 
   common::startClock();

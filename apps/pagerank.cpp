@@ -21,9 +21,7 @@ namespace application{
   inline void print_pr_data(string file){
     ofstream myfile;
     myfile.open(file);
-    for (auto iter = graph->external_ids->begin(); iter != graph->external_ids->end(); iter++){
-      myfile << "Node: " << iter->first <<"(" << iter->second << ")" << " PR: " << pr_data[iter->second] << endl;
-    }
+
   }
   
   inline float nbrApply_old(uint32_t nbr){
@@ -190,9 +188,7 @@ int main (int argc, char* argv[]) {
   cout << endl;
 
   common::startClock();
-  application::graph = AOA_Matrix::from_asymmetric(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
-    inputGraph->num_nodes,inputGraph->num_edges,inputGraph->max_nbrhood_size,
-    node_selection,edge_selection,inputGraph->external_ids,layout);
+  application::graph = AOA_Matrix::from_asymmetric(inputGraph,node_selection,edge_selection,layout);
   common::stopClock("selections");
   
   inputGraph->MutableGraph::~MutableGraph(); 

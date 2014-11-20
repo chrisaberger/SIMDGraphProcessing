@@ -2,6 +2,7 @@
 #define AOA_MATRIX_H
 
 #include "UnsignedIntegerArray.hpp"
+#include "MutableGraph.hpp"
 
 class AOA_Matrix{
   public:
@@ -25,7 +26,10 @@ class AOA_Matrix{
     uint32_t *column_lengths;
     uint8_t **column_arrays;
 
-    const unordered_map<uint64_t,uint32_t> *external_ids;
+    uint64_t *id_map;
+    uint32_t *node_attributes;
+    vector< vector<uint32_t>*  > *out_edge_attributes;
+    vector< vector<uint32_t>*  > *in_edge_attributes;
 
     AOA_Matrix(size_t matrix_size_in,
       size_t cardinality_in,
@@ -38,7 +42,10 @@ class AOA_Matrix{
       uint8_t **row_arrays_in, 
       uint32_t *column_lengths_in, 
       uint8_t **column_arrays_in, 
-      const unordered_map<uint64_t,uint32_t> *external_ids_in):
+      uint64_t *id_map_in,
+      uint32_t *node_attributes_in,
+      vector< vector<uint32_t>*  > *out_edge_attributes_in,
+      vector< vector<uint32_t>*  > *in_edge_attributes_in):
         matrix_size(matrix_size_in),
         cardinality(cardinality_in),
         row_total_bytes_used(row_total_bytes_used_in),
@@ -50,7 +57,10 @@ class AOA_Matrix{
         row_arrays(row_arrays_in),
         column_lengths(column_lengths_in),
         column_arrays(column_arrays_in),
-        external_ids(external_ids_in){}
+        id_map(id_map_in),
+        node_attributes(node_attributes_in),
+        out_edge_attributes(out_edge_attributes_in),
+        in_edge_attributes(in_edge_attributes_in){}
 
     ~AOA_Matrix(){
       #pragma omp parallel for default(none)
@@ -72,18 +82,21 @@ class AOA_Matrix{
     AOA_Matrix* clone_on_node(int node);
     void *parallel_constructor(void *);
 
-    static AOA_Matrix* from_symmetric(const vector< vector<uint32_t>*  > *g,const size_t matrix_size_in,const size_t cardinality_in,const size_t max_nbrhood_size,
-      const std::function<bool(uint32_t)> node_selection,const std::function<bool(uint32_t,uint32_t)> edge_selection, 
-      const unordered_map<uint64_t,uint32_t> *external_ids_in,const common::type t_in);
-
-    static AOA_Matrix* from_asymmetric(vector< vector<uint32_t>*  > *out_nbrs,vector< vector<uint32_t>*  > *in_nbrs,size_t max_nbrhood_size_in,
-      const size_t matrix_size_in,const size_t cardinality_in, 
-      const std::function<bool(uint32_t)> node_selection,
-      const std::function<bool(uint32_t,uint32_t)> edge_selection, 
-      const unordered_map<uint64_t,uint32_t> *external_ids_in, 
+    static AOA_Matrix* from_symmetric(MutableGraph *inputGraph,
+      const std::function<bool(uint32_t,uint32_t)> node_selection,
+      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, 
       const common::type t_in);
 
-    size_t get_distinct_neighbors();
+    static AOA_Matrix* from_asymmetric(MutableGraph *inputGraph,
+      const std::function<bool(uint32_t)> node_selection,
+      const std::function<bool(uint32_t,uint32_t)> edge_selection, 
+      const common::type t_in);
+
+
+    size_t union_sparse_neighbors(uint32_t node, uint32_t *union_data, uint8_t *visited);
+    size_t union_dense_neighbors(uint32_t offset, uint8_t &visited, uint32_t *union_data, uint8_t *parents);
+    size_t get_union_distinct_neighbors();
+
     size_t row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a);
     size_t buffer_intersect(uint8_t *R, uint32_t j, uint8_t *A, uint32_t card_a);
 
@@ -103,8 +116,9 @@ class AOA_Matrix{
 
 };
 
-inline size_t AOA_Matrix::get_distinct_neighbors(){
-  size_t frontier_length = 4;
+inline size_t AOA_Matrix::get_union_distinct_neighbors(){
+  /*
+  size_t frontier_length = 40;
   uint32_t *data = new uint32_t[frontier_length];
   for(size_t i = 0; i < frontier_length; i++){
     data[i] = i;
@@ -114,23 +128,78 @@ inline size_t AOA_Matrix::get_distinct_neighbors(){
   size_t result_length = 0;
   uint32_t *tmp = new uint32_t[matrix_size];
 
+  uint32_t *visited = new uint32_t[matrix_size];
+  for(size_t i=0;i<matrix_size;i++){
+    visited[i] = i;
+  }
+
+  common::startClock();
   for(size_t i=0; i<frontier_length; i++){
     size_t card = row_lengths[data[i]];
     if(card > 0){
-      result_length = array32::set_union((uint8_t*)tmp,result,(uint32_t*)row_arrays[data[i]],result_length,card);
+      result_length = array32::set_union((uint8_t*)tmp,result,(uint32_t*)(row_arrays[data[i]]+1),result_length,card);
+>>>>>>> chris_sandbox
       uint32_t *tmp2 = result;
       result = tmp;
       tmp = tmp2;
-
     }
   }
+  common::stopClock("union bfs");
 
-  for(size_t i=0; i < result_length; i++){
-    cout << "Neighbor: " << result[i] << endl;
-  }
+  common::startClock();
+  result_length = array32::intersect((uint8_t*)tmp,result,(uint32_t*)visited,result_length,matrix_size);
+  size_t tmp_length = array32::set_difference(result,visited,tmp,result_length,matrix_size);
+  common::stopClock("Ending intersection");
 
   return result_length;
+  */
+  return 0;
 }
+
+inline size_t AOA_Matrix::union_sparse_neighbors(uint32_t i, uint32_t *union_data, uint8_t *visited){
+  size_t next_union_length = 0;
+  size_t card = row_lengths[i];
+  if(card > 0){
+    uint32_t *nbrhood = (uint32_t*) (row_arrays[i]+1);
+    for(size_t j = 0; j < card; j++){
+      uint8_t prev = __sync_fetch_and_or(&visited[bitset::word_index(nbrhood[j])],(1 << (nbrhood[j] % 8)));
+      if((prev & (1 << (nbrhood[j] % 8))) == 0){
+        union_data[next_union_length++] = nbrhood[j];
+      }
+    }
+  }
+  return next_union_length;
+}
+inline size_t AOA_Matrix::union_dense_neighbors(uint32_t offset, uint8_t &visited, uint32_t *union_data, uint8_t *parents){
+  size_t next_union_length = 0;
+  size_t end = min((matrix_size-(offset*8)),(size_t)8);
+
+ // cout << "offset: " << offset  << " visited: "  << hex << (unsigned int)visited << dec << endl;
+
+  for(size_t i = 0; i < end; i++){
+    //if not visited
+    if(((visited >> i) & 0x01) == 0){
+      uint32_t node = offset*8 + i;
+     // cout << "Node: " << node << endl;
+
+      size_t card = column_lengths[node];
+      if(card > 0){
+        uint32_t *nbrhood = (uint32_t*) (column_arrays[node]+1);
+        for(size_t j = 0; j < card; j++){
+          //if it has a parent in the fronteir
+          if(bitset::is_set(nbrhood[j],parents)){
+            visited |= (1 << i);
+            union_data[next_union_length++] = node;
+            break;
+          }
+        }
+      }
+    }
+  }
+  return next_union_length;
+}
+
+
 
 inline size_t AOA_Matrix::row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a){
   size_t card_a = row_lengths[i];

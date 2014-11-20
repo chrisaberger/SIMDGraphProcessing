@@ -11,11 +11,11 @@ namespace application{
 
   inline bool myNodeSelection(uint32_t node, uint32_t attribute){
     (void)node; (void) attribute;
-    return true;
+    return true;//attribute > 500;
   }
   inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
     (void) attribute;
-    return nbr < node;
+    return nbr < node && attribute == 2012;
   }
 
   struct thread_data{
@@ -87,9 +87,7 @@ namespace application{
 
   inline void allocBuffers(const size_t query_depth){
     const size_t cardinality = graph->cardinality;
-    
     output = new Table(query_depth,num_threads,cardinality);
-
     t_data_pointers = new thread_data*[num_threads];
     for(size_t k= 0; k < num_threads; k++){
       t_data_pointers[k] = new thread_data(graph->max_nbrhood_size,3,query_depth,k);
@@ -143,17 +141,17 @@ namespace application{
 }
 
 int main (int argc, char* argv[]) { 
-  if(argc != 5){
+  if(argc != 6){
     cout << "Please see usage below: " << endl;
-    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp> <depth>" << endl;
+    cout << "\t./main <edge list file/folder> <node attributes file> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp> <depth>" << endl;
     exit(0);
   }
 
-  cout << endl << "Number of threads: " << atoi(argv[2]) << endl;
-  omp_set_num_threads(atoi(argv[2]));        
-  application::num_threads = atoi(argv[2]);
+  cout << endl << "Number of threads: " << atoi(argv[3]) << endl;
+  omp_set_num_threads(atoi(argv[3]));        
+  application::num_threads = atoi(argv[3]);
 
-  std::string input_layout = argv[3];
+  std::string input_layout = argv[4];
 
   common::type layout;
   if(input_layout.compare("a32") == 0){
@@ -181,24 +179,20 @@ int main (int argc, char* argv[]) {
   auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2, _3);
 
   common::startClock();
-  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files
+  MutableGraph *inputGraph = MutableGraph::undirectedFromAttributeList(argv[1],argv[2]); //filename, # of files
   common::stopClock("Reading File");
   
-  common::startClock();
-  //inputGraph->reorder_bfs();
-  inputGraph->reorder_by_degree();
-  common::stopClock("Reordering");
-  
-  cout << endl;
-
-  common::startClock();
+  //common::startClock();
   application::graph = AOA_Matrix::from_symmetric(inputGraph,node_selection,edge_selection,layout);
-  common::stopClock("selections");
+  //common::stopClock("selections");
+  
+  //application::graph->print_data("graph.txt");
+  cout << endl;
   
   inputGraph->MutableGraph::~MutableGraph(); 
   
   common::startClock();
-  application::allocBuffers(atoi(argv[4]));
+  application::allocBuffers(atoi(argv[5]));
   common::stopClock("buffer allocation");  
 
   common::startClock();
@@ -209,5 +203,6 @@ int main (int argc, char* argv[]) {
   cout << "Count: " << application::num_triangles << endl << endl;
 
   application::output->print_data("table.txt",application::graph->id_map);
+
   return 0;
 }

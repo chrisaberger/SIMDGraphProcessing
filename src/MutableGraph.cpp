@@ -334,6 +334,7 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
 
   // allocate memory to contain the whole file:
   char *buffer = (char*) malloc (sizeof(char)*lSize + 1);
+
   neighborhoods->reserve(lSize/4);
   extern_ids->reserve(lSize/4);
   if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
@@ -356,7 +357,6 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
     uint32_t year;
     sscanf(test,"%u",&year);
     test = strtok(NULL," -|\t\nA");
-    cout << "src: " << src << " dst: " <<  dst << " " << year << endl;
 
     vector<uint32_t> *src_row;
     vector<uint32_t> *src_attr;
@@ -395,7 +395,7 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
   fclose(pFile);
   free(buffer);
 
-  cout << "done reading edgelist" << endl;
+
   //////////////////////////////////////////////////////////////////////////////
   vector<uint32_t> *id_attributes = new vector<uint32_t>();
   id_attributes->resize(neighborhoods->size()); 
@@ -426,9 +426,11 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
     uint32_t attr;
     sscanf(test,"%u",&attr);
     test = strtok(NULL," |\t\nA");
-    cout << "id: " << id << " attr: " << attr << endl;
 
     id_attributes->at(extern_ids->at(id)) = attr;
+    if(extern_ids->find(id) != extern_ids->end()){
+      id_attributes->at(extern_ids->at(id)) = attr;
+    }
   }
   // terminate
   fclose(pFile2);
@@ -538,20 +540,21 @@ void MutableGraph::writeDirectedToBinary(const string path) {
   ofstream outfile;
   outfile.open(path, ios::binary | ios::out);
 
-  size_t osize = out_neighborhoods->size();
-  outfile.write((char *)&osize, sizeof(osize)); 
-  cout << osize << endl;
-  for(size_t i = 0; i < out_neighborhoods->size(); ++i){
+  outfile.write((char *)&num_nodes, sizeof(num_nodes));
+  for(size_t i = 0; i < num_nodes; ++i){
+    outfile.write((char*)&id_map->at(i),sizeof(uint64_t));
+
+    /////////////////////////////////////////////////////////////////////
     vector<uint32_t> *row = out_neighborhoods->at(i);
     size_t rsize = row->size();
     outfile.write((char *)&rsize, sizeof(rsize)); 
     outfile.write((char *)row->data(),sizeof(uint32_t)*rsize);
-  }
-  for(size_t i = 0; i < in_neighborhoods->size(); ++i){
-    vector<uint32_t> *row = in_neighborhoods->at(i);
-    size_t rsize = row->size();
-    outfile.write((char *)&rsize, sizeof(rsize)); 
-    outfile.write((char *)row->data(),sizeof(uint32_t)*rsize);
+
+    /////////////////////////////////////////////////////////////////////
+    vector<uint32_t> *col = in_neighborhoods->at(i);
+    size_t csize = col->size();
+    outfile.write((char *)&csize, sizeof(csize)); 
+    outfile.write((char *)col->data(),sizeof(uint32_t)*csize);
   }
   outfile.close();
 }
@@ -570,10 +573,16 @@ MutableGraph* MutableGraph::directedFromBinary(const string path) {
   infile.read((char *)&num_nodes, sizeof(num_nodes)); 
 
   size_t max_nbrhood_size = 0;
+
+  cout << "num nodes: " << num_nodes << endl;
   for(size_t i = 0; i < num_nodes; ++i){
+    uint64_t external_id;
+    infile.read((char *)&external_id, sizeof(uint64_t)); 
+    id_map->push_back(external_id);
+
+    //////////////////////////////////////////////////////////////////// 
     size_t row_size = 0;
     infile.read((char *)&row_size, sizeof(row_size)); 
-    cout << "r: " << row_size << endl;
     num_edges += row_size;
 
     if(row_size > max_nbrhood_size)
@@ -581,25 +590,25 @@ MutableGraph* MutableGraph::directedFromBinary(const string path) {
 
     vector<uint32_t> *row = new vector<uint32_t>();
     row->reserve(row_size);
-    uint32_t *tmp_data = new uint32_t[row_size];
-    infile.read((char *)&tmp_data[0], sizeof(uint32_t)*row_size); 
-    row->assign(&tmp_data[0],&tmp_data[row_size]);
+    uint32_t *r_tmp_data = new uint32_t[row_size];
+    infile.read((char *)&r_tmp_data[0], sizeof(uint32_t)*row_size); 
+    row->assign(&r_tmp_data[0],&r_tmp_data[row_size]);
     out_neighborhoods->push_back(row);
-  }
-  for(size_t i = 0; i < num_nodes; ++i){
-    size_t row_size = 0;
-    infile.read((char *)&row_size, sizeof(row_size)); 
-    num_edges += row_size;
 
-    if(row_size > max_nbrhood_size)
-      max_nbrhood_size = row_size;
+    ////////////////////////////////////////////////////////////////////
+    size_t col_size = 0;
+    infile.read((char *)&col_size, sizeof(col_size)); 
+    num_edges += col_size;
 
-    vector<uint32_t> *row = new vector<uint32_t>();
-    row->reserve(row_size);
-    uint32_t *tmp_data = new uint32_t[row_size];
-    infile.read((char *)&tmp_data[0], sizeof(uint32_t)*row_size); 
-    row->assign(&tmp_data[0],&tmp_data[row_size]);
-    in_neighborhoods->push_back(row);
+    if(col_size > max_nbrhood_size)
+      max_nbrhood_size = col_size;
+
+    vector<uint32_t> *col = new vector<uint32_t>();
+    col->reserve(col_size);
+    uint32_t *c_tmp_data = new uint32_t[col_size];
+    infile.read((char *)&c_tmp_data[0], sizeof(uint32_t)*col_size); 
+    col->assign(&c_tmp_data[0],&c_tmp_data[col_size]);
+    in_neighborhoods->push_back(col);
   }
   infile.close();
 

@@ -253,6 +253,7 @@ namespace array32 {
         num_hit = _mm_popcnt_u32(mask_a);
         //[ copy out common elements
         #if WRITE_VECTOR == 1
+        //sets p_a to values followed by highest int highest 
         __m128i p_a = _mm_or_si128(setinel_mask_a[mask_a],_mm_shuffle_epi8(v_a, shuffle_difference_mask32_a[mask_a]));  
         __m128i p_b = v_b;
             

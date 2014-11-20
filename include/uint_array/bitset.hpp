@@ -1,7 +1,7 @@
 #include "common.hpp"
 
-#define BITS_PER_WORD 16
-#define ADDRESS_BITS_PER_WORD 4
+#define BITS_PER_WORD 8
+#define ADDRESS_BITS_PER_WORD 3
 
 namespace bitset {
 	inline size_t word_index(uint32_t bit_index){
@@ -10,10 +10,10 @@ namespace bitset {
 	inline int get_bit(uint32_t value, uint32_t position) {
     return ( ( value & (1 << position) ) >> position);
 	}
-	inline bool is_set(uint32_t index, const unsigned short *in_array){
-  	return (in_array[word_index(index)] & (1 << (index%16)));
+	inline bool is_set(uint32_t index, const uint8_t *in_array){
+  	return (in_array[word_index(index)] & (1 << (index%BITS_PER_WORD)));
 	}
-	inline size_t preprocess(unsigned short *R, uint32_t *A, size_t s_a){
+	inline size_t preprocess(uint8_t *R, uint32_t *A, size_t s_a){
 		uint32_t max = A[s_a-1];
 		size_t num_words = word_index(max);
 		if(s_a != 0){
@@ -24,7 +24,7 @@ namespace bitset {
 	  while(i<s_a){
 	    uint32_t cur = A[i];
 	    size_t word = word_index(cur);
-	    unsigned short set_value = 1 << (cur % BITS_PER_WORD);
+	    uint8_t set_value = 1 << (cur % BITS_PER_WORD);
 	    bool same_word = true;
 	    ++i;
 	    while(i<s_a && same_word){
@@ -36,9 +36,9 @@ namespace bitset {
 	    }
 	    R[word] = set_value; 
 	  }
-	  return 2*num_words;
+	  return num_words;
 	}
-	inline size_t intersect(uint8_t *C_in, unsigned short *A, unsigned short *B, const size_t s_a, const size_t s_b) {
+	inline size_t intersect(uint8_t *C_in, uint8_t *A, uint8_t *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
     (void) C_in;
     #endif
@@ -46,13 +46,13 @@ namespace bitset {
     #if WRITE_VECTOR == 1
     size_t *C_size = (size_t*)&C_in[1];
     C_in[0] = common::BITSET;
-    unsigned short *C = (unsigned short*)&C_in[sizeof(size_t)+1];
+    uint8_t *C = (uint8_t*)&C_in[sizeof(size_t)+1];
     #endif
 
 	  long count = 0l;
-	  unsigned short *small = A;
+	  uint8_t *small = A;
 	  size_t small_length = s_a;
-	  unsigned short *large = B;
+	  uint8_t *large = B;
 	  if(s_a > s_b){
 	  	large = A;
 	  	small = B;
@@ -65,7 +65,7 @@ namespace bitset {
 	  size_t i = 0;
 	  
     #if VECTORIZE == 1
-	  while((i+7) < small_length){
+	  while((i+15) < small_length){
 	    __m128i a1 = _mm_loadu_si128((const __m128i*)&A[i]);
 	    __m128i a2 = _mm_loadu_si128((const __m128i*)&B[i]);
 	    
@@ -101,10 +101,10 @@ namespace bitset {
 	  return count;
 	}
 	template<typename T> 
-  inline T sum(std::function<T(uint32_t,uint32_t)> function,uint32_t col,unsigned short *data, size_t length){
+  inline T sum(std::function<T(uint32_t,uint32_t)> function,uint32_t col,uint8_t *data, size_t length){
     T result = (T) 0;
     for(size_t i = 0; i < length; i++){
-    	unsigned short cur_word = data[i];
+    	uint8_t cur_word = data[i];
     	for(size_t j = 0; j < BITS_PER_WORD; j++){
     		if((cur_word >> j) % 2){
     			uint32_t cur = BITS_PER_WORD*i + j;
@@ -114,11 +114,11 @@ namespace bitset {
     }
     return result;
   }
-  inline void decode(uint32_t *result, unsigned short *A, size_t s_a){
+  inline void decode(uint32_t *result, uint8_t *A, size_t s_a){
     size_t count = 0;
     size_t i = 0;
     while(count < s_a){
-      unsigned short cur_word = A[i];
+      uint8_t cur_word = A[i];
       for(size_t j = 0; j < BITS_PER_WORD; j++){
         if((cur_word >> j) % 2)
           result[count++] = BITS_PER_WORD*i + j ;
@@ -126,10 +126,10 @@ namespace bitset {
       i++;
     }
   }
-  inline void print_data(unsigned short *A, size_t s_a, ofstream &file){
-  	//cout << "Size: " << s_a << endl;
+  inline void print_data(uint8_t *A, size_t s_a, ofstream &file){
+  	cout << "Size: " << s_a << endl;
     for(size_t i = 0; i < s_a; i++){
-    	unsigned short cur_word = A[i];
+    	uint8_t cur_word = A[i];
     	for(size_t j = 0; j < BITS_PER_WORD; j++){
     		if((cur_word >> j) % 2)
     			file << " Data: " << BITS_PER_WORD*i + j << endl;

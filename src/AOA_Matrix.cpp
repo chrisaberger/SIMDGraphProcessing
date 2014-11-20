@@ -30,13 +30,8 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
 
   cout << "attributes set: " << attributes_set << endl;
 
-  uint32_t *node_attributes_in;
-  vector<vector<uint32_t>*> *edge_attributes_in = new vector<vector<uint32_t>*>();
-
   common::startClock();
   if(attributes_set){
-    node_attributes_in= new uint32_t[new_num_nodes];
-    edge_attributes_in->reserve(cardinality_in);
     for(size_t i = 0; i < matrix_size_in; ++i){
       if(node_selection(i,node_attr->at(i))){
         old2newids[i] = new_num_nodes;
@@ -51,6 +46,13 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
       old2newids[i] = i;
     }
     new_num_nodes = matrix_size_in;
+  }
+
+  uint32_t *node_attributes_in;
+  vector<vector<uint32_t>*> *edge_attributes_in = new vector<vector<uint32_t>*>();
+  if(attributes_set){
+    node_attributes_in= new uint32_t[new_num_nodes];
+    edge_attributes_in->reserve(cardinality_in);
   }
 
   common::stopClock("Node Selections");
@@ -68,12 +70,12 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
   common::startClock();
 
   if(attributes_set){
-    #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
-    {
+    //#pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
+    //{
       uint8_t *row_data_in = new uint8_t[alloc_size];
       uint32_t *selected_row = new uint32_t[new_num_nodes];
       size_t index = 0;
-      #pragma omp for schedule(static)
+      //#pragma omp for schedule(static)
       for(size_t i = 0; i < matrix_size_in; ++i){
         if(old2newids[i] != -1){
           new_imap[old2newids[i]] = imap->at(i);
@@ -83,6 +85,7 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
           vector<uint32_t> *new_edge_attribute = new vector<uint32_t>();
           vector<uint32_t> *row_attr = edge_attr->at(i);
           node_attributes_in[old2newids[i]] = node_attr->at(i);
+        
           for(size_t j = 0; j < row->size(); ++j) {
             if(node_selection(row->at(j),node_attr->at(row->at(j))) && edge_selection(i,row->at(j),row_attr->at(j))){
               new_cardinality++;
@@ -91,9 +94,9 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
             } 
           }
           edge_attributes_in->push_back(new_edge_attribute);
-        
-          row_lengths_in[i] = new_size;
-          row_arrays_in[i] = &row_data_in[index];
+          
+          row_lengths_in[old2newids[i]] = new_size;
+          row_arrays_in[old2newids[i]] = &row_data_in[index];
           if(new_size > 0){
             common::type row_type = uint_array::get_array_type(t_in,selected_row,new_size,matrix_size_in);
             index = uint_array::preprocess(row_data_in,index,selected_row,new_size,row_type);
@@ -104,7 +107,7 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
       delete[] selected_row;
       total_bytes_used += index;
       row_data_in = (uint8_t*) realloc((void *) row_data_in, index*sizeof(uint8_t));
-    }
+    //}
   } else{
     #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
     {
@@ -125,8 +128,8 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
             } 
           }          
 
-          row_lengths_in[i] = new_size;
-          row_arrays_in[i] = &row_data_in[index];
+          row_lengths_in[old2newids[i]] = new_size;
+          row_arrays_in[old2newids[i]] = &row_data_in[index];
           if(new_size > 0){
             common::type row_type = uint_array::get_array_type(t_in,selected_row,new_size,matrix_size_in);
             index = uint_array::preprocess(row_data_in,index,selected_row,new_size,row_type);
@@ -143,6 +146,7 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
 
   common::stopClock("Edge Selections");
 
+  cout << "Number of edges: " << new_cardinality << endl;
   cout << "ROW DATA SIZE (Bytes): " << total_bytes_used << endl;
 
   return new AOA_Matrix(new_num_nodes,new_cardinality,max_nbrhood_size_in,t_in,true,row_lengths_in,row_arrays_in,row_lengths_in,row_arrays_in,new_imap,node_attributes_in,edge_attributes_in,edge_attributes_in);

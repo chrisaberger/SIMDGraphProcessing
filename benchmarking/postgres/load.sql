@@ -1,16 +1,14 @@
 DROP TABLE IF EXISTS edge;
 CREATE TABLE edgeRaw(a BIGINT, b BIGINT);
 CREATE TABLE edge(a BIGINT, b BIGINT);
-CREATE INDEX ON edge(a);
 
 COPY edgeRaw FROM :'dataset';
 
 INSERT INTO edge(a, b) (
-   SELECT a, b FROM edgeRaw WHERE a < b
+   SELECT DISTINCT LEAST(a, b), GREATEST(a, b) FROM edgeRaw
 );
 
-INSERT INTO edge(a, b) (
-   SELECT b, a FROM edgeRaw WHERE a > b
-);
+CREATE INDEX edge_a_index ON edge(a);
+CREATE INDEX edge_b_index ON edge(b);
 
 DROP TABLE IF EXISTS edgeRaw;

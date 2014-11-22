@@ -470,7 +470,7 @@ namespace uint_array{
         break;
     }
   }
-  inline void print_data(uint8_t *data, size_t cardinality, common::type t, std::ofstream &file){
+  inline void print_data(uint8_t *data, size_t cardinality, common::type t, std::ofstream &file, uint64_t *id_map){
     #if HYBRID_LAYOUT == 1
     t = (common::type) data[0];
     data++;
@@ -479,7 +479,7 @@ namespace uint_array{
     size_t *size_ptr;
     switch(t){
       case common::ARRAY32:
-        array32::print_data((uint32_t*)data,cardinality,file);
+        array32::print_data((uint32_t*)data,cardinality,file,id_map);
         break;
       case common::ARRAY16:
         size_ptr = (size_t*)&data[0];

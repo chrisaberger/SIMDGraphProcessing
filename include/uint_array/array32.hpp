@@ -452,10 +452,10 @@ namespace array32 {
     }
     return result;
   }
-  inline void print_data(uint32_t *data,size_t length,ofstream &file){
+  inline void print_data(uint32_t *data,size_t length,ofstream &file,uint64_t *id_map){
     //cout << "LEN: " << length << endl;
     for(size_t i = 0; i < length; i++){
-      file << " Data: " << data[i] << endl;
+      file << " Data: " << id_map[data[i]] << endl;
     }
   }
   inline size_t preprocess(uint32_t *r, uint32_t *data, size_t length){

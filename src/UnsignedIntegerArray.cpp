@@ -43,5 +43,5 @@ UnsignedIntegerArray* UnsignedIntegerArray::alloc(size_t size){
 void UnsignedIntegerArray::print_data(string file){
   ofstream myfile;
   myfile.open(file);
-  uint_array::print_data(data,cardinality,t,myfile);
+  //uint_array::print_data(data,cardinality,t,myfile);
 }

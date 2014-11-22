@@ -21,6 +21,13 @@ struct OrderNeighborhoodByRevDegree{
   }
 };
 
+struct OrderByID{
+  OrderByID(){}
+  bool operator()(pair<uint32_t,uint32_t> i, pair<uint32_t,uint32_t> j) const { 
+    return i.first < j.first; 
+  }
+};
+
 void MutableGraph::reassign_ids(vector< vector<uint32_t>* > *neighborhoods,vector< vector<uint32_t>* > *new_neighborhoods,uint32_t *new2old_ids,uint32_t *old2new_ids){
   vector<uint64_t> *new_id_map = new vector<uint64_t>();
 
@@ -344,6 +351,9 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
   if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
   buffer[result] = '\0';
 
+  size_t edge_count =  0;
+
+  std::set<pair<uint32_t,uint32_t>> *edge_set = new std::set<pair<uint32_t,uint32_t>>(); 
   char *test = strtok(buffer," |\t\nA");
   while(test != NULL){
     uint64_t src;
@@ -358,43 +368,54 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
     sscanf(test,"%u",&year);
     test = strtok(NULL," -|\t\nA");
 
-    vector<uint32_t> *src_row;
-    vector<uint32_t> *src_attr;
-    if(extern_ids->find(src) == extern_ids->end()){
-      extern_ids->insert(make_pair(src,extern_ids->size()));
-      id_map->push_back(src);
-      src_row = new vector<uint32_t>();
-      neighborhoods->push_back(src_row);
-      src_attr = new vector<uint32_t>();
-      edge_attributes->push_back(src_attr);
-    } else{
-      src_attr = edge_attributes->at(extern_ids->at(src));
-      src_row = neighborhoods->at(extern_ids->at(src));
-    }
+    if(edge_set->find(make_pair(src,dst)) == edge_set->end()){
+      edge_set->insert(make_pair(src,dst));
+      edge_set->insert(make_pair(dst,src));
 
-    vector<uint32_t> *dst_row;
-    vector<uint32_t> *dst_attr;
-    if(extern_ids->find(dst) == extern_ids->end()){
-      extern_ids->insert(make_pair(dst,extern_ids->size()));
-      id_map->push_back(dst);
-      dst_row = new vector<uint32_t>();
-      neighborhoods->push_back(dst_row);
-      dst_attr = new vector<uint32_t>();
-      edge_attributes->push_back(dst_attr);
-    } else{
-      dst_attr = edge_attributes->at(extern_ids->at(dst));
-      dst_row = neighborhoods->at(extern_ids->at(dst));
-    }
+      if(year == 2012){
+        edge_count++;
+      }
 
-    src_attr->push_back(year);
-    dst_attr->push_back(year);
-    src_row->push_back(extern_ids->at(dst));
-    dst_row->push_back(extern_ids->at(src));
+      vector<uint32_t> *src_row;
+      vector<uint32_t> *src_attr;
+      if(extern_ids->find(src) == extern_ids->end()){
+        extern_ids->insert(make_pair(src,extern_ids->size()));
+        id_map->push_back(src);
+        src_row = new vector<uint32_t>();
+        neighborhoods->push_back(src_row);
+        src_attr = new vector<uint32_t>();
+        edge_attributes->push_back(src_attr);
+      } else{
+        src_attr = edge_attributes->at(extern_ids->at(src));
+        src_row = neighborhoods->at(extern_ids->at(src));
+      }
+
+      vector<uint32_t> *dst_row;
+      vector<uint32_t> *dst_attr;
+      if(extern_ids->find(dst) == extern_ids->end()){
+        extern_ids->insert(make_pair(dst,extern_ids->size()));
+        id_map->push_back(dst);
+        dst_row = new vector<uint32_t>();
+        neighborhoods->push_back(dst_row);
+        dst_attr = new vector<uint32_t>();
+        edge_attributes->push_back(dst_attr);
+      } else{
+        dst_attr = edge_attributes->at(extern_ids->at(dst));
+        dst_row = neighborhoods->at(extern_ids->at(dst));
+      }
+
+      src_attr->push_back(year);
+      dst_attr->push_back(year);
+      src_row->push_back(extern_ids->at(dst));
+      dst_row->push_back(extern_ids->at(src));
+    }
   }
   // terminate
   fclose(pFile);
   free(buffer);
 
+  cout << "EDGE COUNT: " << edge_count << endl;
+  cout << "reading node attributes" << endl;
 
   //////////////////////////////////////////////////////////////////////////////
   vector<uint32_t> *id_attributes = new vector<uint32_t>();
@@ -427,7 +448,6 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
     sscanf(test,"%u",&attr);
     test = strtok(NULL," |\t\nA");
 
-    id_attributes->at(extern_ids->at(id)) = attr;
     if(extern_ids->find(id) != extern_ids->end()){
       id_attributes->at(extern_ids->at(id)) = attr;
     }
@@ -441,12 +461,23 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
   size_t num_edges = 0;
   for(size_t i = 0; i < neighborhoods->size(); i++){
     vector<uint32_t> *row = neighborhoods->at(i);
-    std::sort(row->begin(),row->end());
+    vector<uint32_t> *row_attr = edge_attributes->at(i);
+
+    vector<pair<uint32_t,uint32_t>> *pair_list = new vector<pair<uint32_t,uint32_t>>();
+    for(size_t j = 0; j < row->size(); j++){
+      pair_list->push_back(make_pair(row->at(j),row_attr->at(j)));
+    }
+    std::sort(pair_list->begin(),pair_list->end(),OrderByID());
+    for(size_t j = 0; j < row->size(); j++){
+      row->at(j) = pair_list->at(j).first;
+      row_attr->at(j) = pair_list->at(j).second;
+    }
+    delete pair_list;
 
     if(row->size() > max_nbrhood_size)
       max_nbrhood_size = row->size();
 
-    row->erase(unique(row->begin(),row->begin()+row->size()),row->end());
+    //row->erase(unique(row->begin(),row->begin()+row->size()),row->end());
     num_edges += row->size();
   }
 

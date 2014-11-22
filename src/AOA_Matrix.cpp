@@ -71,12 +71,12 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
   common::startClock();
 
   if(attributes_set){
-    //#pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
-    //{
+    #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
+    {
       uint8_t *row_data_in = new uint8_t[alloc_size];
       uint32_t *selected_row = new uint32_t[new_num_nodes];
       size_t index = 0;
-      //#pragma omp for schedule(static)
+      #pragma omp for schedule(static)
       for(size_t i = 0; i < matrix_size_in; ++i){
         if(old2newids[i] != -1){
           new_imap[old2newids[i]] = imap->at(i);
@@ -89,7 +89,6 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
         
           for(size_t j = 0; j < row->size(); ++j) {
             if(node_selection(row->at(j),node_attr->at(row->at(j))) && edge_selection(i,row->at(j),row_attr->at(j))){
-              new_cardinality++;
               selected_row[new_size++] = old2newids[row->at(j)];
               new_edge_attribute->push_back(row_attr->at(j));
             } 
@@ -108,7 +107,7 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
       delete[] selected_row;
       total_bytes_used += index;
       row_data_in = (uint8_t*) realloc((void *) row_data_in, index*sizeof(uint8_t));
-    //}
+    }
   } else{
     #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
     {
@@ -124,7 +123,6 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
 
           for(size_t j = 0; j < row->size(); ++j) {
             if(node_selection(row->at(j),0) && edge_selection(i,row->at(j),0)){
-              new_cardinality++;
               selected_row[new_size++] = old2newids[row->at(j)];
             } 
           }          
@@ -271,7 +269,7 @@ void AOA_Matrix::print_data(string filename){
     myfile << "External ID: " << id_map[i] << " ROW: " << i <<  " LEN: " << row_lengths[i] << endl;
     size_t card = row_lengths[i];
     if(card > 0){
-      uint_array::print_data(row_arrays[i],card,t,myfile);
+      uint_array::print_data(row_arrays[i],card,t,myfile,id_map);
     }
   }
   myfile << endl;
@@ -281,7 +279,7 @@ void AOA_Matrix::print_data(string filename){
       myfile << "External ID: " << id_map[i] << " COLUMN: " << i << " LEN: " << column_lengths[i] << endl;
       size_t card = column_lengths[i];
       if(card > 0){
-        uint_array::print_data(column_arrays[i],card,t,myfile);
+        uint_array::print_data(column_arrays[i],card,t,myfile,id_map);
       }
     }
   }

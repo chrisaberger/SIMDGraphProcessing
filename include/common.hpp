@@ -23,6 +23,7 @@
 #include <thread>
 #include <atomic>
 #include <cstdarg>
+#include <set>
 
 //#define ENABLE_PCM
 

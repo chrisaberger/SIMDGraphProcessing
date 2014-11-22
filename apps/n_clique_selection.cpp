@@ -11,11 +11,13 @@ namespace application{
 
   inline bool myNodeSelection(uint32_t node, uint32_t attribute){
     (void)node; (void) attribute;
-    return true;//attribute > 500;
+    return attribute > 500;
   }
-  inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
+  size_t total_count = 0;
+  std::set<pair<uint32_t,uint32_t>> *edge_set = new std::set<pair<uint32_t,uint32_t>>(); 
+  inline bool myEdgeSelection(uint32_t src, uint32_t dst, uint32_t attribute){
     (void) attribute;
-    return nbr < node && attribute == 2012;
+    return attribute == 2012 && src < dst;
   }
 
   struct thread_data{

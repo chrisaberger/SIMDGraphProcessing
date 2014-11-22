@@ -62,14 +62,19 @@ int main (int argc, char* argv[]) {
   AOA_Matrix *graph = AOA_Matrix::from_asymmetric(inputGraph,node_selection,edge_selection,layout);
   common::stopClock("selections");
   
-  //graph->print_data(argv[4]);
+  graph->print_data(argv[4]);
 
   //initialize the fronteir.
   size_t fronteir_length = 1;
   uint8_t *fronteir = new uint8_t[graph->matrix_size*sizeof(uint32_t)];
   uint32_t *fronteir_32 = (uint32_t*)fronteir;
-  for(size_t i = 0; i < fronteir_length; i++){
-    fronteir_32[i] = i;
+
+
+  for(size_t i = 0; i < graph->matrix_size; i++){
+    if(graph->id_map[i] == 88160){
+      fronteir_32[0] = i;
+      cout << "Row length: " << graph->row_lengths[i] << endl;
+    }
   }
 
   //allocate a visited bitset
@@ -109,7 +114,7 @@ int main (int argc, char* argv[]) {
 
     //common::startClock();
     if(bitset_f){
-      //cout << "BITSET" << endl;
+      cout << "BITSET" << endl;
       for(size_t k = 0; k < num_threads; k++){
         threads[k] = thread([k, block_size, &t_local_fronteir_size, &t_local_fronteirs, &bitset_f, &next_fronteir_length, &fronteir, &fronteir_32, &fronteir_length, &next_work, &graph, &visited](void) -> void {
           size_t t_local_next_fronteir = 0;
@@ -129,7 +134,7 @@ int main (int argc, char* argv[]) {
        });
       } 
     } else{
-      //cout << "SPARSE" << endl;
+      cout << "SPARSE" << endl;
       for(size_t k = 0; k < num_threads; k++){
         threads[k] = thread([k, block_size, &t_local_fronteir_size, &t_local_fronteirs, &bitset_f, &next_fronteir_length, &fronteir, &fronteir_32, &fronteir_length, &next_work, &graph, &visited](void) -> void {
           size_t t_local_next_fronteir = 0;
@@ -141,6 +146,7 @@ int main (int argc, char* argv[]) {
 
             size_t work_end = min(work_start + block_size, fronteir_length);
             for(size_t j = work_start; j < work_end; j++) {
+              cout << "front: " << graph->id_map[fronteir_32[j]] << endl;
               t_local_next_fronteir += graph->union_sparse_neighbors(fronteir_32[j],&mybuffer[t_local_next_fronteir],visited);
             }
           }
@@ -161,13 +167,13 @@ int main (int argc, char* argv[]) {
 
 
     path_length++;
-    done = next_fronteir_length == 0;
+    done = next_fronteir_length == 0 || path_length >= 2;
     fronteir_length = next_fronteir_length;
 
-    //cout << "Frontier length: " << fronteir_length << endl;
+    cout << "Frontier length: " << fronteir_length << endl;
 
 
-    if(!done){
+    //if(!done){
       //common::startClock();
       ////////////////////////////////////
       //depending on density frontier will either be a bitset or  array of ints
@@ -234,7 +240,12 @@ int main (int argc, char* argv[]) {
       }
       */
       //common::stopClock("Setting up next frontier");
-    } //end if !done
+    //} //end if !done
+  }
+
+  cout << "fronteir size: " << fronteir_length << endl;
+  for(size_t i = 0; i < fronteir_length; i++){
+    cout << graph->id_map[fronteir_32[i]] << endl;
   }
 
   common::stopClock("BFS");

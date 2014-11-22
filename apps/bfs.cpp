@@ -19,6 +19,8 @@ namespace application{
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
+
+  
   if(argc != 5){
     cout << "Please see usage below: " << endl;
     cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp>" << endl;

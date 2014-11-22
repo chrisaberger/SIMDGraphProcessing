@@ -164,7 +164,7 @@ int main (int argc, char* argv[]) {
   auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2, _3);
 
   common::startClock();
-  MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
+  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files
   common::stopClock("Reading File");
 
   size_t num_nodes = 1;
@@ -186,7 +186,7 @@ int main (int argc, char* argv[]) {
 
   //inputGraph->MutableGraph::~MutableGraph(); 
 
-  //application::graph->print_data("out.txt");
+  application::graphs[0]->print_data("out.txt");
   common::startClock();
   application::allocBuffers(num_nodes, num_threads);
   common::stopClock("buffer allocation");

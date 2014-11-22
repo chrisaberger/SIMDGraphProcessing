@@ -3,6 +3,43 @@
 
 #include "hybrid.hpp"
 
+template <class T>
+class Set{ 
+  public: 
+    uint8_t *data;
+    size_t cardinality;
+    size_t number_of_bytes;
+
+    Set(uint8_t *data_in, 
+      size_t cardinality_in, 
+      size_t number_of_bytes_in):
+      data(data_in),
+      cardinality(cardinality_in),
+      number_of_bytes(number_of_bytes_in){}
+
+    void foreach(const std::function <void (uint32_t)>& f);
+    static Set<T> from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size);
+    static size_t flatten_from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size); 
+ 
+}; 
+
+template <class T>
+void Set<T>::foreach(const std::function <void (uint32_t)>& f){ 
+  T::foreach(f,data,cardinality,number_of_bytes);
+} 
+
+template <class T>
+Set<T> Set<T>::from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size){
+  size_t bytes_in = T::build(set_data,array_data,data_size);
+  return Set<T>(set_data,data_size,bytes_in);
+}
+
+template <class T>
+size_t Set<T>::flatten_from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size){
+  return T::build_flattened(set_data,array_data,data_size);
+}
+
+
 namespace uint_array{
   inline common::type get_perf_hybrid_array_type(uint32_t *r_data, size_t row_size, size_t matrix_size){
     double sparsity = (double) row_size/matrix_size;

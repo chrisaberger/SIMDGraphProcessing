@@ -131,7 +131,10 @@ AOA_Matrix* AOA_Matrix::from_symmetric(MutableGraph* inputGraph,
           row_arrays_in[old2newids[i]] = &row_data_in[index];
           if(new_size > 0){
             common::type row_type = uint_array::get_array_type(t_in,selected_row,new_size,matrix_size_in);
-            index = uint_array::preprocess(row_data_in,index,selected_row,new_size,row_type);
+            Set<uint32> new_row = Set<uint32>::from_array(row_data_in+index,selected_row,new_size);
+            index += new_row.number_of_bytes;
+            cout << "index: " << index << endl;
+            //index = uint_array::preprocess(row_data_in,index,selected_row,new_size,row_type);
           }
           new_cardinality += new_size;
         }
@@ -260,16 +263,13 @@ void AOA_Matrix::print_data(string filename){
   //Printing out neighbors
   cout << "Writing matrix row_data to file: " << filename << endl;
   for(size_t i = 0; i < matrix_size; i++){
-    if(out_edge_attributes->size() > 0){
-      myfile << " ATTRIBUTE: " << node_attributes[i] << endl;
-      for(size_t j = 0; j < out_edge_attributes->at(i)->size(); j++){
-        myfile << "Edge attribute: " << out_edge_attributes->at(i)->at(j) << endl;
-      }
-    }
-    myfile << "External ID: " << id_map[i] << " ROW: " << i <<  " LEN: " << row_lengths[i] << endl;
     size_t card = row_lengths[i];
+    myfile << "External ID: " << id_map[i] << " ROW: " << i << " LEN: " << row_lengths[i] << endl;
     if(card > 0){
-      uint_array::print_data(row_arrays[i],card,t,myfile,id_map);
+      Set<uint32> row(row_arrays[i],card,card*4);
+      row.foreach( [&myfile] (uint32_t data){
+        myfile << " DATA: " << data << endl;
+      });
     }
   }
   myfile << endl;

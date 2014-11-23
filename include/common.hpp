@@ -28,7 +28,7 @@
 //#define ENABLE_PCM
 
 #define WRITE_VECTOR 1
-#define VECTORIZE 0
+#define VECTORIZE 1
 #define COMPRESSION 1
 
 #define HYBRID_LAYOUT 0

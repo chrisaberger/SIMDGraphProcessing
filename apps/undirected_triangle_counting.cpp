@@ -18,11 +18,6 @@ class thread_data{
       decoded_src = new uint32_t[buffer_lengths];
       buffer = new uint8_t[buffer_lengths*sizeof(int)]; //should not be used
     }
-
-    inline long edgeApply(uint32_t src, uint32_t dst){
-      long count = graph->row_intersect(buffer,src,dst,decoded_src);
-      return count;
-    }
 };
 
 class application{
@@ -32,19 +27,15 @@ class application{
     thread_data **t_data_pointers;
     MutableGraph *inputGraph;
     size_t num_numa_nodes;
+    size_t num_threads;
 
-    application(size_t num_numa_nodes_in, MutableGraph *inputGraph_in, size_t num_threads){
+    application(size_t num_numa_nodes_in, MutableGraph *inputGraph_in, size_t num_threads_in){
       num_triangles = 0;
       graphs = new AOA_Matrix<uint32>*[num_numa_nodes];
       num_numa_nodes = num_numa_nodes_in;
       inputGraph = inputGraph_in; 
-
+      num_threads = num_threads_in;
       t_data_pointers = new thread_data*[num_threads];
-      int threads_per_node = (num_threads - 1) / num_numa_nodes + 1;
-      for(size_t k= 0; k < num_threads; k++){
-        int node = k / threads_per_node;
-        t_data_pointers[k] = new thread_data(graphs[node], graphs[node]->max_nbrhood_size,k);
-      }
     }
 
     inline bool myNodeSelection(uint32_t node, uint32_t attribute){
@@ -55,7 +46,13 @@ class application{
       (void) attribute;
       return nbr < node;
     }
-
+    inline void allocBuffers(){
+      int threads_per_node = (num_threads - 1) / num_numa_nodes + 1;
+      for(size_t k= 0; k < num_threads; k++){
+        int node = k / threads_per_node;
+        t_data_pointers[k] = new thread_data(graphs[node], graphs[node]->max_nbrhood_size,k);
+      }
+    }
     inline void produceSubgraph(){
       auto node_selection = std::bind(&application::myNodeSelection, this, _1, _2);
       auto edge_selection = std::bind(&application::myEdgeSelection, this, _1, _2, _3);
@@ -143,16 +140,18 @@ int main (int argc, char* argv[]) {
   common::stopClock("Reading File");
 
   size_t num_nodes = 1;
-  cout << inputGraph->num_nodes << endl;
   application myapp(num_nodes,inputGraph,num_threads);
-  myapp.produceSubgraph();
 
-  cout << "Application object allocated." << endl;
+  common::startClock();
+  myapp.produceSubgraph();
+  common::stopClock("Selections");
+
+  common::startClock();
+  myapp.allocBuffers();
+  common::stopClock("Allocating Buffers");
 
   if(pcm_init() < 0)
      return -1;
-
-  myapp.graphs[0]->print_data("out.txt");
 
   common::startClock();
   myapp.queryOver(num_nodes, num_threads);

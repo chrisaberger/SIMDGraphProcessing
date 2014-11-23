@@ -1,7 +1,7 @@
 #ifndef _UINT_ARRAY_H_
 #define _UINT_ARRAY_H_
 
-#include "hybrid.hpp"
+#include "layouts/hybrid.hpp"
 
 template <class T>
 class Set{ 
@@ -38,7 +38,6 @@ template <class T>
 size_t Set<T>::flatten_from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size){
   return T::build_flattened(set_data,array_data,data_size);
 }
-
 
 namespace uint_array{
   inline common::type get_perf_hybrid_array_type(uint32_t *r_data, size_t row_size, size_t matrix_size){

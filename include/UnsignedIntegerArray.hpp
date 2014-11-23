@@ -1,7 +1,7 @@
 #ifndef UNSIGNEDINTEGERARRAY_H
 #define UNSIGNEDINTEGERARRAY_H
 
-#include "uint_array/uint_array.hpp"
+#include "uint_array/ops.hpp"
 
 class UnsignedIntegerArray{
 	public:

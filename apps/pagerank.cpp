@@ -1,3 +1,7 @@
+int main () { 
+  return 0;
+}
+/*
 // class templates
 #include "AOA_Matrix.hpp"
 #include "MutableGraph.hpp"
@@ -205,3 +209,4 @@ int main (int argc, char* argv[]) {
   
   return 0;
 }
+*/

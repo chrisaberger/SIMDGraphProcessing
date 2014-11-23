@@ -1,3 +1,7 @@
+int main () { 
+  return 0;
+}
+/*
 // class templates
 #include "AOA_Matrix.hpp"
 #include "MutableGraph.hpp"
@@ -33,10 +37,6 @@ namespace application{
       decoded_src = new uint32_t[buffer_lengths];
     }
     ~thread_data() { 
-      /*
-      for(size_t i = 0; i < query_depth-2; i++){
-        delete[] buffers[i];
-      }*/
       delete[] buffer;
       delete[] decoded_src;
     }
@@ -200,3 +200,4 @@ int main (int argc, char* argv[]) {
   application::output->print_data("table.txt",application::graph->id_map);
   return 0;
 }
+*/

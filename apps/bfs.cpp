@@ -1,3 +1,7 @@
+int main () { 
+  return 0;
+}
+/*
 // class templates
 #include "AOA_Matrix.hpp"
 #include "MutableGraph.hpp"
@@ -225,7 +229,6 @@ int main (int argc, char* argv[]) {
         threads[k].join();
       }
 
-      /*
       if(!bitset_f){
         cout << "fronteir size: " << fronteir_length << endl;
         for(size_t i = 0; i < fronteir_length; i++){
@@ -240,7 +243,6 @@ int main (int argc, char* argv[]) {
           }
         }
       }
-      */
       //common::stopClock("Setting up next frontier");
     //} //end if !done
   }
@@ -256,3 +258,4 @@ int main (int argc, char* argv[]) {
 
   return 0;
 }
+*/

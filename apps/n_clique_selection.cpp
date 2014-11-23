@@ -1,4 +1,8 @@
+int main () { 
+  return 0;
+}
 // class templates
+/*
 #include "AOA_Matrix.hpp"
 #include "MutableGraph.hpp"
 #include "Table.hpp"
@@ -40,10 +44,6 @@ namespace application{
       decoded_src = new uint32_t[buffer_lengths];
     }
     ~thread_data() { 
-      /*
-      for(size_t i = 0; i < query_depth-2; i++){
-        delete[] buffers[i];
-      }*/
       delete[] buffers;
       delete[] decoded_src;
       delete[] buffer_cardinalities;
@@ -208,3 +208,4 @@ int main (int argc, char* argv[]) {
 
   return 0;
 }
+*/

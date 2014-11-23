@@ -4,6 +4,7 @@
 #include "UnsignedIntegerArray.hpp"
 #include "MutableGraph.hpp"
 
+template<class V>
 class AOA_Matrix{
   public:
     size_t matrix_size;  //number of nodes, number of columns = number of rows
@@ -11,7 +12,6 @@ class AOA_Matrix{
     size_t row_total_bytes_used; // the size of all edges combined
     size_t col_total_bytes_used; // the size of all edges combined
     size_t max_nbrhood_size;
-    common::type t; //representation of matrix
     bool symmetric; //undirected?
 
     /*
@@ -36,7 +36,6 @@ class AOA_Matrix{
       size_t row_total_bytes_used_in,
       size_t col_total_bytes_used_in,
       size_t max_nbrhood_size_in,
-      common::type t_in, 
       bool symmetric_in, 
       uint32_t *row_lengths_in,
       uint8_t **row_arrays_in, 
@@ -51,7 +50,6 @@ class AOA_Matrix{
         row_total_bytes_used(row_total_bytes_used_in),
         col_total_bytes_used(col_total_bytes_used_in),
         max_nbrhood_size(max_nbrhood_size_in),
-        t(t_in),
         symmetric(symmetric_in),
         row_lengths(row_lengths_in),
         row_arrays(row_arrays_in),
@@ -84,8 +82,7 @@ class AOA_Matrix{
 
     static AOA_Matrix* from_symmetric(MutableGraph *inputGraph,
       const std::function<bool(uint32_t,uint32_t)> node_selection,
-      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, 
-      const common::type t_in);
+      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection);
 
     static AOA_Matrix* from_asymmetric(MutableGraph *inputGraph,
       const std::function<bool(uint32_t)> node_selection,
@@ -107,8 +104,7 @@ class AOA_Matrix{
     template<typename T> 
     T sum_over_rows(std::function<T(uint32_t, uint32_t*, std::function<T(uint32_t,uint32_t,uint32_t*)>)> rowfunction, std::function<T(uint32_t,uint32_t,uint32_t*)> f);
     
-    template<typename T> 
-    T sum_over_columns_in_row(uint32_t col, uint32_t *decoded, std::function<T(uint32_t,uint32_t)> f);
+    void foreach_column_in_row(uint32_t col, const std::function <void (uint32_t,uint32_t)>& ef);
     template<typename T> 
     T sum_over_rows_in_column(uint32_t row,std::function<T(uint32_t)> f);
         
@@ -116,150 +112,386 @@ class AOA_Matrix{
 
 };
 
-inline size_t AOA_Matrix::get_union_distinct_neighbors(){
-  /*
-  size_t frontier_length = 40;
-  uint32_t *data = new uint32_t[frontier_length];
-  for(size_t i = 0; i < frontier_length; i++){
-    data[i] = i;
-  }
-
-  uint32_t *result = new uint32_t[matrix_size];
-  size_t result_length = 0;
-  uint32_t *tmp = new uint32_t[matrix_size];
-
-  uint32_t *visited = new uint32_t[matrix_size];
-  for(size_t i=0;i<matrix_size;i++){
-    visited[i] = i;
-  }
-
-  common::startClock();
-  for(size_t i=0; i<frontier_length; i++){
-    size_t card = row_lengths[data[i]];
-    if(card > 0){
-      result_length = array32::set_union((uint8_t*)tmp,result,(uint32_t*)(row_arrays[data[i]]+1),result_length,card);
->>>>>>> chris_sandbox
-      uint32_t *tmp2 = result;
-      result = tmp;
-      tmp = tmp2;
-    }
-  }
-  common::stopClock("union bfs");
-
-  common::startClock();
-  result_length = array32::intersect((uint8_t*)tmp,result,(uint32_t*)visited,result_length,matrix_size);
-  size_t tmp_length = array32::set_difference(result,visited,tmp,result_length,matrix_size);
-  common::stopClock("Ending intersection");
-
-  return result_length;
-  */
-  return 0;
-}
-
-inline size_t AOA_Matrix::union_sparse_neighbors(uint32_t i, uint32_t *union_data, uint8_t *visited){
-  size_t next_union_length = 0;
-  size_t card = row_lengths[i];
-  if(card > 0){
-    uint32_t *nbrhood = (uint32_t*) (row_arrays[i]+1);
-    for(size_t j = 0; j < card; j++){
-      uint8_t prev = __sync_fetch_and_or(&visited[bitset::word_index(nbrhood[j])],(1 << (nbrhood[j] % 8)));
-      if((prev & (1 << (nbrhood[j] % 8))) == 0){
-        union_data[next_union_length++] = nbrhood[j];
-      }
-    }
-  }
-  return next_union_length;
-}
-inline size_t AOA_Matrix::union_dense_neighbors(uint32_t offset, uint8_t &visited, uint32_t *union_data, uint8_t *parents){
-  size_t next_union_length = 0;
-  size_t end = min((matrix_size-(offset*8)),(size_t)8);
-
- // cout << "offset: " << offset  << " visited: "  << hex << (unsigned int)visited << dec << endl;
-
-  for(size_t i = 0; i < end; i++){
-    //if not visited
-    if(((visited >> i) & 0x01) == 0){
-      uint32_t node = offset*8 + i;
-     // cout << "Node: " << node << endl;
-
-      size_t card = column_lengths[node];
-      if(card > 0){
-        uint32_t *nbrhood = (uint32_t*) (column_arrays[node]+1);
-        for(size_t j = 0; j < card; j++){
-          //if it has a parent in the fronteir
-          if(bitset::is_set(nbrhood[j],parents)){
-            visited |= (1 << i);
-            union_data[next_union_length++] = node;
-            break;
-          }
-        }
-      }
-    }
-  }
-  return next_union_length;
-}
-
-
-
-inline size_t AOA_Matrix::row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a){
+template<class V>
+inline size_t AOA_Matrix<V>::row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a){
+  //change the set in A to point to decoded_a, after sum is finished.
   size_t card_a = row_lengths[i];
   size_t card_b = row_lengths[j];
-  long ncount = 0;
 
-  if(card_a > 0 && card_b > 0){
-    ncount = uint_array::intersect(R,row_arrays[i],row_arrays[j],card_a,card_b,t,decoded_a);  
-  }
-  return ncount;
+  Set<uint32> A(row_arrays[i],card_a,card_a*sizeof(uint32_t));
+  Set<uint32> B(row_arrays[j],card_b,card_b*sizeof(uint32_t));
+  Set<uint32> C(R,0,0);
+
+  return ops::intersect(C,A,B);  
 }
 
-inline size_t AOA_Matrix::buffer_intersect(uint8_t *R, uint32_t j, uint8_t *A, uint32_t card_a){
-  size_t card_b = row_lengths[j];
-  long ncount = 0;
-
-  if(card_a > 0 && card_b > 0){
-    ncount = uint_array::intersect(R,A,row_arrays[j],card_a,card_b,t,(uint32_t*)A); //last variable is foo wont be used
-  }
-  return ncount;
-}
-
-template<typename T> 
-T AOA_Matrix::map_columns(std::function<T(uint32_t, std::function<T(uint32_t)>)> rowfunction, std::function<T(uint32_t)> f, T *new_data){
-  T diff = (T) 0;
-  #pragma omp parallel for default(none) shared(f,new_data,rowfunction) schedule(dynamic) reduction(+:diff) 
-  for(size_t i = 0; i < matrix_size; i++){
-    new_data[i] = rowfunction(i,f);
-  }
-  return diff;
-}
-
-template<typename T> 
-T AOA_Matrix::map_columns_pr(std::function<T(uint32_t, std::function<T(uint32_t)>)> rowfunction, std::function<T(uint32_t)> f, T *new_data, T *old_data){
-  T diff = (T) 0;
-  #pragma omp parallel for default(none) shared(rowfunction,old_data,f,new_data) schedule(dynamic) reduction(+:diff) 
-  for(size_t i = 0; i < matrix_size; i++){
-    new_data[i] = 0.85* rowfunction(i,f) +(0.15f/matrix_size);
-    diff += new_data[i]-old_data[i];
-  }
-  return diff;
-}
-
-template<typename T> 
-T AOA_Matrix::sum_over_columns_in_row(uint32_t row, uint32_t *decoded, std::function<T(uint32_t,uint32_t)> f){    
-  T result = (T) 0;
+template<class V>
+void AOA_Matrix<V>::foreach_column_in_row(uint32_t row, const std::function <void (uint32_t,uint32_t)>& ef){
   size_t card = row_lengths[row];
-  if(card > 0){
-    result = uint_array::sum(f,row,row_arrays[row],card,t,decoded);
-  }
-  return result;
+  Set<uint32> row_set(row_arrays[row],card,card*sizeof(uint32_t));
+  row_set.foreach( [row,ef] (uint32_t column){
+    ef(row,column);
+  });
 }
-template<typename T> 
-T AOA_Matrix::sum_over_rows_in_column(uint32_t col,std::function<T(uint32_t)> f){    
-  T result = (T) 0;
-  size_t card = column_lengths[col];
-  if(card > 0){
-    result = uint_array::sum(f,column_arrays[col],card,t);
+
+template<class V>
+void AOA_Matrix<V>::print_data(string filename){
+  ofstream myfile;
+  myfile.open(filename);
+
+  cout << "printing neighbors" << endl;
+  //Printing out neighbors
+  cout << "Writing matrix row_data to file: " << filename << endl;
+  for(size_t i = 0; i < matrix_size; i++){
+    size_t card = row_lengths[i];
+    myfile << "External ID: " << id_map[i] << " ROW: " << i << " LEN: " << row_lengths[i] << endl;
+    //if(card > 0){
+      Set<uint32> row(row_arrays[i],card,card*4);
+      row.foreach( [&myfile] (uint32_t data){
+        myfile << " DATA: " << data << endl;
+      });
+    //}
   }
-  return result;
+  myfile << endl;
+  //Printing in neighbors
+  if(!symmetric){
+    for(size_t i = 0; i < matrix_size; i++){
+      myfile << "External ID: " << id_map[i] << " COLUMN: " << i << " LEN: " << column_lengths[i] << endl;
+      size_t card = column_lengths[i];
+      if(card > 0){
+        //uint_array::print_data(column_arrays[i],card,t,myfile,id_map);
+      }
+    }
+  }
+
+  myfile.close();
 }
+/////////////////////////////////////////////////////////////////////////////////////////////
+//Constructors
+template<class V>
+AOA_Matrix<V>* AOA_Matrix<V>::from_symmetric(MutableGraph* inputGraph,
+  const std::function<bool(uint32_t,uint32_t)> node_selection,
+  const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection){
+  
+  const vector< vector<uint32_t>*  > *g = inputGraph->out_neighborhoods;
+  const size_t matrix_size_in = inputGraph->num_nodes;
+  const size_t cardinality_in = inputGraph->num_edges;
+  const size_t max_nbrhood_size_in = inputGraph->max_nbrhood_size;
+  const vector<uint32_t> *node_attr = inputGraph->node_attr;
+  const vector<uint64_t> *imap = inputGraph->id_map;
+  const vector<vector<uint32_t>*> *edge_attr = inputGraph->out_edge_attributes;
+
+  array16::prepare_shuffling_dictionary16();
+  hybrid::prepare_shuffling_dictionary();
+
+  cout << "Number of nodes: " << matrix_size_in << endl;
+  cout << "Number of edges: " << cardinality_in << endl;
+
+  uint8_t **row_arrays_in = new uint8_t*[matrix_size_in];
+  uint32_t *row_lengths_in = new uint32_t[matrix_size_in];
+
+  int *old2newids = new int[matrix_size_in];
+  size_t new_num_nodes = 0;
+
+
+  bool attributes_set = node_attr->size() > 0 && edge_attr->size() > 0;
+
+  cout << "attributes set: " << attributes_set << endl;
+
+  common::startClock();
+  if(attributes_set){
+    for(size_t i = 0; i < matrix_size_in; ++i){
+      if(node_selection(i,node_attr->at(i))){
+        old2newids[i] = new_num_nodes;
+        new_num_nodes++;
+      } else{
+        old2newids[i] = -1;
+      }
+    }
+  } else{
+    #pragma omp parallel for default(shared) schedule(static) 
+    for(size_t i = 0; i < matrix_size_in; ++i){
+      old2newids[i] = i;
+    }
+    new_num_nodes = matrix_size_in;
+  }
+
+  uint32_t *node_attributes_in;
+  vector<vector<uint32_t>*> *edge_attributes_in = new vector<vector<uint32_t>*>();
+  if(attributes_set){
+    node_attributes_in= new uint32_t[new_num_nodes];
+    edge_attributes_in->reserve(cardinality_in);
+  }
+
+  common::stopClock("Node Selections");
+
+  cout << "Filtered nodes: " << new_num_nodes << endl;
+  uint64_t *new_imap = new uint64_t[new_num_nodes];
+  
+  size_t new_cardinality = 0;
+  size_t total_bytes_used = 0;
+
+  size_t alloc_size = cardinality_in*sizeof(int);//sizeof(size_t)*(cardinality_in/omp_get_num_threads());
+  if(alloc_size < new_num_nodes){
+    alloc_size = new_num_nodes;
+  }
+
+  common::startClock();
+
+  if(attributes_set){
+    #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
+    {
+      uint8_t *row_data_in = new uint8_t[alloc_size];
+      uint32_t *selected_row = new uint32_t[new_num_nodes];
+      size_t index = 0;
+      #pragma omp for schedule(static)
+      for(size_t i = 0; i < matrix_size_in; ++i){
+        if(old2newids[i] != -1){
+          new_imap[old2newids[i]] = imap->at(i);
+          vector<uint32_t> *row = g->at(i);
+          size_t new_size = 0;
+
+          vector<uint32_t> *new_edge_attribute = new vector<uint32_t>();
+          vector<uint32_t> *row_attr = edge_attr->at(i);
+          node_attributes_in[old2newids[i]] = node_attr->at(i);
+        
+          for(size_t j = 0; j < row->size(); ++j) {
+            if(node_selection(row->at(j),node_attr->at(row->at(j))) && edge_selection(i,row->at(j),row_attr->at(j))){
+              selected_row[new_size++] = old2newids[row->at(j)];
+              new_edge_attribute->push_back(row_attr->at(j));
+            } 
+          }
+          edge_attributes_in->push_back(new_edge_attribute);
+          
+          row_lengths_in[old2newids[i]] = new_size;
+          row_arrays_in[old2newids[i]] = &row_data_in[index];
+          if(new_size > 0){
+            common::type row_type = common::ARRAY32;//uint_array::get_array_type(t_in,selected_row,new_size,matrix_size_in);
+            index = uint_array::preprocess(row_data_in,index,selected_row,new_size,row_type);
+          }
+          new_cardinality += new_size;
+        }
+      }
+      delete[] selected_row;
+      total_bytes_used += index;
+      row_data_in = (uint8_t*) realloc((void *) row_data_in, index*sizeof(uint8_t));
+    }
+  } else{
+
+    #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
+    {
+      uint8_t *row_data_in = new uint8_t[alloc_size];
+      uint32_t *selected_row = new uint32_t[new_num_nodes];
+      size_t index = 0;
+      #pragma omp for schedule(static)
+      for(size_t i = 0; i < matrix_size_in; ++i){
+        if(old2newids[i] != -1){
+          new_imap[old2newids[i]] = imap->at(i);
+          vector<uint32_t> *row = g->at(i);
+          size_t new_size = 0;
+
+          for(size_t j = 0; j < row->size(); ++j) {
+            if(node_selection(row->at(j),0) && edge_selection(i,row->at(j),0)){
+              selected_row[new_size++] = old2newids[row->at(j)];
+            } 
+          }          
+
+          row_lengths_in[old2newids[i]] = new_size;
+          row_arrays_in[old2newids[i]] = &row_data_in[index];
+          if(new_size > 0){
+            Set<uint32> new_row = Set<uint32>::from_array(row_data_in+index,selected_row,new_size);
+            index += new_row.number_of_bytes;
+          }
+          new_cardinality += new_size;
+        }
+      }
+    delete[] selected_row;
+    total_bytes_used += index;
+    row_data_in = (uint8_t*) realloc((void *) row_data_in, index*sizeof(uint8_t));
+    }
+  }
+  delete[] old2newids;
+
+  common::stopClock("Edge Selections");
+
+  cout << "Number of edges: " << new_cardinality << endl;
+  cout << "ROW DATA SIZE (Bytes): " << total_bytes_used << endl;
+
+  return new AOA_Matrix(new_num_nodes,new_cardinality,total_bytes_used,0,max_nbrhood_size_in,true,row_lengths_in,row_arrays_in,row_lengths_in,row_arrays_in,new_imap,node_attributes_in,edge_attributes_in,edge_attributes_in);
+}
+
+template<class V>
+AOA_Matrix<V>* AOA_Matrix<V>::from_asymmetric(MutableGraph *inputGraph,
+  const std::function<bool(uint32_t)> node_selection,
+  const std::function<bool(uint32_t,uint32_t)> edge_selection, 
+  const common::type t_in){
+  
+  const vector< vector<uint32_t>*  > *out_nbrs = inputGraph->out_neighborhoods;
+  const vector< vector<uint32_t>*  > *in_nbrs = inputGraph->in_neighborhoods;
+  const size_t matrix_size_in = inputGraph->num_nodes;
+  const size_t cardinality_in = inputGraph->num_edges;
+  const size_t max_nbrhood_size_in = inputGraph->max_nbrhood_size;
+  //const vector<uint32_t> *node_attr = inputGraph->node_attr;
+  //const vector<vector<uint32_t>*> *edge_attr = inputGraph->out_edge_attributes;
+
+  uint64_t *imap = inputGraph->id_map->data();
+
+  array16::prepare_shuffling_dictionary16();
+  hybrid::prepare_shuffling_dictionary();
+
+  uint8_t **row_arrays_in = new uint8_t*[matrix_size_in];
+  uint32_t *row_lengths_in = new uint32_t[matrix_size_in];
+  uint8_t **col_arrays_in = new uint8_t*[matrix_size_in];
+  uint32_t *col_lengths_in = new uint32_t[matrix_size_in];
+  uint32_t *node_attributes_in = new uint32_t[matrix_size_in];
+  vector<vector<uint32_t>*> *edge_attributes_in = new vector<vector<uint32_t>*>();
+  edge_attributes_in->reserve(cardinality_in);
+  cout << "Number of edges: " << cardinality_in << endl;
+
+  size_t new_cardinality = 0;
+  size_t row_total_bytes_used = 0;
+  size_t col_total_bytes_used = 0;
+    
+  size_t alloc_size = (sizeof(uint32_t)+2)*(cardinality_in/omp_get_num_threads());
+  if(alloc_size <= matrix_size_in*6){
+    alloc_size = matrix_size_in*10;
+  }
+  #pragma omp parallel default(shared) reduction(+:row_total_bytes_used) reduction(+:new_cardinality)
+  {
+    uint8_t *row_data_in = new uint8_t[alloc_size];
+    uint8_t *col_data_in = new uint8_t[alloc_size];
+
+    uint32_t *selected = new uint32_t[matrix_size_in];
+    size_t row_index = 0;
+    size_t col_index = 0;
+
+    #pragma omp for schedule(static,100)
+    for(size_t i = 0; i < matrix_size_in; ++i){
+      if(node_selection(i)){
+        vector<uint32_t> *row = out_nbrs->at(i);
+        size_t new_row_size = 0;
+        for(size_t j = 0; j < row->size(); ++j) {
+          if(node_selection(row->at(j)) && edge_selection(i,row->at(j))){
+            new_cardinality++;
+            selected[new_row_size++] = row->at(j);
+          } 
+        }
+      
+        row_lengths_in[i] = new_row_size;
+        row_arrays_in[i] = &row_data_in[row_index];
+
+        if(new_row_size > 0){
+          common::type row_type = uint_array::get_array_type(t_in,selected,new_row_size,matrix_size_in);
+          row_index = uint_array::preprocess(row_data_in,row_index,selected,new_row_size,row_type);
+        }
+        new_cardinality += new_row_size;
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        vector<uint32_t> *col = in_nbrs->at(i);
+        size_t new_col_size = 0;
+        for(size_t j = 0; j < col->size(); ++j) {
+          if(node_selection(col->at(j)) && edge_selection(i,col->at(j))){
+            new_cardinality++;
+            selected[new_col_size++] = col->at(j);
+          } 
+        }
+      
+        col_lengths_in[i] = new_col_size;
+        col_arrays_in[i] = &col_data_in[col_index];
+
+        if(new_col_size > 0){
+          common::type col_type = uint_array::get_array_type(t_in,selected,new_col_size,matrix_size_in);
+          col_index = uint_array::preprocess(col_data_in,col_index,selected,new_col_size,col_type);
+        }
+        new_cardinality += new_col_size;
+      } else{
+        row_lengths_in[i] = 0;
+        col_lengths_in[i] = 0;
+      }
+    }
+    delete[] selected;
+
+    row_total_bytes_used += row_index;
+    col_total_bytes_used += col_index;
+    col_data_in = (uint8_t*) realloc((void *) col_data_in, col_index*sizeof(uint8_t));
+    row_data_in = (uint8_t*) realloc((void *) row_data_in, row_index*sizeof(uint8_t));
+  }
+
+  cout << "ROW DATA SIZE (Bytes): " << row_total_bytes_used << endl;
+  cout << "COLUMN DATA SIZE (Bytes): " << col_total_bytes_used << endl;
+
+  return new AOA_Matrix(matrix_size_in,new_cardinality,row_total_bytes_used,col_total_bytes_used,max_nbrhood_size_in,false,row_lengths_in,row_arrays_in,col_lengths_in,col_arrays_in,imap,node_attributes_in,edge_attributes_in,edge_attributes_in);
+}
+
+// FIXME: This code only works for undirected graphs
+template<class V>
+AOA_Matrix<V>* AOA_Matrix<V>::clone_on_node(int node) {
+   numa_run_on_node(node);
+   numa_set_preferred(node);
+
+   size_t matrix_size = this->matrix_size;
+   uint64_t lengths_size = matrix_size * sizeof(uint32_t);
+   uint32_t* cloned_row_lengths =
+      (uint32_t*)numa_alloc_onnode(lengths_size, node);
+   std::copy(this->row_lengths, this->row_lengths + matrix_size + 1,
+         cloned_row_lengths);
+
+   std::cout << this->cardinality * sizeof(uint32_t) << std::endl;
+   std::cout << this->row_total_bytes_used << std::endl;
+   uint8_t** cloned_row_arrays =
+      (uint8_t**) numa_alloc_onnode(matrix_size * sizeof(uint8_t*), node);
+   uint8_t* neighborhood =
+      (uint8_t*) numa_alloc_onnode(this->row_total_bytes_used + matrix_size, node);
+   for(uint64_t i = 0; i < matrix_size; i++) {
+      uint32_t row_length = cloned_row_lengths[i];
+      uint8_t* data = this->row_arrays[i];
+      //FIXME:
+      size_t num_bytes = 0;//uint_array::size_of_array(data, row_length, this->t);
+      std::copy(data, data + num_bytes, neighborhood);
+      cloned_row_arrays[i] = (uint8_t*) neighborhood;
+      neighborhood += num_bytes;
+   }
+
+   uint32_t* cloned_column_lengths = NULL;
+   uint8_t** cloned_column_arrays = NULL;
+   /*
+   if(this->symmetric) {
+      cloned_column_lengths = (uint32_t*) numa_alloc_onnode(lengths_size, node);
+      std::copy(column_lengths, column_lengths + matrix_size, cloned_column_lengths);
+
+      cloned_column_arrays =
+         (uint8_t**) numa_alloc_onnode(col_total_bytes_used, node);
+      for(uint64_t i = 0; i < matrix_size; i++) {
+         uint32_t col_length = cloned_column_lengths[i];
+         uint8_t* neighborhood =
+            (uint8_t*) numa_alloc_onnode(col_length * sizeof(uint8_t), node);
+         std::copy(this->column_arrays[i], this->column_arrays[i] + col_length, neighborhood);
+         cloned_column_arrays[i] = neighborhood;
+      }
+   }
+   */
+
+   std::cout << "Target node: " << node << std::endl;
+   std::cout << "Node of row_lengths: " << common::find_memory_node_for_addr(cloned_row_lengths) << std::endl;
+   std::cout << "Node of row_arrays: " << common::find_memory_node_for_addr(cloned_row_arrays) << std::endl;
+   std::cout << "Node of neighborhood: " << common::find_memory_node_for_addr(neighborhood) << std::endl;
+
+   return new AOA_Matrix(
+         matrix_size,
+         this->cardinality,
+         this->row_total_bytes_used,
+         this->col_total_bytes_used,
+         this->max_nbrhood_size,
+         this->symmetric,
+         cloned_row_lengths,
+         cloned_row_arrays,
+         cloned_column_lengths,
+         cloned_column_arrays,
+         this->id_map,
+         this->node_attributes,
+         this->out_edge_attributes,
+         this->in_edge_attributes);
+}
+
+
 
 #endif

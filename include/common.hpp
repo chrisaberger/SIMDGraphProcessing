@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <thread>
 #include <atomic>
+#include <tuple>
 #include <cstdarg>
 #include <set>
 

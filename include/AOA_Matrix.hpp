@@ -118,9 +118,9 @@ inline size_t AOA_Matrix<V>::row_intersect(uint8_t *R, uint32_t i, uint32_t j, u
   size_t card_a = row_lengths[i];
   size_t card_b = row_lengths[j];
 
-  Set<uint32> A(row_arrays[i],card_a,card_a*sizeof(uint32_t));
-  Set<uint32> B(row_arrays[j],card_b,card_b*sizeof(uint32_t));
-  Set<uint32> C(R,0,0);
+  Set<V> A = Set<V>::from_flattened(row_arrays[i],card_a);
+  Set<V> B = Set<V>::from_flattened(row_arrays[j],card_b);
+  Set<V> C(R,0,0,V::get_type());
 
   return ops::intersect(C,A,B);  
 }
@@ -128,7 +128,7 @@ inline size_t AOA_Matrix<V>::row_intersect(uint8_t *R, uint32_t i, uint32_t j, u
 template<class V>
 void AOA_Matrix<V>::foreach_column_in_row(uint32_t row, const std::function <void (uint32_t,uint32_t)>& ef){
   size_t card = row_lengths[row];
-  Set<uint32> row_set(row_arrays[row],card,card*sizeof(uint32_t));
+  Set<V> row_set = Set<V>::from_flattened(row_arrays[row],card);
   row_set.foreach( [row,ef] (uint32_t column){
     ef(row,column);
   });
@@ -146,7 +146,7 @@ void AOA_Matrix<V>::print_data(string filename){
     size_t card = row_lengths[i];
     myfile << "External ID: " << id_map[i] << " ROW: " << i << " LEN: " << row_lengths[i] << endl;
     //if(card > 0){
-      Set<uint32> row(row_arrays[i],card,card*4);
+      Set<V> row = Set<V>::from_flattened(row_arrays[i],card);
       row.foreach( [&myfile] (uint32_t data){
         myfile << " DATA: " << data << endl;
       });
@@ -181,8 +181,7 @@ AOA_Matrix<V>* AOA_Matrix<V>::from_symmetric(MutableGraph* inputGraph,
   const vector<uint64_t> *imap = inputGraph->id_map;
   const vector<vector<uint32_t>*> *edge_attr = inputGraph->out_edge_attributes;
 
-  array16::prepare_shuffling_dictionary16();
-  hybrid::prepare_shuffling_dictionary();
+  ops::prepare_shuffling_dictionary16();
 
   cout << "Number of nodes: " << matrix_size_in << endl;
   cout << "Number of edges: " << cardinality_in << endl;
@@ -299,8 +298,7 @@ AOA_Matrix<V>* AOA_Matrix<V>::from_symmetric(MutableGraph* inputGraph,
           row_lengths_in[old2newids[i]] = new_size;
           row_arrays_in[old2newids[i]] = &row_data_in[index];
           if(new_size > 0){
-            Set<uint32> new_row = Set<uint32>::from_array(row_data_in+index,selected_row,new_size);
-            index += new_row.number_of_bytes;
+            index += Set<V>::flatten_from_array(row_data_in+index,selected_row,new_size);
           }
           new_cardinality += new_size;
         }
@@ -336,8 +334,7 @@ AOA_Matrix<V>* AOA_Matrix<V>::from_asymmetric(MutableGraph *inputGraph,
 
   uint64_t *imap = inputGraph->id_map->data();
 
-  array16::prepare_shuffling_dictionary16();
-  hybrid::prepare_shuffling_dictionary();
+  ops::prepare_shuffling_dictionary16();
 
   uint8_t **row_arrays_in = new uint8_t*[matrix_size_in];
   uint32_t *row_lengths_in = new uint32_t[matrix_size_in];
@@ -442,9 +439,11 @@ AOA_Matrix<V>* AOA_Matrix<V>::clone_on_node(int node) {
    uint8_t* neighborhood =
       (uint8_t*) numa_alloc_onnode(this->row_total_bytes_used + matrix_size, node);
    for(uint64_t i = 0; i < matrix_size; i++) {
+
       uint32_t row_length = cloned_row_lengths[i];
       uint8_t* data = this->row_arrays[i];
       //FIXME:
+      (void) row_length;
       size_t num_bytes = 0;//uint_array::size_of_array(data, row_length, this->t);
       std::copy(data, data + num_bytes, neighborhood);
       cloned_row_arrays[i] = (uint8_t*) neighborhood;

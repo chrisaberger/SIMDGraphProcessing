@@ -5,14 +5,15 @@
 
 using namespace pcm_helper;
 
+template<class T>
 class thread_data{
   public:
     size_t thread_id;
     uint8_t *buffer;
     uint32_t *decoded_src;
-    AOA_Matrix<uint32> *graph;
+    AOA_Matrix<T> *graph;
 
-    thread_data(AOA_Matrix<uint32>* graph_in, size_t buffer_lengths, const size_t thread_id_in){
+    thread_data(AOA_Matrix<T>* graph_in, size_t buffer_lengths, const size_t thread_id_in){
       graph = graph_in;
       thread_id = thread_id_in;
       decoded_src = new uint32_t[buffer_lengths];
@@ -20,24 +21,26 @@ class thread_data{
     }
 };
 
+template<class T>
 class application{
   public:
-    AOA_Matrix<uint32>** graphs;
+    AOA_Matrix<T>** graphs;
     long num_triangles;
-    thread_data **t_data_pointers;
+    thread_data<T> **t_data_pointers;
     MutableGraph *inputGraph;
     size_t num_numa_nodes;
     size_t num_threads;
+    string layout;
 
-    application(size_t num_numa_nodes_in, MutableGraph *inputGraph_in, size_t num_threads_in){
+    application(size_t num_numa_nodes_in, MutableGraph *inputGraph_in, size_t num_threads_in, string input_layout){
       num_triangles = 0;
-      graphs = new AOA_Matrix<uint32>*[num_numa_nodes];
+      graphs = new AOA_Matrix<T>*[num_numa_nodes];
       num_numa_nodes = num_numa_nodes_in;
       inputGraph = inputGraph_in; 
       num_threads = num_threads_in;
-      t_data_pointers = new thread_data*[num_threads];
+      t_data_pointers = new thread_data<T>*[num_threads];
+      layout = input_layout;
     }
-
     inline bool myNodeSelection(uint32_t node, uint32_t attribute){
       (void)node; (void) attribute;
       return true;
@@ -50,29 +53,29 @@ class application{
       int threads_per_node = (num_threads - 1) / num_numa_nodes + 1;
       for(size_t k= 0; k < num_threads; k++){
         int node = k / threads_per_node;
-        t_data_pointers[k] = new thread_data(graphs[node], graphs[node]->max_nbrhood_size,k);
+        t_data_pointers[k] = new thread_data<T>(graphs[node], graphs[node]->max_nbrhood_size,k);
       }
     }
     inline void produceSubgraph(){
       auto node_selection = std::bind(&application::myNodeSelection, this, _1, _2);
       auto edge_selection = std::bind(&application::myEdgeSelection, this, _1, _2, _3);
-      graphs[0] = AOA_Matrix<uint32>::from_symmetric(inputGraph,node_selection,edge_selection);
+      graphs[0] = AOA_Matrix<T>::from_symmetric(inputGraph,node_selection,edge_selection);
       for(size_t i = 1; i < num_numa_nodes; i++) {
         graphs[i] = graphs[0]->clone_on_node(i);
       }
     }
 
-    inline void queryOver(size_t num_nodes, size_t num_threads){
+    inline void queryOver(){
       system_counter_state_t before_sstate = pcm_get_counter_state();
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
       size_t matrix_size = graphs[0]->matrix_size;
 
-      thread* threads = new thread[num_threads];
+      //thread* threads = new thread[num_threads];
       double* thread_times = new double[num_threads];
       std::atomic<long> reducer;
       reducer = 0;
-      const size_t block_size = 1500; //matrix_size / num_threads;
+      //const size_t block_size = 1500; //matrix_size / num_threads;
       std::atomic<size_t> next_work;
       next_work = 0;
 
@@ -97,6 +100,25 @@ class application{
     pcm_print_counter_stats(before_sstate, after_sstate);
     num_triangles = reducer;
   }
+  inline void run(){
+    common::startClock();
+    produceSubgraph();
+    common::stopClock("Selections");
+
+    common::startClock();
+    allocBuffers();
+    common::stopClock("Allocating Buffers");
+
+    if(pcm_init() < 0)
+       return;
+
+    common::startClock();
+    queryOver();
+    common::stopClock("Application Time for Layout " + layout);
+
+    cout << "Count: " << num_triangles << endl << endl;
+    pcm_cleanup();
+  }
 };
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
@@ -113,52 +135,33 @@ int main (int argc, char* argv[]) {
 
   std::string input_layout = argv[3];
 
-  common::type layout;
+  size_t num_nodes = 1;
+  common::startClock();
+  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files
+  common::stopClock("Reading File");
+
+
   if(input_layout.compare("a32") == 0){
-    layout = common::ARRAY32;
+    application<uint32> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    myapp.run();
   } else if(input_layout.compare("bs") == 0){
-    layout = common::BITSET;
+    num_nodes = 1;
   } else if(input_layout.compare("a16") == 0){
-    layout = common::ARRAY16;
+    num_nodes = 1;
   } else if(input_layout.compare("hybrid") == 0){
-    layout = common::HYBRID_PERF;
+    num_nodes = 1;
   } 
   #if COMPRESSION == 1
   else if(input_layout.compare("v") == 0){
-    layout = common::VARIANT;
+    num_nodes = 1;
   } else if(input_layout.compare("bp") == 0){
-    layout = common::A32BITPACKED;
+    num_nodes = 1;
   } 
   #endif
   else{
     cout << "No valid layout entered." << endl;
     exit(0);
   }
-
-  common::startClock();
-  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files
-  common::stopClock("Reading File");
-
-  size_t num_nodes = 1;
-  application myapp(num_nodes,inputGraph,num_threads);
-
-  common::startClock();
-  myapp.produceSubgraph();
-  common::stopClock("Selections");
-
-  common::startClock();
-  myapp.allocBuffers();
-  common::stopClock("Allocating Buffers");
-
-  if(pcm_init() < 0)
-     return -1;
-
-  common::startClock();
-  myapp.queryOver(num_nodes, num_threads);
-  common::stopClock(input_layout);
-
-  cout << "Count: " << myapp.num_triangles << endl << endl;
-  pcm_cleanup();
 
   return 0;
 }

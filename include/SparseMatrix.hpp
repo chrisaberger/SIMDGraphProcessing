@@ -1,11 +1,12 @@
-#ifndef AOA_MATRIX_H
-#define AOA_MATRIX_H
+#ifndef SparseMatrix_H
+#define SparseMatrix_H
 
-#include "UnsignedIntegerArray.hpp"
 #include "MutableGraph.hpp"
+#include "set/ops.hpp"
+
 
 template<class V>
-class AOA_Matrix{
+class SparseMatrix{
   public:
     size_t matrix_size;  //number of nodes, number of columns = number of rows
     size_t cardinality;  //number of edges
@@ -31,7 +32,7 @@ class AOA_Matrix{
     vector< vector<uint32_t>*  > *out_edge_attributes;
     vector< vector<uint32_t>*  > *in_edge_attributes;
 
-    AOA_Matrix(size_t matrix_size_in,
+    SparseMatrix(size_t matrix_size_in,
       size_t cardinality_in,
       size_t row_total_bytes_used_in,
       size_t col_total_bytes_used_in,
@@ -60,7 +61,7 @@ class AOA_Matrix{
         out_edge_attributes(out_edge_attributes_in),
         in_edge_attributes(in_edge_attributes_in){}
 
-    ~AOA_Matrix(){
+    ~SparseMatrix(){
       #pragma omp parallel for default(none)
       for(size_t i = 0; i < matrix_size; i++){
         delete[] row_arrays[i];
@@ -77,14 +78,14 @@ class AOA_Matrix{
       }
     }
 
-    AOA_Matrix* clone_on_node(int node);
+    SparseMatrix* clone_on_node(int node);
     void *parallel_constructor(void *);
 
-    static AOA_Matrix* from_symmetric(MutableGraph *inputGraph,
+    static SparseMatrix* from_symmetric(MutableGraph *inputGraph,
       const std::function<bool(uint32_t,uint32_t)> node_selection,
       const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection);
 
-    static AOA_Matrix* from_asymmetric(MutableGraph *inputGraph,
+    static SparseMatrix* from_asymmetric(MutableGraph *inputGraph,
       const std::function<bool(uint32_t)> node_selection,
       const std::function<bool(uint32_t,uint32_t)> edge_selection, 
       const common::type t_in);
@@ -113,7 +114,7 @@ class AOA_Matrix{
 };
 
 template<class V>
-inline size_t AOA_Matrix<V>::row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a){
+inline size_t SparseMatrix<V>::row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a){
   //change the set in A to point to decoded_a, after sum is finished.
   size_t card_a = row_lengths[i];
   size_t card_b = row_lengths[j];
@@ -126,7 +127,7 @@ inline size_t AOA_Matrix<V>::row_intersect(uint8_t *R, uint32_t i, uint32_t j, u
 }
 
 template<class V>
-void AOA_Matrix<V>::foreach_column_in_row(uint32_t row, const std::function <void (uint32_t,uint32_t)>& ef){
+void SparseMatrix<V>::foreach_column_in_row(uint32_t row, const std::function <void (uint32_t,uint32_t)>& ef){
   size_t card = row_lengths[row];
   Set<V> row_set = Set<V>::from_flattened(row_arrays[row],card);
   row_set.foreach( [row,ef] (uint32_t column){
@@ -135,7 +136,7 @@ void AOA_Matrix<V>::foreach_column_in_row(uint32_t row, const std::function <voi
 }
 
 template<class V>
-void AOA_Matrix<V>::print_data(string filename){
+void SparseMatrix<V>::print_data(string filename){
   ofstream myfile;
   myfile.open(filename);
 
@@ -169,7 +170,7 @@ void AOA_Matrix<V>::print_data(string filename){
 /////////////////////////////////////////////////////////////////////////////////////////////
 //Constructors
 template<class V>
-AOA_Matrix<V>* AOA_Matrix<V>::from_symmetric(MutableGraph* inputGraph,
+SparseMatrix<V>* SparseMatrix<V>::from_symmetric(MutableGraph* inputGraph,
   const std::function<bool(uint32_t,uint32_t)> node_selection,
   const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection){
   
@@ -265,8 +266,7 @@ AOA_Matrix<V>* AOA_Matrix<V>::from_symmetric(MutableGraph* inputGraph,
           row_lengths_in[old2newids[i]] = new_size;
           row_arrays_in[old2newids[i]] = &row_data_in[index];
           if(new_size > 0){
-            common::type row_type = common::ARRAY32;//uint_array::get_array_type(t_in,selected_row,new_size,matrix_size_in);
-            index = uint_array::preprocess(row_data_in,index,selected_row,new_size,row_type);
+            index += Set<V>::flatten_from_array(row_data_in+index,selected_row,new_size);
           }
           new_cardinality += new_size;
         }
@@ -315,11 +315,11 @@ AOA_Matrix<V>* AOA_Matrix<V>::from_symmetric(MutableGraph* inputGraph,
   cout << "Number of edges: " << new_cardinality << endl;
   cout << "ROW DATA SIZE (Bytes): " << total_bytes_used << endl;
 
-  return new AOA_Matrix(new_num_nodes,new_cardinality,total_bytes_used,0,max_nbrhood_size_in,true,row_lengths_in,row_arrays_in,row_lengths_in,row_arrays_in,new_imap,node_attributes_in,edge_attributes_in,edge_attributes_in);
+  return new SparseMatrix(new_num_nodes,new_cardinality,total_bytes_used,0,max_nbrhood_size_in,true,row_lengths_in,row_arrays_in,row_lengths_in,row_arrays_in,new_imap,node_attributes_in,edge_attributes_in,edge_attributes_in);
 }
 
 template<class V>
-AOA_Matrix<V>* AOA_Matrix<V>::from_asymmetric(MutableGraph *inputGraph,
+SparseMatrix<V>* SparseMatrix<V>::from_asymmetric(MutableGraph *inputGraph,
   const std::function<bool(uint32_t)> node_selection,
   const std::function<bool(uint32_t,uint32_t)> edge_selection, 
   const common::type t_in){
@@ -378,8 +378,7 @@ AOA_Matrix<V>* AOA_Matrix<V>::from_asymmetric(MutableGraph *inputGraph,
         row_arrays_in[i] = &row_data_in[row_index];
 
         if(new_row_size > 0){
-          common::type row_type = uint_array::get_array_type(t_in,selected,new_row_size,matrix_size_in);
-          row_index = uint_array::preprocess(row_data_in,row_index,selected,new_row_size,row_type);
+          index += Set<V>::flatten_from_array(row_data_in+row_index,selected,new_row_size);
         }
         new_cardinality += new_row_size;
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -396,8 +395,7 @@ AOA_Matrix<V>* AOA_Matrix<V>::from_asymmetric(MutableGraph *inputGraph,
         col_arrays_in[i] = &col_data_in[col_index];
 
         if(new_col_size > 0){
-          common::type col_type = uint_array::get_array_type(t_in,selected,new_col_size,matrix_size_in);
-          col_index = uint_array::preprocess(col_data_in,col_index,selected,new_col_size,col_type);
+          index += Set<V>::flatten_from_array(col_data_in+col_index,selected,new_col_size);
         }
         new_cardinality += new_col_size;
       } else{
@@ -416,12 +414,12 @@ AOA_Matrix<V>* AOA_Matrix<V>::from_asymmetric(MutableGraph *inputGraph,
   cout << "ROW DATA SIZE (Bytes): " << row_total_bytes_used << endl;
   cout << "COLUMN DATA SIZE (Bytes): " << col_total_bytes_used << endl;
 
-  return new AOA_Matrix(matrix_size_in,new_cardinality,row_total_bytes_used,col_total_bytes_used,max_nbrhood_size_in,false,row_lengths_in,row_arrays_in,col_lengths_in,col_arrays_in,imap,node_attributes_in,edge_attributes_in,edge_attributes_in);
+  return new SparseMatrix(matrix_size_in,new_cardinality,row_total_bytes_used,col_total_bytes_used,max_nbrhood_size_in,false,row_lengths_in,row_arrays_in,col_lengths_in,col_arrays_in,imap,node_attributes_in,edge_attributes_in,edge_attributes_in);
 }
 
 // FIXME: This code only works for undirected graphs
 template<class V>
-AOA_Matrix<V>* AOA_Matrix<V>::clone_on_node(int node) {
+SparseMatrix<V>* SparseMatrix<V>::clone_on_node(int node) {
    numa_run_on_node(node);
    numa_set_preferred(node);
 
@@ -474,7 +472,7 @@ AOA_Matrix<V>* AOA_Matrix<V>::clone_on_node(int node) {
    std::cout << "Node of row_arrays: " << common::find_memory_node_for_addr(cloned_row_arrays) << std::endl;
    std::cout << "Node of neighborhood: " << common::find_memory_node_for_addr(neighborhood) << std::endl;
 
-   return new AOA_Matrix(
+   return new SparseMatrix(
          matrix_size,
          this->cardinality,
          this->row_total_bytes_used,

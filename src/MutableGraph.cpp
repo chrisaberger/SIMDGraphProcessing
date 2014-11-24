@@ -1,5 +1,4 @@
 #include "MutableGraph.hpp"
-#include <time.h>
 
 struct OrderNeighborhoodByDegree{
   vector< vector<uint32_t>*  > *g;

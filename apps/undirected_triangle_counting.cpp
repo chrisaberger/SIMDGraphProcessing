@@ -1,5 +1,5 @@
 // class templates
-#include "AOA_Matrix.hpp"
+#include "SparseMatrix.hpp"
 #include "MutableGraph.hpp"
 #include "pcm_helper.hpp"
 
@@ -11,9 +11,9 @@ class thread_data{
     size_t thread_id;
     uint8_t *buffer;
     uint32_t *decoded_src;
-    AOA_Matrix<T> *graph;
+    SparseMatrix<T> *graph;
 
-    thread_data(AOA_Matrix<T>* graph_in, size_t buffer_lengths, const size_t thread_id_in){
+    thread_data(SparseMatrix<T>* graph_in, size_t buffer_lengths, const size_t thread_id_in){
       graph = graph_in;
       thread_id = thread_id_in;
       decoded_src = new uint32_t[buffer_lengths];
@@ -24,7 +24,7 @@ class thread_data{
 template<class T>
 class application{
   public:
-    AOA_Matrix<T>** graphs;
+    SparseMatrix<T>** graphs;
     long num_triangles;
     thread_data<T> **t_data_pointers;
     MutableGraph *inputGraph;
@@ -34,7 +34,7 @@ class application{
 
     application(size_t num_numa_nodes_in, MutableGraph *inputGraph_in, size_t num_threads_in, string input_layout){
       num_triangles = 0;
-      graphs = new AOA_Matrix<T>*[num_numa_nodes];
+      graphs = new SparseMatrix<T>*[num_numa_nodes];
       num_numa_nodes = num_numa_nodes_in;
       inputGraph = inputGraph_in; 
       num_threads = num_threads_in;
@@ -59,7 +59,7 @@ class application{
     inline void produceSubgraph(){
       auto node_selection = std::bind(&application::myNodeSelection, this, _1, _2);
       auto edge_selection = std::bind(&application::myEdgeSelection, this, _1, _2, _3);
-      graphs[0] = AOA_Matrix<T>::from_symmetric(inputGraph,node_selection,edge_selection);
+      graphs[0] = SparseMatrix<T>::from_symmetric(inputGraph,node_selection,edge_selection);
       for(size_t i = 1; i < num_numa_nodes; i++) {
         graphs[i] = graphs[0]->clone_on_node(i);
       }

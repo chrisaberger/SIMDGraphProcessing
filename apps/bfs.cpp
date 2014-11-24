@@ -3,7 +3,7 @@ int main () {
 }
 /*
 // class templates
-#include "AOA_Matrix.hpp"
+#include "SparseMatrix.hpp"
 #include "MutableGraph.hpp"
 #include "UnsignedIntegerArray.hpp"
 
@@ -65,7 +65,7 @@ int main (int argc, char* argv[]) {
   cout << endl;
 
   common::startClock();
-  AOA_Matrix *graph = AOA_Matrix::from_asymmetric(inputGraph,node_selection,edge_selection,layout);
+  SparseMatrix *graph = SparseMatrix::from_asymmetric(inputGraph,node_selection,edge_selection,layout);
   common::stopClock("selections");
   
   graph->print_data(argv[4]);

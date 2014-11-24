@@ -3,13 +3,13 @@ int main () {
 }
 /*
 // class templates
-#include "AOA_Matrix.hpp"
+#include "SparseMatrix.hpp"
 #include "MutableGraph.hpp"
 
 #define PRINT 1
 
 namespace application{
-  AOA_Matrix *graph;
+  SparseMatrix *graph;
   float *pr_data;
   size_t max_iterations;
   
@@ -41,7 +41,7 @@ namespace application{
     pr_data = new float[num_nodes];
 
     auto nbr_function = std::bind(&nbrApply, _1);
-    auto col_function = std::bind(&AOA_Matrix::sum_over_rows_in_column<float>,graph,_1,_2);
+    auto col_function = std::bind(&SparseMatrix::sum_over_rows_in_column<float>,graph,_1,_2);
 
     const size_t st_a = (num_nodes / 8) * 8;
 
@@ -132,7 +132,7 @@ namespace application{
     }    
 
     auto nbr_function = std::bind(&nbrApply_old, _1);
-    auto col_function = std::bind(&AOA_Matrix::sum_over_rows_in_column<float>,graph,_1,_2);
+    auto col_function = std::bind(&SparseMatrix::sum_over_rows_in_column<float>,graph,_1,_2);
 
     size_t num_iterations = 0;
     while(num_iterations < max_iterations){
@@ -192,7 +192,7 @@ int main (int argc, char* argv[]) {
   cout << endl;
 
   common::startClock();
-  application::graph = AOA_Matrix::from_asymmetric(inputGraph,node_selection,edge_selection,layout);
+  application::graph = SparseMatrix::from_asymmetric(inputGraph,node_selection,edge_selection,layout);
   common::stopClock("selections");
   
   inputGraph->MutableGraph::~MutableGraph(); 

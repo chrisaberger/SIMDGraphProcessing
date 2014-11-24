@@ -3,12 +3,12 @@ int main () {
 }
 /*
 // class templates
-#include "AOA_Matrix.hpp"
+#include "SparseMatrix.hpp"
 #include "MutableGraph.hpp"
 #include "Table.hpp"
 
 namespace application{
-  AOA_Matrix *graph;
+  SparseMatrix *graph;
   long num_triangles = 0;
   Table *output;
   size_t num_threads;
@@ -85,7 +85,7 @@ namespace application{
     }
   }
   inline void queryOver(){
-    auto row_function = std::bind(&AOA_Matrix::sum_over_columns_in_row<long>, graph, _1, _2, _3);
+    auto row_function = std::bind(&SparseMatrix::sum_over_columns_in_row<long>, graph, _1, _2, _3);
 
     const size_t matrix_size = graph->matrix_size;
     
@@ -181,7 +181,7 @@ int main (int argc, char* argv[]) {
   cout << endl;
 
   common::startClock();
-  application::graph = AOA_Matrix::from_symmetric(inputGraph,node_selection,edge_selection,layout);
+  application::graph = SparseMatrix::from_symmetric(inputGraph,node_selection,edge_selection,layout);
   common::stopClock("selections");
   
   inputGraph->MutableGraph::~MutableGraph(); 
@@ -194,7 +194,7 @@ int main (int argc, char* argv[]) {
   application::queryOver();
   common::stopClock(input_layout);  
 
-  //application::graph->AOA_Matrix::~AOA_Matrix();
+  //application::graph->SparseMatrix::~SparseMatrix();
   cout << "Count: " << application::num_triangles << endl << endl;
 
   application::output->print_data("table.txt",application::graph->id_map);

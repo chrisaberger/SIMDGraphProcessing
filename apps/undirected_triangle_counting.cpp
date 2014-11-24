@@ -105,6 +105,7 @@ class application{
     produceSubgraph();
     common::stopClock("Selections");
 
+    /*
     common::startClock();
     allocBuffers();
     common::stopClock("Allocating Buffers");
@@ -118,6 +119,7 @@ class application{
 
     cout << "Count: " << num_triangles << endl << endl;
     pcm_cleanup();
+    */
   }
 };
 
@@ -149,7 +151,8 @@ int main (int argc, char* argv[]) {
   } else if(input_layout.compare("a16") == 0){
     num_nodes = 1;
   } else if(input_layout.compare("hybrid") == 0){
-    num_nodes = 1;
+    application<hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    myapp.run();  
   } 
   #if COMPRESSION == 1
   else if(input_layout.compare("v") == 0){

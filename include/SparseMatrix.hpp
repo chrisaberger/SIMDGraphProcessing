@@ -123,7 +123,7 @@ inline size_t SparseMatrix<V>::row_intersect(uint8_t *R, uint32_t i, uint32_t j,
   Set<V> B = Set<V>::from_flattened(row_arrays[j],card_b);
   Set<V> C(R,0,0,V::get_type());
 
-  return ops::intersect(C,A,B);  
+  return 0;//ops::intersect(C,A,B);  
 }
 
 template<class V>

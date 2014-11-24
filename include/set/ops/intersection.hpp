@@ -2,6 +2,14 @@
 #define _INTERSECTION_H_
 
 namespace ops{
+  inline size_t intersect(Set<hybrid> C_in, Set<hybrid> A_in, Set<hybrid> B_in) {
+    if(A_in.type == common::ARRAY32){
+      if(B_in.type == common::ARRAY32){
+        return ops::intersect((Set<uint32>)C_in,(Set<uint32>)A_in,(Set<uint32>)B_in);
+      }
+    }
+    return 0;
+  }
   inline size_t intersect(Set<uint32> C_in, Set<uint32> A_in, Set<uint32> B_in) {
     uint32_t *C = (uint32_t*) C_in.data; 
     uint32_t *A = (uint32_t*) A_in.data;

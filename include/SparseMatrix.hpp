@@ -2,7 +2,7 @@
 #define SparseMatrix_H
 
 #include "MutableGraph.hpp"
-#include "set/ops.hpp"
+#include "set/Set.hpp"
 
 
 template<class V>

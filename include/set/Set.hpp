@@ -55,4 +55,8 @@ size_t Set<T>::flatten_from_array(uint8_t *set_data, uint32_t *array_data, size_
   return T::build_flattened(set_data,array_data,data_size);
 }
 
+
+#include "ops/sse_masks.hpp"
+#include "ops/intersection.hpp"
+
 #endif

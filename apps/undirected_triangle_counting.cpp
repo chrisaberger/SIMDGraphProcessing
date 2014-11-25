@@ -140,11 +140,11 @@ int main (int argc, char* argv[]) {
 
   size_t num_nodes = 1;
   common::startClock();
-  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files
+  MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
   common::stopClock("Reading File");
 
   if(input_layout.compare("a32") == 0){
-    application<uint32> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    application<uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();
   } else if(input_layout.compare("bs") == 0){
     num_nodes = 1;

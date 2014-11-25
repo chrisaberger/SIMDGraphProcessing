@@ -2,16 +2,14 @@
 #define _HYBRID_H_
 /*
 
-THIS CLASS IMPLEMENTS THE FUNCTIONS ASSOCIATED WITH AN UNCOMPRESSED SET LAYOUT.
-QUITE SIMPLE THE LAYOUT JUST CONTAINS UNSIGNED INTEGERS IN THE SET.
+THIS CLASS IMPLEMENTS THE FUNCTIONS ASSOCIATED WITH AN HYBRID SET LAYOUT.
+HERE WE DYNAMICALLY DETECT THE UNDERLYING LAYOUT OF THE SET AND
+RUN THE CORRESPONDING SET MEHTODS.
 
 */
 
 
-//Implement implicit type conversions from one templated type to another when 
-//an op is called in the hybrid class.
-
-#include "uint32.hpp"
+#include "uinteger.hpp"
 #include "pshort.hpp"
 
 class hybrid{
@@ -50,7 +48,7 @@ inline size_t hybrid::build(uint8_t *r_in, const uint32_t *data, const size_t le
   common::type t = hybrid::get_type(data,length);
   switch(t){
     case common::ARRAY32 :
-      return uint32::build(r_in,data,length);
+      return uinteger::build(r_in,data,length);
     break;
     case common::ARRAY16 :
       return pshort::build(r_in,data,length);
@@ -65,7 +63,7 @@ inline size_t hybrid::build_flattened(uint8_t *r_in, const uint32_t *data, const
   r_in[0] = (uint8_t) t;
   switch(t){
     case common::ARRAY32 :
-      return 1+uint32::build_flattened(&r_in[1],data,length);
+      return 1+uinteger::build_flattened(&r_in[1],data,length);
     break;
     case common::ARRAY16 :
       return 1+pshort::build_flattened(&r_in[1],data,length);
@@ -80,7 +78,7 @@ inline tuple<size_t,size_t,common::type> hybrid::get_flattened_data(const uint8_
   tuple<size_t,size_t,common::type> mytup;
   switch(t){
     case common::ARRAY32 :
-      mytup = uint32::get_flattened_data(&set_data[1],cardinality);
+      mytup = uinteger::get_flattened_data(&set_data[1],cardinality);
       get<0>(mytup)++;
       return mytup;
     break;
@@ -100,7 +98,7 @@ inline void hybrid::foreach(const std::function <void (uint32_t)>& f, const uint
 
   switch(t){
     case common::ARRAY32 :
-      uint32::foreach(f,data_in,cardinality,number_of_bytes,common::ARRAY32);
+      uinteger::foreach(f,data_in,cardinality,number_of_bytes,common::ARRAY32);
     break;
     case common::ARRAY16 :
       pshort::foreach(f,data_in,cardinality,number_of_bytes,common::ARRAY16);

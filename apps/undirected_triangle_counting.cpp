@@ -110,6 +110,8 @@ class application{
     allocBuffers();
     common::stopClock("Allocating Buffers");
 
+    graphs[0]->print_data("graph.txt");
+
     if(pcm_init() < 0)
        return;
 
@@ -150,8 +152,8 @@ int main (int argc, char* argv[]) {
     application<pshort> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();  
   } else if(input_layout.compare("hybrid") == 0){
-    //application<hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    //myapp.run();  
+    application<hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    myapp.run();  
   } 
   #if COMPRESSION == 1
   else if(input_layout.compare("v") == 0){

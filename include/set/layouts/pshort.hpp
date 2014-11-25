@@ -12,9 +12,19 @@ class pshort{
     static common::type get_type();
     static size_t build(uint8_t *r_in, const uint32_t *data, const size_t length);
     static size_t build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length);
-    static tuple<uint8_t,size_t,size_t> get_flattened_data(const uint8_t *set_data, const size_t cardinality);
-    static void foreach(const std::function <void (uint32_t)>& f,const uint8_t *data_in, const size_t cardinality, const size_t number_of_bytes);
-    static tuple<size_t,size_t,common::type> intersect(uint8_t *C_in, uint8_t *A_in, uint8_t *B_in, size_t A_cardinality, size_t B_cardinality, size_t A_num_bytes, size_t B_num_bytes);
+    static tuple<size_t,size_t,common::type> get_flattened_data(const uint8_t *set_data, const size_t cardinality);
+   
+    static void foreach(const std::function <void (uint32_t)>& f,
+      const uint8_t *data_in, 
+      const size_t cardinality, 
+      const size_t number_of_bytes,
+      const common::type type);
+    
+    static tuple<size_t,size_t,common::type> intersect(uint8_t *C_in, 
+      const uint8_t *A_in, const uint8_t *B_in, 
+      const size_t A_cardinality, const size_t B_cardinality, 
+      const size_t A_num_bytes, const size_t B_num_bytes, 
+      const common::type a_t, const common::type b_t);
 };
 
 inline common::type pshort::get_type(){
@@ -61,22 +71,24 @@ inline size_t pshort::build_flattened(uint8_t *r_in, const uint32_t *data, const
   }
 }
 
-inline tuple<uint8_t,size_t,size_t> pshort::get_flattened_data(const uint8_t *set_data, const size_t cardinality){
+inline tuple<size_t,size_t,common::type> pshort::get_flattened_data(const uint8_t *set_data, const size_t cardinality){
   if(cardinality > 0){
     const size_t *size_ptr = (size_t*) set_data;
-    return make_tuple(common::ARRAY16,size_ptr[0],sizeof(size_t));
+    return make_tuple(sizeof(size_t),size_ptr[0],common::ARRAY16);
   } else{
-    return make_tuple(common::ARRAY16,0,0);
+    return make_tuple(0,0,common::ARRAY16);
   }
 }
 
 //Iterates over set applying a lambda.
-inline void pshort::foreach(const std::function <void (uint32_t)>& f, const uint8_t *A_in, 
-  const size_t cardinality, const size_t number_of_bytes){
-  (void) number_of_bytes; 
+inline void pshort::foreach(const std::function <void (uint32_t)>& f, 
+  const uint8_t *A_in, 
+  const size_t cardinality, 
+  const size_t number_of_bytes, 
+  const common::type type){
+  (void) number_of_bytes; (void) type;
 
   uint16_t *A = (uint16_t*) A_in;
-
   size_t count = 0;
   size_t i = 0;
   while(count < cardinality){
@@ -94,7 +106,12 @@ inline void pshort::foreach(const std::function <void (uint32_t)>& f, const uint
   }
 }
 
-inline tuple<size_t,size_t,common::type> pshort::intersect(uint8_t *C_in, uint8_t *A_in, uint8_t *B_in, size_t card_a, size_t card_b, size_t s_bytes_a, size_t s_bytes_b) {
-  (void) card_a; (void) card_b;
-  return ops::intersect_pshort_pshort(C_in,(uint16_t*)A_in,(uint16_t*)B_in,s_bytes_a/sizeof(uint16_t),s_bytes_b/sizeof(uint16_t));
+inline tuple<size_t,size_t,common::type> pshort::intersect(uint8_t *C_in, 
+  const uint8_t *A_in, const uint8_t *B_in, 
+  const size_t card_a, const size_t card_b, 
+  const size_t s_bytes_a, const size_t s_bytes_b, 
+  const common::type a_t, const common::type b_t) {
+  (void) card_a; (void) card_b; (void) a_t; (void) b_t;
+  
+  return ops::intersect_pshort_pshort((uint16_t*)C_in,(uint16_t*)A_in,(uint16_t*)B_in,s_bytes_a/sizeof(uint16_t),s_bytes_b/sizeof(uint16_t));
 }

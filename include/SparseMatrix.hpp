@@ -266,6 +266,7 @@ SparseMatrix<V>* SparseMatrix<V>::from_symmetric(MutableGraph* inputGraph,
           row_arrays_in[old2newids[i]] = &row_data_in[index];
           if(new_size > 0){
             index += Set<V>::flatten_from_array(row_data_in+index,selected_row,new_size);
+            cout << "End index: " << index << endl;
           }
           new_cardinality += new_size;
         }
@@ -297,7 +298,9 @@ SparseMatrix<V>* SparseMatrix<V>::from_symmetric(MutableGraph* inputGraph,
           row_lengths_in[old2newids[i]] = new_size;
           row_arrays_in[old2newids[i]] = &row_data_in[index];
           //if(new_size > 0){
+          cout << "Start index: " << index << endl;
           index += Set<V>::flatten_from_array(row_data_in+index,selected_row,new_size);
+          cout << "End index: " << index << endl;
           //}
           new_cardinality += new_size;
         }

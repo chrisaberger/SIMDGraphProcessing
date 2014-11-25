@@ -10,8 +10,6 @@ FOUND IN STATIC CLASSES IN THE LAYOUT FOLDER.
 */
 
 #include "layouts/hybrid.hpp"
-#include "layouts/uint32.hpp"
-#include "layouts/pshort.hpp"
 
 template <class T>
 class Set{ 
@@ -56,18 +54,8 @@ class Set{
 ///////////////////////////////////////////////////////////////////////////////
 template <class T>
 inline void Set<T>::foreach(const std::function <void (uint32_t)>& f){ 
-  T::foreach(f,data,cardinality,number_of_bytes);
+  T::foreach(f,data,cardinality,number_of_bytes,type);
 }
-template <>
-inline void Set<hybrid>::foreach(const std::function <void (uint32_t)>& f){ 
-  switch(type){
-    case common::ARRAY32 :
-      uint32::foreach(f,data,cardinality,number_of_bytes);
-    break;
-    default:
-    break;
-  }
-}  
 
 ///////////////////////////////////////////////////////////////////////////////
 //CREATE A SET FROM AN ARRAY OF UNSIGNED INTEGERS
@@ -77,39 +65,15 @@ inline Set<T> Set<T>::from_array(uint8_t *set_data, uint32_t *array_data, size_t
   size_t bytes_in = T::build(set_data,array_data,data_size);
   return Set<T>(set_data,data_size,bytes_in,T::get_type());
 }
-template <>
-inline Set<hybrid> Set<hybrid>::from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size){
-  common::type t = hybrid::get_type(array_data,data_size);
-  switch(t){
-    case common::ARRAY32 :
-      return Set<hybrid>(Set<uint32>::from_array(set_data,array_data,data_size));
-    break;
-    default:
-      return Set<hybrid>(set_data,0,0,common::ARRAY32);
-  }
-}
 
 ///////////////////////////////////////////////////////////////////////////////
-//CREATEE A SET FROM A FLATTENED ARRAY WITH INFO.  
+//CREATE A SET FROM A FLATTENED ARRAY WITH INFO.  
 //THIS IS USED FOR A CSR GRAPH IMPLEMENTATION.
 ///////////////////////////////////////////////////////////////////////////////
 template <class T>
 inline Set<T> Set<T>::from_flattened(uint8_t *set_data, size_t cardinality_in){
   auto flattened_data = T::get_flattened_data(set_data,cardinality_in);
-  return Set<T>(&set_data[std::get<2>(flattened_data)],cardinality_in,std::get<1>(flattened_data),(common::type)std::get<0>(flattened_data));
-}
-template <>
-inline Set<hybrid> Set<hybrid>::from_flattened(uint8_t *set_data, size_t cardinality_in){
-  common::type t = (common::type)set_data[0];
-  set_data[0] = (uint8_t) t;
-  switch(t){
-    case common::ARRAY32 :
-      return Set<hybrid>(Set<uint32>::from_flattened(&set_data[1],cardinality_in));
-    break;
-    default:
-      return Set<hybrid>(set_data,0,0,common::ARRAY32);
-    break;
-  }
+  return Set<T>(&set_data[get<0>(flattened_data)],cardinality_in,get<1>(flattened_data),get<2>(flattened_data));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -120,24 +84,16 @@ template <class T>
 inline size_t Set<T>::flatten_from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size){
   return T::build_flattened(set_data,array_data,data_size);
 }
-template <>
-inline size_t Set<hybrid>::flatten_from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size){
-  common::type t = hybrid::get_type(array_data,data_size);
-  set_data[0] = (uint8_t) t;
-  switch(t){
-    case common::ARRAY32 :
-      return 1+uint32::build_flattened(&set_data[1],array_data,data_size);
-    break;
-    default:
-      return 0;
-  }
-}
 
 //ops (will take any type you give)
 template<class T>
 inline Set<T> Set<T>::intersect(Set<T> C_in, Set<T> A_in, Set<T> B_in){
-  tuple<size_t,size_t,common::type> intersection_values = T::intersect(C_in.data,A_in.data,B_in.data,
-      A_in.cardinality,B_in.cardinality,A_in.number_of_bytes,B_in.number_of_bytes);
+  tuple<size_t,size_t,common::type> intersection_values = T::intersect(C_in.data,
+    A_in.data,B_in.data,
+    A_in.cardinality,B_in.cardinality,
+    A_in.number_of_bytes,B_in.number_of_bytes,
+    A_in.type,B_in.type);
+
   return Set<T>(C_in.data,get<0>(intersection_values),get<1>(intersection_values),get<2>(intersection_values));
 }
 

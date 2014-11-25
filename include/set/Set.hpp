@@ -29,11 +29,18 @@ class Set{
       number_of_bytes(number_of_bytes_in),
       type(type_in){}
 
-    template <class U>
-    Set<T>(const Set<U>&);
+    //Implicit Conversion Between Unlike Types
+    template <class U> 
+    Set<T>(Set<U> in){
+      data = in.data;
+      cardinality = in.cardinality;
+      number_of_bytes = in.number_of_bytes;
+      type = in.type;
+    }
 
     void foreach(const std::function <void (uint32_t)>& f);
-
+    
+    //Constructors
     static Set<T> from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size);
     static Set<T> from_flattened(uint8_t *set_data, size_t cardinality_in);
     static size_t flatten_from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size);
@@ -70,7 +77,7 @@ inline Set<hybrid> Set<hybrid>::from_array(uint8_t *set_data, uint32_t *array_da
   common::type t = hybrid::get_type(array_data,data_size);
   switch(t){
     case common::ARRAY32 :
-      return Set<uint32>::from_array(set_data,array_data,data_size);
+      return Set<hybrid>(Set<uint32>::from_array(set_data,array_data,data_size));
     break;
     default:
       return Set<hybrid>(set_data,0,0,common::ARRAY32);
@@ -92,10 +99,11 @@ inline Set<hybrid> Set<hybrid>::from_flattened(uint8_t *set_data, size_t cardina
   set_data[0] = (uint8_t) t;
   switch(t){
     case common::ARRAY32 :
-      return Set<uint32>::from_flattened(&set_data[1],cardinality_in);
+      return Set<hybrid>(Set<uint32>::from_flattened(&set_data[1],cardinality_in));
     break;
     default:
       return Set<hybrid>(set_data,0,0,common::ARRAY32);
+    break;
   }
 }
 
@@ -110,15 +118,14 @@ inline size_t Set<T>::flatten_from_array(uint8_t *set_data, uint32_t *array_data
 template <>
 inline size_t Set<hybrid>::flatten_from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size){
   common::type t = hybrid::get_type(array_data,data_size);
+  set_data[0] = (uint8_t) t;
   switch(t){
     case common::ARRAY32 :
-      set_data[0] = (uint8_t) common::ARRAY32;
-      return uint32::build_flattened(&set_data[1],array_data,data_size);
+      return 1+uint32::build_flattened(&set_data[1],array_data,data_size);
     break;
     default:
       return 0;
   }
-  return 0;//T::build_flattened(set_data,array_data,data_size);
 }
 
 //IMPLEMENTS THE SET PRIMITIVE OPERATIONS.

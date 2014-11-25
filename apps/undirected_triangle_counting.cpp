@@ -34,12 +34,13 @@ class application{
 
     application(size_t num_numa_nodes_in, MutableGraph *inputGraph_in, size_t num_threads_in, string input_layout){
       num_triangles = 0;
-      graphs = new SparseMatrix<T>*[num_numa_nodes];
       num_numa_nodes = num_numa_nodes_in;
       inputGraph = inputGraph_in; 
       num_threads = num_threads_in;
-      t_data_pointers = new thread_data<T>*[num_threads];
       layout = input_layout;
+
+      graphs = new SparseMatrix<T>*[num_numa_nodes];
+      t_data_pointers = new thread_data<T>*[num_threads];
     }
     inline bool myNodeSelection(uint32_t node, uint32_t attribute){
       (void)node; (void) attribute;
@@ -105,7 +106,6 @@ class application{
     produceSubgraph();
     common::stopClock("Selections");
 
-    /*
     common::startClock();
     allocBuffers();
     common::stopClock("Allocating Buffers");
@@ -119,7 +119,6 @@ class application{
 
     cout << "Count: " << num_triangles << endl << endl;
     pcm_cleanup();
-    */
   }
 };
 
@@ -141,7 +140,6 @@ int main (int argc, char* argv[]) {
   common::startClock();
   MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files
   common::stopClock("Reading File");
-
 
   if(input_layout.compare("a32") == 0){
     application<uint32> myapp(num_nodes,inputGraph,num_threads,input_layout);

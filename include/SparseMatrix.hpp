@@ -115,15 +115,16 @@ class SparseMatrix{
 
 template<class V>
 inline size_t SparseMatrix<V>::row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a){
+  (void) decoded_a;
   //change the set in A to point to decoded_a, after sum is finished.
   size_t card_a = row_lengths[i];
   size_t card_b = row_lengths[j];
 
   Set<V> A = Set<V>::from_flattened(row_arrays[i],card_a);
   Set<V> B = Set<V>::from_flattened(row_arrays[j],card_b);
-  Set<V> C(R,0,0,V::get_type());
+  Set<V> C(R,0,0,(V::get_type()));
 
-  return 0;//ops::intersect(C,A,B);  
+  return ops::intersect(C,A,B);  
 }
 
 template<class V>
@@ -225,9 +226,7 @@ SparseMatrix<V>* SparseMatrix<V>::from_symmetric(MutableGraph* inputGraph,
 
   common::stopClock("Node Selections");
 
-  cout << "Filtered nodes: " << new_num_nodes << endl;
-  uint64_t *new_imap = new uint64_t[new_num_nodes];
-  
+  uint64_t *new_imap = new uint64_t[new_num_nodes];  
   size_t new_cardinality = 0;
   size_t total_bytes_used = 0;
 

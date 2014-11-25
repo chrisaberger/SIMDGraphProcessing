@@ -14,8 +14,13 @@ QUITE SIMPLE THE LAYOUT JUST CONTAINS UNSIGNED INTEGERS IN THE SET.
 #include "common.hpp"
 class hybrid{
   public:
+    static common::type get_type();
     static common::type get_type(const uint32_t *data, const size_t length);
 };
+
+inline common::type hybrid::get_type(){
+  return common::HYBRID_PERF;
+}
 
 inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
   if(length > 0){

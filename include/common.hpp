@@ -121,9 +121,9 @@ namespace common{
 
   enum type: uint8_t {
     BITSET = 0,
-    ARRAY16 = 1,
-    ARRAY32 = 2,
-    A32BITPACKED = 3,
+    PSHORT = 1,
+    UINTEGER = 2,
+    BITPACKED = 3,
     VARIANT = 4,
     HYBRID_PERF = 5,
     HYBRID_COMP = 6,

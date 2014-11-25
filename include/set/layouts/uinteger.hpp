@@ -19,7 +19,7 @@ class uinteger{
 };
 
 inline common::type uinteger::get_type(){
-  return common::ARRAY32;
+  return common::UINTEGER;
 }
 //Copies data from input array of ints to our set data r_in
 inline size_t uinteger::build(uint8_t *r_in, const uint32_t *data, const size_t length){
@@ -35,7 +35,7 @@ inline size_t uinteger::build_flattened(uint8_t *r_in, const uint32_t *data, con
 
 inline tuple<size_t,size_t,common::type> uinteger::get_flattened_data(const uint8_t *set_data, const size_t cardinality){
   (void) set_data;
-  return make_tuple(0,cardinality*sizeof(uint32_t),common::ARRAY32);
+  return make_tuple(0,cardinality*sizeof(uint32_t),common::UINTEGER);
 }
 
 //Iterates over set applying a lambda.

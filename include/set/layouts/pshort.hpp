@@ -28,7 +28,7 @@ class pshort{
 };
 
 inline common::type pshort::get_type(){
-  return common::ARRAY16;
+  return common::PSHORT;
 }
 //Copies data from input array of ints to our set data r_in
 inline size_t pshort::build(uint8_t *r_in, const uint32_t *A, const size_t s_a){
@@ -74,9 +74,9 @@ inline size_t pshort::build_flattened(uint8_t *r_in, const uint32_t *data, const
 inline tuple<size_t,size_t,common::type> pshort::get_flattened_data(const uint8_t *set_data, const size_t cardinality){
   if(cardinality > 0){
     const size_t *size_ptr = (size_t*) set_data;
-    return make_tuple(sizeof(size_t),size_ptr[0],common::ARRAY16);
+    return make_tuple(sizeof(size_t),size_ptr[0],common::PSHORT);
   } else{
-    return make_tuple(0,0,common::ARRAY16);
+    return make_tuple(0,0,common::PSHORT);
   }
 }
 

@@ -157,11 +157,11 @@ int main (int argc, char* argv[]) {
 
   common::type layout;
   if(input_layout.compare("a32") == 0){
-    layout = common::ARRAY32;
+    layout = common::UINTEGER;
   } else if(input_layout.compare("bs") == 0){
     layout = common::BITSET;
   } else if(input_layout.compare("a16") == 0){
-    layout = common::ARRAY16;
+    layout = common::PSHORT;
   } else if(input_layout.compare("hybrid") == 0){
     layout = common::HYBRID_PERF;
   }
@@ -169,7 +169,7 @@ int main (int argc, char* argv[]) {
   else if(input_layout.compare("v") == 0){
     layout = common::VARIANT;
   } else if(input_layout.compare("bp") == 0){
-    layout = common::A32BITPACKED;
+    layout = common::BITPACKED;
   } 
   #endif
   else{

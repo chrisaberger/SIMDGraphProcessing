@@ -78,7 +78,7 @@ namespace ops{
     C = C;
     #endif
     
-    return make_tuple(count,count*sizeof(uint32_t),common::ARRAY32);
+    return make_tuple(count,count*sizeof(uint32_t),common::UINTEGER);
   }
   inline size_t simd_intersect_vector16(uint16_t *C, const uint16_t *A, const uint16_t *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
@@ -169,7 +169,7 @@ namespace ops{
       }
     }
 
-    return make_tuple(count,counter*sizeof(short),common::ARRAY16);
+    return make_tuple(count,counter*sizeof(short),common::PSHORT);
   }
 
   inline tuple<size_t,size_t,common::type> intersect_uint_pshort(uint32_t *C, const uint32_t *A, const uint16_t *B, const size_t s_a, const size_t s_b){
@@ -268,7 +268,7 @@ namespace ops{
         not_finished = a_i < s_a && b_i < s_b;
       }
     }
-    return make_tuple(count,count*sizeof(uint32_t),common::ARRAY32);
+    return make_tuple(count,count*sizeof(uint32_t),common::UINTEGER);
   }
 }
 

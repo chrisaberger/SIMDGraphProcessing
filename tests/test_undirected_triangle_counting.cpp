@@ -6,7 +6,7 @@ namespace application{
   Matrix *graph;
   uint8_t *result;
   long num_triangles = 0;
-  common::type graphType = common::A32BITPACKED;
+  common::type graphType = common::BITPACKED;
   
   inline bool myNodeSelection(uint32_t node){
     (void)node;
@@ -32,15 +32,15 @@ int main (int argc, char* argv[]) {
 
   common::type layout;
   if(input_layout.compare("a32") == 0){
-    layout = common::ARRAY32;
+    layout = common::UINTEGER;
   } else if(input_layout.compare("a16") == 0){
-    layout = common::ARRAY16;
+    layout = common::PSHORT;
   } else if(input_layout.compare("hybrid") == 0){
     layout = common::HYBRID;
   } else if(input_layout.compare("v") == 0){
     layout = common::VARIANT;
   } else if(input_layout.compare("bp") == 0){
-    layout = common::A32BITPACKED;
+    layout = common::BITPACKED;
   } else{
     cout << "No valid layout entered." << endl;
     exit(0);
@@ -77,7 +77,7 @@ int main (int argc, char* argv[]) {
   /*
   application::graph = new Matrix(inputGraph.out_neighborhoods,
       inputGraph.num_nodes,inputGraph.num_edges,
-      &application::myNodeSelection,&application::myEdgeSelection,common::A32BITPACKED);
+      &application::myNodeSelection,&application::myEdgeSelection,common::BITPACKED);
   common::startClock();
   application::graph->print_data("a32bitpacked.txt");
   application::queryOver();

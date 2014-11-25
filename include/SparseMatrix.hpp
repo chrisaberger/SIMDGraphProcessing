@@ -141,7 +141,6 @@ void SparseMatrix<V>::print_data(string filename){
   ofstream myfile;
   myfile.open(filename);
 
-  cout << "printing neighbors" << endl;
   //Printing out neighbors
   cout << "Writing matrix row_data to file: " << filename << endl;
   for(size_t i = 0; i < matrix_size; i++){

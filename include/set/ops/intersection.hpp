@@ -171,7 +171,112 @@ namespace ops{
 
     return make_tuple(count,counter*sizeof(short),common::PSHORT);
   }
+  inline tuple<size_t,size_t,common::type> intersect_bs_bs(uint8_t *C, const uint8_t *A, const uint8_t *B, const size_t s_a, const size_t s_b) {
+    #if WRITE_VECTOR == 0
+    (void) C;
+    #endif
 
+    long count = 0l;
+    const uint8_t *small = (s_a > s_b) ? B : A;
+    const size_t small_length = (s_a > s_b) ? s_b : s_a;
+    const uint8_t *large = (s_a <= s_b) ? B : A;
+
+    //16 unsigned shorts
+    //8 ints
+    //4 longs
+    size_t i = 0;
+    
+    #if VECTORIZE == 1
+    while((i+15) < small_length){
+      __m128i a1 = _mm_loadu_si128((const __m128i*)&A[i]);
+      __m128i a2 = _mm_loadu_si128((const __m128i*)&B[i]);
+      
+      __m128i r = _mm_and_si128(a1, a2);
+      
+      #if WRITE_VECTOR == 1
+      _mm_storeu_si128((__m128i*)&C[i], r);
+      #endif
+      
+      unsigned long l = _mm_extract_epi64(r,0);
+      count += _mm_popcnt_u64(l);
+      l = _mm_extract_epi64(r,1);
+      count += _mm_popcnt_u64(l);
+
+      i += 8;
+    }
+    #endif
+
+    for(; i < small_length; i++){
+      unsigned short result = small[i] & large[i];
+
+      #if WRITE_VECTOR == 1
+      C[i] = result;
+      #endif
+      
+      count += _mm_popcnt_u32(result);
+    }
+
+    return make_tuple(count,small_length,common::BITSET);
+  }
+  inline tuple<size_t,size_t,common::type> intersect_pshort_bs(uint16_t *C, const unsigned short *A, const uint8_t *B, const size_t s_a, const size_t s_b) {
+    #if WRITE_VECTOR == 0
+    (void) C;   
+    #endif 
+
+    cout << "pshort bs" << endl;
+
+    size_t count = 0;
+    size_t counter = 0;
+    for(size_t i = 0; i < s_a; i++){
+      uint32_t prefix = (A[i] << 16);
+      unsigned short size = A[i+1];
+      i += 2;
+
+      size_t old_count = count;
+      size_t old_counter = counter;
+      counter += 2;
+
+      size_t inner_end = i+size;
+      while(i < inner_end){
+        uint32_t cur = prefix | A[i];
+        if(bitset_ops::word_index(cur) < s_b && bitset_ops::is_set(cur,B)){
+          #if WRITE_VECTOR == 1
+          C[counter++] = A[i];
+          #endif
+          count++;
+        }
+        ++i;
+      }
+      i--;
+
+      if(old_counter == (counter-2)){
+        counter = old_counter;
+      } else{
+        C[old_counter] = (prefix >> 16);
+        C[old_counter+1] = old_count-count;
+      }
+    }
+    return make_tuple(count,counter*sizeof(uint16_t),common::PSHORT);
+  }
+  //untested
+  inline tuple<size_t,size_t,common::type> intersect_uint_bs(uint32_t *C, const uint32_t *A, const uint8_t *B, const size_t s_a, const size_t s_b) {
+    #if WRITE_VECTOR == 0
+    (void) C;   
+    #endif
+
+    size_t count = 0;
+    for(size_t i = 0; i < s_a; i++){
+      uint32_t cur = A[i];
+      if(bitset_ops::word_index(cur) < s_b && bitset_ops::is_set(cur,B)){
+        #if WRITE_VECTOR == 1
+        C[count] = cur;
+        #endif
+        count++;
+      }
+    }
+
+    return make_tuple(count,count*sizeof(uint32_t),common::UINTEGER);
+  }
   inline tuple<size_t,size_t,common::type> intersect_uint_pshort(uint32_t *C, const uint32_t *A, const uint16_t *B, const size_t s_a, const size_t s_b){
     #if WRITE_VECTOR == 0
     (void)C;

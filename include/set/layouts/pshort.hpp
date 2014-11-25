@@ -56,7 +56,7 @@ inline size_t pshort::build(uint8_t *r_in, const uint32_t *A, const size_t s_a){
     }
   }
   R[partition_size_position] = partition_length;
-  return counter*2;
+  return counter*sizeof(uint16_t);
 }
 //Nothing is different about build flattened here. The number of bytes
 //can be infered from the type. This gives us back a true CSR representation.

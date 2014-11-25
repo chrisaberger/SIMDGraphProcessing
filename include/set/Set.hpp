@@ -11,6 +11,7 @@ FOUND IN STATIC CLASSES IN THE LAYOUT FOLDER.
 
 #include "layouts/hybrid.hpp"
 #include "layouts/uint32.hpp"
+#include "layouts/pshort.hpp"
 
 template <class T>
 class Set{ 
@@ -38,8 +39,12 @@ class Set{
       type = in.type;
     }
 
+    //basic traversal
     void foreach(const std::function <void (uint32_t)>& f);
-    
+
+    //ops (will take any type you give)
+    static Set<T> intersect(Set<T> C_in, Set<T> A_in, Set<T> B_in);
+
     //Constructors
     static Set<T> from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size);
     static Set<T> from_flattened(uint8_t *set_data, size_t cardinality_in);
@@ -51,13 +56,13 @@ class Set{
 ///////////////////////////////////////////////////////////////////////////////
 template <class T>
 inline void Set<T>::foreach(const std::function <void (uint32_t)>& f){ 
-  T::foreach(f,data,cardinality,number_of_bytes,type);
+  T::foreach(f,data,cardinality,number_of_bytes);
 }
 template <>
 inline void Set<hybrid>::foreach(const std::function <void (uint32_t)>& f){ 
   switch(type){
     case common::ARRAY32 :
-      uint32::foreach(f,data,cardinality,number_of_bytes,type);
+      uint32::foreach(f,data,cardinality,number_of_bytes);
     break;
     default:
     break;
@@ -91,7 +96,7 @@ inline Set<hybrid> Set<hybrid>::from_array(uint8_t *set_data, uint32_t *array_da
 template <class T>
 inline Set<T> Set<T>::from_flattened(uint8_t *set_data, size_t cardinality_in){
   auto flattened_data = T::get_flattened_data(set_data,cardinality_in);
-  return Set<T>(set_data+std::get<2>(flattened_data),cardinality_in,std::get<1>(flattened_data),(common::type)std::get<0>(flattened_data));
+  return Set<T>(&set_data[std::get<2>(flattened_data)],cardinality_in,std::get<1>(flattened_data),(common::type)std::get<0>(flattened_data));
 }
 template <>
 inline Set<hybrid> Set<hybrid>::from_flattened(uint8_t *set_data, size_t cardinality_in){
@@ -128,8 +133,12 @@ inline size_t Set<hybrid>::flatten_from_array(uint8_t *set_data, uint32_t *array
   }
 }
 
-//IMPLEMENTS THE SET PRIMITIVE OPERATIONS.
-#include "ops/sse_masks.hpp"
-#include "ops/intersection.hpp"
+//ops (will take any type you give)
+template<class T>
+inline Set<T> Set<T>::intersect(Set<T> C_in, Set<T> A_in, Set<T> B_in){
+  tuple<size_t,size_t,common::type> intersection_values = T::intersect(C_in.data,A_in.data,B_in.data,
+      A_in.cardinality,B_in.cardinality,A_in.number_of_bytes,B_in.number_of_bytes);
+  return Set<T>(C_in.data,get<0>(intersection_values),get<1>(intersection_values),get<2>(intersection_values));
+}
 
 #endif

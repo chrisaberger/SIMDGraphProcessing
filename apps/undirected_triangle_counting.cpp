@@ -147,10 +147,11 @@ int main (int argc, char* argv[]) {
   } else if(input_layout.compare("bs") == 0){
     num_nodes = 1;
   } else if(input_layout.compare("a16") == 0){
-    num_nodes = 1;
-  } else if(input_layout.compare("hybrid") == 0){
-    application<hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    application<pshort> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();  
+  } else if(input_layout.compare("hybrid") == 0){
+    //application<hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    //myapp.run();  
   } 
   #if COMPRESSION == 1
   else if(input_layout.compare("v") == 0){

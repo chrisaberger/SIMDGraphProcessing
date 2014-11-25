@@ -34,12 +34,12 @@ inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
     uint32_t max_value = data[length-1];
     double sparsity = (double) length/max_value;
     if( sparsity > (double) 1/32 ){
-      return common::ARRAY32;
+      return common::ARRAY16;
     } else if((length/((max_value >> 16) - (data[0] >> 16) + 1)) > 12){
-      return common::ARRAY32;
+      return common::ARRAY16;
     } else {
       return common::ARRAY32;
-    }  
+    } 
   } else{
     return common::ARRAY32;
   }
@@ -103,7 +103,7 @@ inline void hybrid::foreach(const std::function <void (uint32_t)>& f, const uint
       uint32::foreach(f,data_in,cardinality,number_of_bytes,common::ARRAY32);
     break;
     case common::ARRAY16 :
-      uint32::foreach(f,data_in,cardinality,number_of_bytes,common::ARRAY16);
+      pshort::foreach(f,data_in,cardinality,number_of_bytes,common::ARRAY16);
     break;
     default:
     break;
@@ -119,15 +119,19 @@ inline tuple<size_t,size_t,common::type> hybrid::intersect(uint8_t *C_in,
   if(a_t == common::ARRAY32){
     if(b_t == common::ARRAY32){
       return ops::intersect_u32_u32((uint32_t*)C_in,(uint32_t*)A_in,(uint32_t*)B_in,card_a,card_b);
+    } else if(b_t == common::ARRAY16){
+      return ops::intersect_uint_pshort((uint32_t*)C_in,(uint32_t*)A_in,(uint16_t*)B_in,card_a,s_bytes_b/sizeof(uint16_t));
     }
   }
   else if(a_t == common::ARRAY16){
     if(b_t == common::ARRAY16){
       return ops::intersect_pshort_pshort((uint16_t*)C_in,(uint16_t*)A_in,(uint16_t*)B_in,s_bytes_a/sizeof(uint16_t),s_bytes_b/sizeof(uint16_t));
+    } else if(b_t == common::ARRAY32){
+      return ops::intersect_uint_pshort((uint32_t*)C_in,(uint32_t*)B_in,(uint16_t*)A_in,card_b,s_bytes_a/sizeof(uint16_t));
     }
-  }
+  } 
 
-  return ops::intersect_u32_u32((uint32_t*)C_in,(uint32_t*)A_in,(uint32_t*)B_in,card_a,card_b);
+  return make_tuple(0,0,common::ARRAY32);//ops::intersect_u32_u32((uint32_t*)C_in,(uint32_t*)A_in,(uint32_t*)B_in,card_a,card_b);
 }
 
 #endif

@@ -202,12 +202,12 @@ namespace ops{
       l = _mm_extract_epi64(r,1);
       count += _mm_popcnt_u64(l);
 
-      i += 8;
+      i += 16;
     }
     #endif
 
     for(; i < small_length; i++){
-      unsigned short result = small[i] & large[i];
+      uint8_t result = small[i] & large[i];
 
       #if WRITE_VECTOR == 1
       C[i] = result;
@@ -222,8 +222,6 @@ namespace ops{
     #if WRITE_VECTOR == 0
     (void) C;   
     #endif 
-
-    cout << "pshort bs" << endl;
 
     size_t count = 0;
     size_t counter = 0;

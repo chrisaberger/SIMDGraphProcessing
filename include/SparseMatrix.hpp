@@ -184,8 +184,8 @@ SparseMatrix<V>* SparseMatrix<V>::from_symmetric(MutableGraph* inputGraph,
 
   ops::prepare_shuffling_dictionary16();
 
-  cout << "Number of nodes: " << matrix_size_in << endl;
-  cout << "Number of edges: " << cardinality_in << endl;
+  //cout << "Number of nodes: " << matrix_size_in << endl;
+  //cout << "Number of edges: " << cardinality_in << endl;
 
   uint8_t **row_arrays_in = new uint8_t*[matrix_size_in];
   uint32_t *row_lengths_in = new uint32_t[matrix_size_in];
@@ -196,9 +196,9 @@ SparseMatrix<V>* SparseMatrix<V>::from_symmetric(MutableGraph* inputGraph,
 
   bool attributes_set = node_attr->size() > 0 && edge_attr->size() > 0;
 
-  cout << "attributes set: " << attributes_set << endl;
+  //cout << "attributes set: " << attributes_set << endl;
 
-  common::startClock();
+  //common::startClock();
   if(attributes_set){
     for(size_t i = 0; i < matrix_size_in; ++i){
       if(node_selection(i,node_attr->at(i))){
@@ -223,7 +223,7 @@ SparseMatrix<V>* SparseMatrix<V>::from_symmetric(MutableGraph* inputGraph,
     edge_attributes_in->reserve(cardinality_in);
   }
 
-  common::stopClock("Node Selections");
+  //common::stopClock("Node Selections");
 
   uint64_t *new_imap = new uint64_t[new_num_nodes];  
   size_t new_cardinality = 0;
@@ -234,7 +234,7 @@ SparseMatrix<V>* SparseMatrix<V>::from_symmetric(MutableGraph* inputGraph,
     alloc_size = new_num_nodes;
   }
 
-  common::startClock();
+  //common::startClock();
 
   if(attributes_set){
     #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
@@ -307,7 +307,7 @@ SparseMatrix<V>* SparseMatrix<V>::from_symmetric(MutableGraph* inputGraph,
   }
   delete[] old2newids;
 
-  common::stopClock("Edge Selections");
+  //common::stopClock("Edge Selections");
 
   cout << "Number of edges: " << new_cardinality << endl;
   cout << "ROW DATA SIZE (Bytes): " << total_bytes_used << endl;

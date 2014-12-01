@@ -106,11 +106,11 @@ class application{
     produceSubgraph();
     common::stopClock("Selections");
 
-    common::startClock();
+    //common::startClock();
     allocBuffers();
-    common::stopClock("Allocating Buffers");
+    //common::stopClock("Allocating Buffers");
 
-    graphs[0]->print_data("graph_right.txt");
+    //graphs[0]->print_data("graph_right.txt");
 
     if(pcm_init() < 0)
        return;
@@ -139,9 +139,9 @@ int main (int argc, char* argv[]) {
   std::string input_layout = argv[3];
 
   size_t num_nodes = 1;
-  common::startClock();
-  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files
-  common::stopClock("Reading File");
+  //common::startClock();
+  MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
+  //common::stopClock("Reading File");
 
   if(input_layout.compare("a32") == 0){
     application<uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);

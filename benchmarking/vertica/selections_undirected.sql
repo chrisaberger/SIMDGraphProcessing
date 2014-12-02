@@ -15,23 +15,39 @@ COPY attributes FROM :attributes DIRECT DELIMITER ' ';
 
 INSERT INTO edges SELECT e.source, e.dest, EXTRACT(YEAR FROM e.tstamp) AS year FROM edgesRaw e;
 
+DROP VIEW trEdges;
+DROP VIEW cyEdges;
+DROP VIEW clEdges;
+
 \timing
 -- Triangle counting
-SELECT COUNT(*) FROM
-      edges e1 JOIN attributes a1 ON e1.source = a1.node JOIN edges e2 ON e1.dest = e2.source JOIN attributes a2 ON e2.source = a2.node JOIN edges e3 ON e2.dest = e3.dest AND e3.source = e1.source JOIN attributes a3 ON e3.dest = a3.node
-   WHERE
-      e1.year = 2012 AND e2.year = 2012 AND e3.year = 2012 AND a1.attribute > 500 AND a2.attribute > 500 AND a3.attribute > 500;
+CREATE VIEW trEdges AS
+   SELECT
+      e.source, e.dest FROM edges e, attributes a1, attributes a2
+   WHERE a1.node = e.source AND a2.node = e.dest AND a1.attribute > 500 AND a2.attribute > 500 AND e.year = 2012;
+
+SELECT
+   COUNT(*)
+FROM
+   trEdges e1 JOIN trEdges e2 ON e1.dest = e2.source JOIN trEdges e3 ON e2.dest = e3.dest AND e3.source = e1.source;
 
 -- Cycle counting
-SELECT COUNT(*) FROM
-      edges e1 JOIN attributes a1 ON e1.source = a1.node JOIN edges e2 ON e1.dest = e2.source JOIN attributes a2 ON e2.source = a2.node JOIN edges e3 ON e2.dest = e3.source JOIN attributes a3 ON e3.source = a3.node JOIN edges e4 ON e3.source = e4.dest AND e4.source = e1.source JOIN attributes a4 ON e4.dest = a4.node
-   WHERE
-      e1.year = 2012 AND e2.year = 2012 AND e3.year = 2012 AND e4.year = 2012 AND a1.attribute > 500 AND a2.attribute > 500 AND a3.attribute > 500 AND a4.attribute > 500;
+CREATE VIEW cyEdges AS
+   SELECT
+      e.source, e.dest FROM edges e, attributes a1, attributes a2
+   WHERE a1.node = e.source AND a2.node = e.dest AND a1.attribute > 500 AND a2.attribute > 500 AND e.year = 2012;
+
+SELECT
+   COUNT(*)
+FROM
+   cyEdges e1 JOIN cyEdges e2 ON e1.dest = e2.source JOIN cyEdges e3 ON e2.dest = e3.source JOIN cyEdges e4 ON e3.source = e4.dest AND e4.source = e1.source;
 
 -- Clique counting
+CREATE VIEW clEdges AS
+   SELECT
+      e.source, e.dest FROM edges e, attributes a1, attributes a2
+   WHERE a1.node = e.source AND a2.node = e.dest AND a1.attribute > 500 AND a2.attribute > 500 AND e.year = 2012;
+
 SELECT COUNT(*) FROM
-      edges e1 JOIN attributes a1 ON e1.source = a1.node JOIN edges e2 ON e1.dest = e2.source JOIN attributes a2 ON e2.source = a2.node JOIN edges e3 ON e2.dest = e3.source JOIN attributes a3 ON e3.source = a3.node JOIN edges e4 ON e3.source = e4.dest AND e4.source = e1.source JOIN attributes a4 ON e4.dest = a4.node
-      JOIN edges e5 ON e1.source = e5.source AND e2.dest = e5.dest JOIN edges e6 ON e1.dest = e6.source AND e3.dest = e6.dest;
-   WHERE
-      e1.year = 2012 AND e2.year = 2012 AND e3.year = 2012 AND e4.year = 2012 AND e5.year = 2012 AND e6 = 2012 AND a1.attribute > 500 AND a2.attribute > 500 AND a3.attribute > 500 AND a4.attribute > 500;
+      clEdges e1 JOIN clEdges e2 ON e1.dest = e2.source JOIN clEdges e3 ON e2.dest = e3.source JOIN clEdges e4 ON e3.source = e4.dest AND e4.source = e1.source JOIN clEdges e5 ON e1.source = e5.source AND e2.dest = e5.dest JOIN clEdges e6 ON e1.dest = e6.source AND e3.dest = e6.dest;
 \timing

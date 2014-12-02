@@ -11,6 +11,7 @@ f = open(read_file, 'r')
 w = open(out_file, 'w')
 
 for line in f:
+    line = line.strip()
     nodes = line.split() if not sep else line.split(sep)
     w.write(" ".join(nodes) + '\n')
 w.close()

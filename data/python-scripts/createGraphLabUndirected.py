@@ -12,6 +12,7 @@ w2 = open(out_file, 'w')
 s = set([])
 
 for line in f:
+    line = line.strip()
     nodes = line.split() if not sep else line.split(sep)
     source = int(nodes[0])
     dest = int(nodes[1])

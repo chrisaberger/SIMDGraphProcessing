@@ -1,11 +1,12 @@
 import time
 import sys
+import os
 
 num_runs = 10
 
 start = time.time()
 
-filename = sys.argv[1]
+filename = os.path.join(sys.argv[1], "edgelist", "data.txt")
 
 print "Loading data (directed)"
 `edge(int a:0..20000000, (int b)).

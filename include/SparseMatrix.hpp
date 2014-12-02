@@ -5,7 +5,7 @@
 #include "set/Set.hpp"
 
 
-template<class V>
+template<class T,class R>
 class SparseMatrix{
   public:
     size_t matrix_size;  //number of nodes, number of columns = number of rows
@@ -90,39 +90,38 @@ class SparseMatrix{
       const std::function<bool(uint32_t,uint32_t)> edge_selection, 
       const common::type t_in);
 
-    Set<V> get_row(uint32_t row);
-    Set<V> get_decoded_row(uint32_t row, uint32_t *decoded_a);
+    Set<T> get_row(uint32_t row);
+    Set<R> get_decoded_row(uint32_t row, uint32_t *decoded_a);
     void print_data(string filename);
 };
 
-template<class V>
-inline Set<V> SparseMatrix<V>::get_row(uint32_t row){
+template<class T,class R>
+inline Set<T> SparseMatrix<T,R>::get_row(uint32_t row){
   size_t card = row_lengths[row];
-  return Set<V>::from_flattened(row_arrays[row],card);
+  return Set<T>::from_flattened(row_arrays[row],card);
 }
 
 /*
 This function decodes the variant and bitpacked types into UINTEGER arrays.
 This function is not necessary if these types are not used (thus the pragma.)
 */
-template<class V>
-inline Set<V> SparseMatrix<V>::get_decoded_row(uint32_t row, uint32_t *buffer){
+template<class T,class R>
+inline Set<R> SparseMatrix<T,R>::get_decoded_row(uint32_t row, uint32_t *buffer){
   size_t card = row_lengths[row];
-  Set<V> row_set = Set<V>::from_flattened(row_arrays[row],card);
   #if COMPRESSION == 1
+  Set<T> row_set = Set<T>::from_flattened(row_arrays[row],card);
   if(row_set.type == common::VARIANT || row_set.type == common::BITPACKED){
-    size_t i = 0;
-    row_set.foreach( [row,&i,&buffer] (uint32_t data){
-      buffer[i++] = data;
-    });
-    row_set.decoded_data = buffer;
-  } 
+    return row_set.decode(buffer);
+  }
+  return Set<R>(row_set);
+  #else
+  (void) buffer;
+  return Set<R>::from_flattened(row_arrays[row],card);
   #endif
-  return row_set;
 }
 
-template<class V>
-void SparseMatrix<V>::print_data(string filename){
+template<class T, class R>
+void SparseMatrix<T,R>::print_data(string filename){
   ofstream myfile;
   myfile.open(filename);
 
@@ -132,7 +131,7 @@ void SparseMatrix<V>::print_data(string filename){
     size_t card = row_lengths[i];
     myfile << "External ID: " << id_map[i] << " ROW: " << i << " LEN: " << row_lengths[i] << endl;
     //if(card > 0){
-      Set<V> row = Set<V>::from_flattened(row_arrays[i],card);
+      Set<T> row = Set<T>::from_flattened(row_arrays[i],card);
       row.foreach( [&myfile] (uint32_t data){
         myfile << " DATA: " << data << endl;
       });
@@ -154,8 +153,8 @@ void SparseMatrix<V>::print_data(string filename){
 }
 /////////////////////////////////////////////////////////////////////////////////////////////
 //Constructors
-template<class V>
-SparseMatrix<V>* SparseMatrix<V>::from_symmetric(MutableGraph* inputGraph,
+template<class T,class R>
+SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric(MutableGraph* inputGraph,
   const std::function<bool(uint32_t,uint32_t)> node_selection,
   const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection){
   
@@ -248,7 +247,7 @@ SparseMatrix<V>* SparseMatrix<V>::from_symmetric(MutableGraph* inputGraph,
           
           row_lengths_in[old2newids[i]] = new_size;
           row_arrays_in[old2newids[i]] = &row_data_in[index];
-          index += Set<V>::flatten_from_array(row_data_in+index,selected_row,new_size);
+          index += Set<T>::flatten_from_array(row_data_in+index,selected_row,new_size);
         
           new_cardinality += new_size;
         }
@@ -280,7 +279,7 @@ SparseMatrix<V>* SparseMatrix<V>::from_symmetric(MutableGraph* inputGraph,
           row_lengths_in[old2newids[i]] = new_size;
           row_arrays_in[old2newids[i]] = &row_data_in[index];
           //if(new_size > 0){
-          index += Set<V>::flatten_from_array(row_data_in+index,selected_row,new_size);
+          index += Set<T>::flatten_from_array(row_data_in+index,selected_row,new_size);
           //}
           new_cardinality += new_size;
         }
@@ -300,8 +299,8 @@ SparseMatrix<V>* SparseMatrix<V>::from_symmetric(MutableGraph* inputGraph,
   return new SparseMatrix(new_num_nodes,new_cardinality,total_bytes_used,0,max_nbrhood_size_in,true,row_lengths_in,row_arrays_in,row_lengths_in,row_arrays_in,new_imap,node_attributes_in,edge_attributes_in,edge_attributes_in);
 }
 
-template<class V>
-SparseMatrix<V>* SparseMatrix<V>::from_asymmetric(MutableGraph *inputGraph,
+template<class T, class R>
+SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric(MutableGraph *inputGraph,
   const std::function<bool(uint32_t)> node_selection,
   const std::function<bool(uint32_t,uint32_t)> edge_selection, 
   const common::type t_in){
@@ -360,7 +359,7 @@ SparseMatrix<V>* SparseMatrix<V>::from_asymmetric(MutableGraph *inputGraph,
         row_arrays_in[i] = &row_data_in[row_index];
 
         if(new_row_size > 0){
-          index += Set<V>::flatten_from_array(row_data_in+row_index,selected,new_row_size);
+          index += Set<T>::flatten_from_array(row_data_in+row_index,selected,new_row_size);
         }
         new_cardinality += new_row_size;
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -377,7 +376,7 @@ SparseMatrix<V>* SparseMatrix<V>::from_asymmetric(MutableGraph *inputGraph,
         col_arrays_in[i] = &col_data_in[col_index];
 
         if(new_col_size > 0){
-          index += Set<V>::flatten_from_array(col_data_in+col_index,selected,new_col_size);
+          index += Set<T>::flatten_from_array(col_data_in+col_index,selected,new_col_size);
         }
         new_cardinality += new_col_size;
       } else{
@@ -400,8 +399,8 @@ SparseMatrix<V>* SparseMatrix<V>::from_asymmetric(MutableGraph *inputGraph,
 }
 
 // FIXME: This code only works for undirected graphs
-template<class V>
-SparseMatrix<V>* SparseMatrix<V>::clone_on_node(int node) {
+template<class T,class R>
+SparseMatrix<T,R>* SparseMatrix<T,R>::clone_on_node(int node) {
    numa_run_on_node(node);
    numa_set_preferred(node);
 

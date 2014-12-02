@@ -18,7 +18,6 @@ class Set{
     size_t cardinality;
     size_t number_of_bytes;
     common::type type;
-    uint32_t *decoded_data;
 
     Set(uint8_t *data_in, 
       size_t cardinality_in, 
@@ -40,6 +39,7 @@ class Set{
 
     //basic traversal
     void foreach(const std::function <void (uint32_t)>& f);
+    Set<uinteger> decode(uint32_t *buffer);
 
     //ops (will take any type you give)
     static Set<T> intersect(Set<T> C_in, Set<T> A_in, Set<T> B_in);
@@ -56,6 +56,18 @@ class Set{
 template <class T>
 inline void Set<T>::foreach(const std::function <void (uint32_t)>& f){ 
   T::foreach(f,data,cardinality,number_of_bytes,type);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//DECODE ARRAY
+///////////////////////////////////////////////////////////////////////////////
+template <class T>
+inline Set<uinteger> Set<T>::decode(uint32_t *buffer){ 
+  size_t i = 0;
+  T::foreach( ([&i,&buffer] (uint32_t data){
+    buffer[i++] = data;
+  }),data,cardinality,number_of_bytes,type);
+  return Set<uinteger>((uint8_t*)buffer,cardinality,cardinality*sizeof(int),common::UINTEGER);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -89,6 +101,7 @@ inline size_t Set<T>::flatten_from_array(uint8_t *set_data, uint32_t *array_data
 /*
 For variant and bitpacked we take the
 */
+
 template<class T>
 inline Set<T> Set<T>::intersect(Set<T> C_in, Set<T> A_in, Set<T> B_in){
   tuple<size_t,size_t,common::type> intersection_values = T::intersect(C_in.data,

@@ -9,8 +9,6 @@ if len(sys.argv) > 3:
 
 f = open(read_file, 'r')
 w2 = open(out_file, 'w')
-i = 0
-j = 0
 s = set([])
 
 for line in f:

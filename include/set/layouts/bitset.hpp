@@ -5,7 +5,6 @@ THIS CLASS IMPLEMENTS THE FUNCTIONS ASSOCIATED WITH A PREFIX SHORT SET LAYOUT.
 */
 
 #include "common.hpp"
-#include "../ops/intersection.hpp"
 
 #define BITS_PER_WORD 8
 #define ADDRESS_BITS_PER_WORD 3
@@ -26,12 +25,6 @@ class bitset{
       const size_t cardinality, 
       const size_t number_of_bytes,
       const common::type type);
-    
-    static tuple<size_t,size_t,common::type> intersect(uint8_t *C_in, 
-      const uint8_t *A_in, const uint8_t *B_in, 
-      const size_t A_cardinality, const size_t B_cardinality, 
-      const size_t A_num_bytes, const size_t B_num_bytes, 
-      const common::type a_t, const common::type b_t);
 };
 //compute word of data
 inline size_t bitset::word_index(const uint32_t bit_index){
@@ -112,14 +105,4 @@ inline void bitset::foreach(const std::function <void (uint32_t)>& f,
       }
     }
   }
-}
-
-inline tuple<size_t,size_t,common::type> bitset::intersect(uint8_t *C_in, 
-  const uint8_t *A_in, const uint8_t *B_in, 
-  const size_t card_a, const size_t card_b, 
-  const size_t s_bytes_a, const size_t s_bytes_b, 
-  const common::type a_t, const common::type b_t) {
-  (void) card_a; (void) card_b; (void) a_t; (void) b_t;
-  
-  return ops::intersect_bs_bs(C_in,A_in,B_in,s_bytes_a,s_bytes_b);
 }

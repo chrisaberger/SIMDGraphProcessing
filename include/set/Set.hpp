@@ -41,9 +41,6 @@ class Set{
     void foreach(const std::function <void (uint32_t)>& f);
     Set<uinteger> decode(uint32_t *buffer);
 
-    //ops (will take any type you give)
-    static Set<T> intersect(Set<T> C_in, Set<T> A_in, Set<T> B_in);
-
     //Constructors
     static Set<T> from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size);
     static Set<T> from_flattened(uint8_t *set_data, size_t cardinality_in);
@@ -96,21 +93,6 @@ inline Set<T> Set<T>::from_flattened(uint8_t *set_data, size_t cardinality_in){
 template <class T>
 inline size_t Set<T>::flatten_from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size){
   return T::build_flattened(set_data,array_data,data_size);
-}
-
-/*
-For variant and bitpacked we take the
-*/
-
-template<class T>
-inline Set<T> Set<T>::intersect(Set<T> C_in, Set<T> A_in, Set<T> B_in){
-  tuple<size_t,size_t,common::type> intersection_values = T::intersect(C_in.data,
-    A_in.data,B_in.data,
-    A_in.cardinality,B_in.cardinality,
-    A_in.number_of_bytes,B_in.number_of_bytes,
-    A_in.type,B_in.type);
-
-  return Set<T>(C_in.data,get<0>(intersection_values),get<1>(intersection_values),get<2>(intersection_values));
 }
 
 #endif

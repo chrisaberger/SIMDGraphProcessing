@@ -85,7 +85,7 @@ class application{
 
       uint32_t *src_buffer = t_data_pointers[0]->decoded_src;
       uint32_t *dst_buffer = t_data_pointers[0]->decoded_dst;
-      Set<T> C(t_data_pointers[0]->buffer,0,0,(T::get_type()));
+      Set<R> C(t_data_pointers[0]->buffer,0,0,(R::get_type()));
 
       long t_local_reducer = 0;
       double t_begin = omp_get_wtime();
@@ -93,7 +93,7 @@ class application{
         Set<R> A = graphs[0]->get_decoded_row(i,src_buffer);
         A.foreach( [i,&A,&C,&dst_buffer,&graphs,&t_local_reducer] (uint32_t j){
           Set<R> B = graphs[0]->get_decoded_row(j,dst_buffer);
-          t_local_reducer += Set<T>::intersect(C,A,B).cardinality;
+          t_local_reducer += ops::intersect(C,A,B).cardinality;
         });
       }
 
@@ -157,19 +157,19 @@ int main (int argc, char* argv[]) {
     application<uinteger,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();
   } else if(input_layout.compare("bs") == 0){
-    //application<bitset,bitset> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    //myapp.run();  
+    application<bitset,bitset> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    myapp.run();  
   } else if(input_layout.compare("a16") == 0){
-    //application<pshort,pshort> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    //myapp.run();  
+    application<pshort,pshort> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    myapp.run();  
   } else if(input_layout.compare("hybrid") == 0){
-    //application<hybrid,hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    //myapp.run();  
+    application<hybrid,hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    myapp.run();  
   } 
   #if COMPRESSION == 1
   else if(input_layout.compare("v") == 0){
-    //application<variant,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    //myapp.run();  
+    application<variant,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    myapp.run();  
   } else if(input_layout.compare("bp") == 0){
     num_nodes = 1;
   } 

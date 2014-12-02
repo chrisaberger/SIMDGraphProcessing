@@ -22,7 +22,6 @@ class hybrid{
     static size_t build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length);
     static tuple<size_t,size_t,common::type> get_flattened_data(const uint8_t *set_data, const size_t cardinality);
     static void foreach(const std::function <void (uint32_t)>& f,const uint8_t *data_in, const size_t cardinality, const size_t number_of_bytes, const common::type t);
-    static tuple<size_t,size_t,common::type> intersect(uint8_t *C_in, const uint8_t *A_in, const uint8_t *B_in, const size_t A_cardinality, const size_t B_cardinality, const size_t A_num_bytes, const size_t B_num_bytes, const common::type a_t, const common::type b_t);
 };
 
 inline common::type hybrid::get_type(){
@@ -58,6 +57,9 @@ inline size_t hybrid::build(uint8_t *r_in, const uint32_t *data, const size_t le
     case common::BITSET :
       return bitset::build(r_in,data,length);
     break;
+    case common::VARIANT :
+      return variant::build(r_in,data,length);
+    break;
     default:
       return 0;
   }
@@ -76,6 +78,9 @@ inline size_t hybrid::build_flattened(uint8_t *r_in, const uint32_t *data, const
     break;
     case common::BITSET :
       return 1+bitset::build_flattened(&r_in[1],data,length);
+    break;
+    case common::VARIANT :
+      return 1+variant::build_flattened(&r_in[1],data,length);
     break;
     default:
       return 0;
@@ -101,6 +106,11 @@ inline tuple<size_t,size_t,common::type> hybrid::get_flattened_data(const uint8_
       get<0>(mytup)++;
       return mytup;
     break;
+    case common::VARIANT :
+      mytup = variant::get_flattened_data(&set_data[1],cardinality);
+      get<0>(mytup)++;
+      return mytup;
+    break;
     default:
       return make_tuple(0,0,common::UINTEGER);
   }
@@ -120,45 +130,12 @@ inline void hybrid::foreach(const std::function <void (uint32_t)>& f, const uint
     case common::BITSET :
       bitset::foreach(f,data_in,cardinality,number_of_bytes,common::BITSET);
     break;
+    case common::VARIANT :
+      variant::foreach(f,data_in,cardinality,number_of_bytes,common::BITSET);
+    break;
     default:
     break;
   }
-}
-
-inline tuple<size_t,size_t,common::type> hybrid::intersect(uint8_t *C_in, 
-  const uint8_t *A_in, const uint8_t *B_in, 
-  const size_t card_a, const size_t card_b, 
-  const size_t s_bytes_a, const size_t s_bytes_b, 
-  const common::type a_t, const common::type b_t) {
-   
-  if(a_t == common::UINTEGER){
-    if(b_t == common::UINTEGER){
-      return ops::intersect_u32_u32((uint32_t*)C_in,(uint32_t*)A_in,(uint32_t*)B_in,card_a,card_b);
-    } else if(b_t == common::PSHORT){
-      return ops::intersect_uint_pshort((uint32_t*)C_in,(uint32_t*)A_in,(uint16_t*)B_in,card_a,s_bytes_b/sizeof(uint16_t));
-    } else if(b_t == common::BITSET){
-      return ops::intersect_uint_bs((uint32_t*)C_in,(uint32_t*)A_in,B_in,card_a,s_bytes_b);
-    }
-  }
-  else if(a_t == common::PSHORT){
-    if(b_t == common::PSHORT){
-      return ops::intersect_pshort_pshort((uint16_t*)C_in,(uint16_t*)A_in,(uint16_t*)B_in,s_bytes_a/sizeof(uint16_t),s_bytes_b/sizeof(uint16_t));
-    } else if(b_t == common::UINTEGER){
-      return ops::intersect_uint_pshort((uint32_t*)C_in,(uint32_t*)B_in,(uint16_t*)A_in,card_b,s_bytes_a/sizeof(uint16_t));
-    } else if(b_t == common::BITSET){
-      return ops::intersect_pshort_bs((uint16_t*)C_in,(uint16_t*)A_in,B_in,s_bytes_a/sizeof(uint16_t),s_bytes_b);
-    }
-  } else if(a_t == common::BITSET){
-    if(b_t == common::BITSET){
-      return ops::intersect_bs_bs(C_in,A_in,B_in,s_bytes_a,s_bytes_b);
-    } else if(b_t == common::UINTEGER){
-      return ops::intersect_uint_bs((uint32_t*)C_in,(uint32_t*)B_in,A_in,card_b,s_bytes_a);
-    } else if(b_t == common::PSHORT){
-      return ops::intersect_pshort_bs((uint16_t*)C_in,(uint16_t*)B_in,A_in,s_bytes_b/sizeof(uint16_t),s_bytes_a);
-    }
-  }
-
-  return make_tuple(0,0,common::UINTEGER);//ops::intersect_u32_u32((uint32_t*)C_in,(uint32_t*)A_in,(uint32_t*)B_in,card_a,card_b);
 }
 
 #endif

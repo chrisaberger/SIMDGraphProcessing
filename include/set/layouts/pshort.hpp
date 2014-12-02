@@ -5,7 +5,6 @@ THIS CLASS IMPLEMENTS THE FUNCTIONS ASSOCIATED WITH A PREFIX SHORT SET LAYOUT.
 */
 
 #include "common.hpp"
-#include "../ops/intersection.hpp"
 
 class pshort{
   public:
@@ -19,12 +18,6 @@ class pshort{
       const size_t cardinality, 
       const size_t number_of_bytes,
       const common::type type);
-    
-    static tuple<size_t,size_t,common::type> intersect(uint8_t *C_in, 
-      const uint8_t *A_in, const uint8_t *B_in, 
-      const size_t A_cardinality, const size_t B_cardinality, 
-      const size_t A_num_bytes, const size_t B_num_bytes, 
-      const common::type a_t, const common::type b_t);
 };
 
 inline common::type pshort::get_type(){
@@ -104,14 +97,4 @@ inline void pshort::foreach(const std::function <void (uint32_t)>& f,
       ++i;
     }
   }
-}
-
-inline tuple<size_t,size_t,common::type> pshort::intersect(uint8_t *C_in, 
-  const uint8_t *A_in, const uint8_t *B_in, 
-  const size_t card_a, const size_t card_b, 
-  const size_t s_bytes_a, const size_t s_bytes_b, 
-  const common::type a_t, const common::type b_t) {
-  (void) card_a; (void) card_b; (void) a_t; (void) b_t;
-  
-  return ops::intersect_pshort_pshort((uint16_t*)C_in,(uint16_t*)A_in,(uint16_t*)B_in,s_bytes_a/sizeof(uint16_t),s_bytes_b/sizeof(uint16_t));
 }

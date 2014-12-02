@@ -6,7 +6,6 @@ QUITE SIMPLE THE LAYOUT JUST CONTAINS UNSIGNED INTEGERS IN THE SET.
 */
 
 #include "common.hpp"
-#include "../ops/intersection.hpp"
 
 class uinteger{
   public:
@@ -47,14 +46,4 @@ inline void uinteger::foreach(const std::function <void (uint32_t)>& f, const ui
  for(size_t i=0; i<cardinality;i++){
   f(data[i]);
  }
-}
-
-inline tuple<size_t,size_t,common::type> uinteger::intersect(uint8_t *C_in, 
-  const uint8_t *A_in, const uint8_t *B_in, 
-  const size_t card_a, const size_t card_b, 
-  const size_t s_bytes_a, const size_t s_bytes_b, 
-  const common::type a_t, const common::type b_t) {
-  (void) s_bytes_b; (void) s_bytes_a; (void) a_t; (void) b_t;
-  
-  return ops::intersect_u32_u32((uint32_t*)C_in,(uint32_t*)A_in,(uint32_t*)B_in,card_a,card_b);
 }

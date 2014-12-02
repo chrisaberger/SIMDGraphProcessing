@@ -23,12 +23,6 @@ class variant{
       const size_t cardinality, 
       const size_t number_of_bytes,
       const common::type type);
-    
-    static tuple<size_t,size_t,common::type> intersect(uint8_t *C_in, 
-      const uint8_t *A_in, const uint8_t *B_in, 
-      const size_t A_cardinality, const size_t B_cardinality, 
-      const size_t A_num_bytes, const size_t B_num_bytes, 
-      const common::type a_t, const common::type b_t);
 };
 
 inline common::type variant::get_type(){
@@ -148,14 +142,4 @@ inline void variant::foreach(const std::function <void (uint32_t)>& f,
       num_decoded++;
     }
   }
-}
-
-inline tuple<size_t,size_t,common::type> variant::intersect(uint8_t *C_in, 
-  const uint8_t *A_in, const uint8_t *B_in, 
-  const size_t card_a, const size_t card_b, 
-  const size_t s_bytes_a, const size_t s_bytes_b, 
-  const common::type a_t, const common::type b_t) {
-  (void) s_bytes_a; (void) s_bytes_b; (void) a_t; (void) b_t;  
-
-  return ops::intersect_u32_u32((uint32_t*)C_in,(uint32_t*)A_in,(uint32_t*)B_in,card_a,card_b);
 }

@@ -12,7 +12,7 @@ RUN THE CORRESPONDING SET MEHTODS.
 #include "uinteger.hpp"
 #include "pshort.hpp"
 #include "bitset.hpp"
-#include "variant.hpp"
+#include "bitpacked.hpp" //this file includes variant.hpp
 
 class hybrid{
   public:
@@ -60,6 +60,9 @@ inline size_t hybrid::build(uint8_t *r_in, const uint32_t *data, const size_t le
     case common::VARIANT :
       return variant::build(r_in,data,length);
     break;
+    case common::BITPACKED :
+      return bitpacked::build(r_in,data,length);
+    break;
     default:
       return 0;
   }
@@ -81,6 +84,9 @@ inline size_t hybrid::build_flattened(uint8_t *r_in, const uint32_t *data, const
     break;
     case common::VARIANT :
       return 1+variant::build_flattened(&r_in[1],data,length);
+    break;
+    case common::BITPACKED :
+      return 1+bitpacked::build_flattened(&r_in[1],data,length);
     break;
     default:
       return 0;
@@ -111,6 +117,11 @@ inline tuple<size_t,size_t,common::type> hybrid::get_flattened_data(const uint8_
       get<0>(mytup)++;
       return mytup;
     break;
+    case common::BITPACKED :
+      mytup = bitpacked::get_flattened_data(&set_data[1],cardinality);
+      get<0>(mytup)++;
+      return mytup;
+    break;
     default:
       return make_tuple(0,0,common::UINTEGER);
   }
@@ -132,6 +143,9 @@ inline void hybrid::foreach(const std::function <void (uint32_t)>& f, const uint
     break;
     case common::VARIANT :
       variant::foreach(f,data_in,cardinality,number_of_bytes,common::BITSET);
+    break;
+    case common::BITPACKED :
+      bitpacked::foreach(f,data_in,cardinality,number_of_bytes,common::BITSET);
     break;
     default:
     break;

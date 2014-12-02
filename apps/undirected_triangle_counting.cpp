@@ -171,7 +171,8 @@ int main (int argc, char* argv[]) {
     application<variant,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();  
   } else if(input_layout.compare("bp") == 0){
-    num_nodes = 1;
+    application<bitpacked,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    myapp.run();
   } 
   #endif
   else{

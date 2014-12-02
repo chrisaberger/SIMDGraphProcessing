@@ -5,7 +5,6 @@ THIS CLASS IMPLEMENTS THE FUNCTIONS ASSOCIATED WITH A PREFIX SHORT SET LAYOUT.
 */
 
 #include "common.hpp"
-#include "../ops/intersection.hpp"
 
 class variant{
   public:
@@ -26,7 +25,7 @@ class variant{
 };
 
 inline common::type variant::get_type(){
-  return common::PSHORT;
+  return common::VARIANT;
 }
 
 inline uint32_t variant::produce_deltas(const uint32_t *data_in, const size_t length, uint32_t *data, uint32_t prev){    

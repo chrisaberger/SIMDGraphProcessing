@@ -213,7 +213,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric(MutableGraph* inputGraph,
   size_t new_cardinality = 0;
   size_t total_bytes_used = 0;
 
-  size_t alloc_size = cardinality_in*sizeof(int);//sizeof(size_t)*(cardinality_in/omp_get_num_threads());
+  size_t alloc_size = cardinality_in*sizeof(int)*4;//sizeof(size_t)*(cardinality_in/omp_get_num_threads());
   if(alloc_size < new_num_nodes){
     alloc_size = new_num_nodes;
   }
@@ -257,7 +257,6 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric(MutableGraph* inputGraph,
       row_data_in = (uint8_t*) realloc((void *) row_data_in, index*sizeof(uint8_t));
     }
   } else{
-
     #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
     {
       uint8_t *row_data_in = new uint8_t[alloc_size];
@@ -284,9 +283,9 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric(MutableGraph* inputGraph,
           new_cardinality += new_size;
         }
       }
-    delete[] selected_row;
-    total_bytes_used += index;
-    row_data_in = (uint8_t*) realloc((void *) row_data_in, index*sizeof(uint8_t));
+      delete[] selected_row;
+      total_bytes_used += index;
+      row_data_in = (uint8_t*) realloc((void *) row_data_in, index*sizeof(uint8_t));
     }
   }
   delete[] old2newids;

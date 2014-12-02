@@ -4,7 +4,7 @@
 #include "sse_masks.hpp"
 
 namespace ops{
- inline tuple<size_t,size_t,common::type> intersect_u32_u32(uint32_t *C, const uint32_t *A, const uint32_t *B, const size_t s_a, const size_t s_b) {
+ inline tuple<size_t,size_t,common::type> intersect_uint_uint(uint32_t *C, const uint32_t *A, const uint32_t *B, const size_t s_a, const size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
 

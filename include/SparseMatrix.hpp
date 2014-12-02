@@ -90,50 +90,35 @@ class SparseMatrix{
       const std::function<bool(uint32_t,uint32_t)> edge_selection, 
       const common::type t_in);
 
-
-    size_t union_sparse_neighbors(uint32_t node, uint32_t *union_data, uint8_t *visited);
-    size_t union_dense_neighbors(uint32_t offset, uint8_t &visited, uint32_t *union_data, uint8_t *parents);
-    size_t get_union_distinct_neighbors();
-
-    size_t row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a);
-    size_t buffer_intersect(uint8_t *R, uint32_t j, uint8_t *A, uint32_t card_a);
-
-    template<typename T> 
-    T map_columns(std::function<T(uint32_t, std::function<T(uint32_t)>)> rowfunction, std::function<T(uint32_t)> f, T *new_data);
-    template<typename T> 
-    T map_columns_pr(std::function<T(uint32_t, std::function<T(uint32_t)>)> rowfunction, std::function<T(uint32_t)> f, T *new_data, T *old_data);
-    template<typename T> 
-    T sum_over_rows(std::function<T(uint32_t, uint32_t*, std::function<T(uint32_t,uint32_t,uint32_t*)>)> rowfunction, std::function<T(uint32_t,uint32_t,uint32_t*)> f);
-    
-    void foreach_column_in_row(uint32_t col, const std::function <void (uint32_t,uint32_t)>& ef);
-    template<typename T> 
-    T sum_over_rows_in_column(uint32_t row,std::function<T(uint32_t)> f);
-        
+    Set<V> get_row(uint32_t row);
+    Set<V> get_decoded_row(uint32_t row, uint32_t *decoded_a);
     void print_data(string filename);
-
 };
 
 template<class V>
-inline size_t SparseMatrix<V>::row_intersect(uint8_t *R, uint32_t i, uint32_t j, uint32_t *decoded_a){
-  (void) decoded_a;
-  //change the set in A to point to decoded_a, after sum is finished.
-  size_t card_a = row_lengths[i];
-  size_t card_b = row_lengths[j];
-
-  Set<V> A = Set<V>::from_flattened(row_arrays[i],card_a);
-  Set<V> B = Set<V>::from_flattened(row_arrays[j],card_b);
-  Set<V> C(R,0,0,(V::get_type()));
-
-  return Set<V>::intersect(C,A,B).cardinality;  
+inline Set<V> SparseMatrix<V>::get_row(uint32_t row){
+  size_t card = row_lengths[row];
+  return Set<V>::from_flattened(row_arrays[row],card);
 }
 
+/*
+This function decodes the variant and bitpacked types into UINTEGER arrays.
+This function is not necessary if these types are not used (thus the pragma.)
+*/
 template<class V>
-void SparseMatrix<V>::foreach_column_in_row(uint32_t row, const std::function <void (uint32_t,uint32_t)>& ef){
+inline Set<V> SparseMatrix<V>::get_decoded_row(uint32_t row, uint32_t *buffer){
   size_t card = row_lengths[row];
   Set<V> row_set = Set<V>::from_flattened(row_arrays[row],card);
-  row_set.foreach( [row,ef] (uint32_t column){
-    ef(row,column);
-  });
+  #if COMPRESSION == 1
+  if(row_set.type == common::VARIANT || row_set.type == common::BITPACKED){
+    size_t i = 0;
+    row_set.foreach( [row,&i,&buffer] (uint32_t data){
+      buffer[i++] = data;
+    });
+    row_set.decoded_data = buffer;
+  } 
+  #endif
+  return row_set;
 }
 
 template<class V>

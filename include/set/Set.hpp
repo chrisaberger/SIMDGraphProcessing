@@ -18,6 +18,7 @@ class Set{
     size_t cardinality;
     size_t number_of_bytes;
     common::type type;
+    uint32_t *decoded_data;
 
     Set(uint8_t *data_in, 
       size_t cardinality_in, 
@@ -85,7 +86,9 @@ inline size_t Set<T>::flatten_from_array(uint8_t *set_data, uint32_t *array_data
   return T::build_flattened(set_data,array_data,data_size);
 }
 
-//ops (will take any type you give)
+/*
+For variant and bitpacked we take the
+*/
 template<class T>
 inline Set<T> Set<T>::intersect(Set<T> C_in, Set<T> A_in, Set<T> B_in){
   tuple<size_t,size_t,common::type> intersection_values = T::intersect(C_in.data,

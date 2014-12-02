@@ -11,13 +11,16 @@ class thread_data{
     size_t thread_id;
     uint8_t *buffer;
     uint32_t *decoded_src;
+    uint32_t *decoded_dst;
+
     SparseMatrix<T> *graph;
 
     thread_data(SparseMatrix<T>* graph_in, size_t buffer_lengths, const size_t thread_id_in){
       graph = graph_in;
       thread_id = thread_id_in;
-      decoded_src = new uint32_t[buffer_lengths];
-      buffer = new uint8_t[buffer_lengths*sizeof(int)]; //should not be used
+      decoded_src = new uint32_t[buffer_lengths]; //space for A and B
+      decoded_dst = new uint32_t[buffer_lengths]; //space for A and B
+      buffer = new uint8_t[buffer_lengths*sizeof(int)];
     }
 };
 
@@ -80,12 +83,18 @@ class application{
       std::atomic<size_t> next_work;
       next_work = 0;
 
+      uint32_t *src_buffer = t_data_pointers[0]->decoded_src;
+      uint32_t *dst_buffer = t_data_pointers[0]->decoded_dst;
+      Set<T> C(t_data_pointers[0]->buffer,0,0,(T::get_type()));
+
       long t_local_reducer = 0;
       double t_begin = omp_get_wtime();
       for(size_t i = 0; i < matrix_size; i++){
-        graphs[0]->foreach_column_in_row(i, ([&t_local_reducer,&graphs,&t_data_pointers] (uint32_t src, uint32_t dst){ 
-          t_local_reducer += graphs[0]->row_intersect(t_data_pointers[0]->buffer,src,dst,t_data_pointers[0]->decoded_src);
-        }));
+        Set<T> A = graphs[0]->get_decoded_row(i,src_buffer);
+        A.foreach( [i,&A,&C,&dst_buffer,&graphs,&t_local_reducer] (uint32_t j){
+          Set<T> B = graphs[0]->get_decoded_row(j,dst_buffer);
+          t_local_reducer += Set<T>::intersect(C,A,B).cardinality;
+        });
       }
       double t_end = omp_get_wtime();
       thread_times[0] = t_end - t_begin;
@@ -110,7 +119,7 @@ class application{
     allocBuffers();
     //common::stopClock("Allocating Buffers");
 
-    //graphs[0]->print_data("graph_right.txt");
+    //graphs[0]->print_data("graph.txt");
 
     if(pcm_init() < 0)
        return;
@@ -158,7 +167,8 @@ int main (int argc, char* argv[]) {
   } 
   #if COMPRESSION == 1
   else if(input_layout.compare("v") == 0){
-    num_nodes = 1;
+    application<variant> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    myapp.run();  
   } else if(input_layout.compare("bp") == 0){
     num_nodes = 1;
   } 

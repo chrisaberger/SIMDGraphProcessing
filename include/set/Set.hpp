@@ -51,7 +51,6 @@ class Set{
 
     //basic traversal
     void foreach(const std::function <void (uint32_t)>& f);
-    void repackage(uint8_t *buffer);
     Set<uinteger> decode(uint32_t *buffer);
 
     //Constructors
@@ -68,15 +67,6 @@ inline void Set<T>::foreach(const std::function <void (uint32_t)>& f){
   T::foreach(f,data,cardinality,number_of_bytes,type);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-//REPACKAGE
-///////////////////////////////////////////////////////////////////////////////
-template <class T>
-inline void Set<T>::repackage(uint8_t *buffer){ 
-  //compute type
-  //return ops::repackage(this,buffer);
-  //only does something for hybrid
-}
 ///////////////////////////////////////////////////////////////////////////////
 //DECODE ARRAY
 ///////////////////////////////////////////////////////////////////////////////

@@ -43,13 +43,12 @@ inline common::type bitset::get_type(){
 }
 //Copies data from input array of ints to our set data r_in
 inline size_t bitset::build(uint8_t *R, const uint32_t *A, const size_t s_a){
-  size_t i = 0;
   size_t word = 0;
+  size_t i = 0;
   size_t cleared_word_index = 0;
   while(i<s_a){
     uint32_t cur = A[i];
     word = word_index(cur);
-    //zero out lower bits
     while(cleared_word_index < word){
       R[cleared_word_index++] = 0;
     }
@@ -66,6 +65,7 @@ inline size_t bitset::build(uint8_t *R, const uint32_t *A, const size_t s_a){
       } else same_word = false;
     }
     R[word] = set_value; 
+    word++;
   }
   return word;
 }

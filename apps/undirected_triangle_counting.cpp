@@ -93,7 +93,7 @@ class application{
         Set<R> A = graphs[0]->get_decoded_row(i,src_buffer);
         A.foreach( [i,&A,&C,&dst_buffer,&graphs,&t_local_reducer] (uint32_t j){
           Set<R> B = graphs[0]->get_decoded_row(j,dst_buffer);
-          t_local_reducer += ops::set_intersect(C,A,B).cardinality;
+          t_local_reducer += ops::set_intersect(&C,&A,&B).cardinality;
         });
       }
 
@@ -144,7 +144,7 @@ int main (int argc, char* argv[]) {
 
   size_t num_threads = atoi(argv[2]);
   cout << endl << "Number of threads: " << num_threads << endl;
-  omp_set_num_threads(num_threads);        
+  omp_set_num_threads(num_threads);
 
   std::string input_layout = argv[3];
 
@@ -157,14 +157,14 @@ int main (int argc, char* argv[]) {
     application<uinteger,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();
   } else if(input_layout.compare("bs") == 0){
-    //application<bitset,bitset> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    //myapp.run();  
+    application<bitset,bitset> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    myapp.run();  
   } else if(input_layout.compare("a16") == 0){
-    //application<pshort,pshort> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    //myapp.run();  
+    application<pshort,pshort> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    myapp.run();  
   } else if(input_layout.compare("hybrid") == 0){
-    //application<hybrid,hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    //myapp.run();  
+    application<hybrid,hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    myapp.run();
   } 
   #if COMPRESSION == 1
   else if(input_layout.compare("v") == 0){

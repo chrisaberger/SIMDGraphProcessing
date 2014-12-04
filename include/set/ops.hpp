@@ -181,10 +181,6 @@ namespace ops{
   //Union Interface
   /////////////////////////////////////////////////////////////////////////////
   //UINTEGER & UINTEGER
-  inline Set<uinteger> set_union(Set<uinteger> C_in, Set<uinteger> A_in, Set<uinteger> B_in){
-    auto intersect_data = ops::union_uint_uint((uint32_t*)C_in.data,(uint32_t*)A_in.data,(uint32_t*)B_in.data,A_in.cardinality,B_in.cardinality);
-    return Set<uinteger>(C_in.data,get<0>(intersect_data),get<1>(intersect_data),get<2>(intersect_data));
-  }
   //BITSET & BITSET
   inline Set<bitset> set_union(Set<bitset> C_in, Set<bitset> A_in, Set<bitset> B_in){
     auto intersect_data = ops::union_bs_bs(C_in.data,A_in.data,B_in.data,A_in.number_of_bytes,B_in.number_of_bytes);

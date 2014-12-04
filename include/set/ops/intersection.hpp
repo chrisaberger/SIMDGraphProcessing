@@ -144,12 +144,19 @@ namespace ops{
     }
     return count;
   }
-  inline tuple<size_t,size_t,common::type> intersect_pshort_pshort(uint16_t *C,const uint16_t *A, const uint16_t *B, const size_t s_a, const size_t s_b) {
+  inline Set<pshort> set_intersect(Set<pshort> C_in, Set<pshort> A_in, Set<pshort> B_in){
+    uint16_t *C = (uint16_t*)C_in.data;
+    const uint16_t *A = (uint16_t*)A_in.data;
+    const uint16_t *B = (uint16_t*)B_in.data;
+    const size_t s_a = A_in.number_of_bytes/sizeof(uint16_t);
+    const size_t s_b = B_in.number_of_bytes/sizeof(uint16_t);
+
     size_t i_a = 0, i_b = 0;
     size_t counter = 0;
     size_t count = 0;
     bool notFinished = i_a < s_a && i_b < s_b;
- 
+
+    uint16_t *last_ptr = 0;
     while(notFinished) {
       //size_t limLower = limLowerHolder;
       if(A[i_a] < B[i_b]) {
@@ -162,6 +169,7 @@ namespace ops{
         uint16_t partition_size = 0;
         //If we are not in the range of the limit we don't need to worry about it.
         #if WRITE_VECTOR == 1
+        last_ptr = &C[counter];
         C[counter++] = A[i_a]; // write partition prefix
         #endif
         partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2],&B[i_b + 2],A[i_a + 1], B[i_b + 1]);
@@ -177,7 +185,13 @@ namespace ops{
       }
     }
 
-    return make_tuple(count,counter*sizeof(short),common::PSHORT);
+    double density = 0.0;
+    if(count > 0){
+      uint32_t first = ((uint32_t)C[0] << 16) | C[2];
+      size_t last = ((uint32_t)last_ptr[0] << 16) | last_ptr[2];
+      density = (last-first)/count;
+    }
+    return Set<pshort>(C_in.data,count,counter*sizeof(short),density,common::PSHORT);
   }
   inline tuple<size_t,size_t,common::type> intersect_bs_bs(uint8_t *C, const uint8_t *A, const uint8_t *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0

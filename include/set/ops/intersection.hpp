@@ -440,29 +440,29 @@ namespace ops{
   inline Set<hybrid> set_intersect(Set<hybrid> *C_in, Set<hybrid> *A_in, Set<hybrid> *B_in){
     if(A_in->type == common::UINTEGER){
       if(B_in->type == common::UINTEGER){
-        return Set<hybrid>(set_intersect((Set<uinteger>*)C_in,(Set<uinteger>*)A_in,(Set<uinteger>*)B_in));
+        return (Set<hybrid>)set_intersect((Set<uinteger>*)C_in,(Set<uinteger>*)A_in,(Set<uinteger>*)B_in);
       } else if(B_in->type == common::PSHORT){
-        return Set<hybrid>(set_intersect((Set<uinteger>*)C_in,(Set<uinteger>*)A_in,(Set<pshort>*)B_in));
+        return (Set<hybrid>)set_intersect((Set<uinteger>*)C_in,(Set<uinteger>*)A_in,(Set<pshort>*)B_in);
       } else if(B_in->type == common::BITSET){
-        return Set<hybrid>(set_intersect((Set<uinteger>*)C_in,(Set<uinteger>*)A_in,(Set<bitset>*)B_in));
+        return (Set<hybrid>)set_intersect((Set<uinteger>*)C_in,(Set<uinteger>*)A_in,(Set<bitset>*)B_in);
       }
     }
     else if(A_in->type == common::PSHORT){
       if(B_in->type == common::PSHORT){
-        return Set<hybrid>(set_intersect((Set<pshort>*)C_in,(Set<pshort>*)A_in,(Set<pshort>*)B_in));
+        return (Set<hybrid>)set_intersect((Set<pshort>*)C_in,(Set<pshort>*)A_in,(Set<pshort>*)B_in);
       } else if(B_in->type == common::UINTEGER){
-        return Set<hybrid>(set_intersect((Set<uinteger>*)C_in,(Set<uinteger>*)B_in,(Set<pshort>*)A_in));
+        return (Set<hybrid>)set_intersect((Set<uinteger>*)C_in,(Set<uinteger>*)B_in,(Set<pshort>*)A_in);
       } else if(B_in->type == common::BITSET){
-        return Set<hybrid>(set_intersect((Set<pshort>*)C_in,(Set<pshort>*)A_in,(Set<bitset>*)B_in));
+        return (Set<hybrid>)set_intersect((Set<pshort>*)C_in,(Set<pshort>*)A_in,(Set<bitset>*)B_in);
       } 
     }
     else if(A_in->type == common::BITSET){
       if(B_in->type == common::BITSET){
-        return Set<hybrid>(set_intersect((Set<bitset>*)C_in,(Set<bitset>*)A_in,(Set<bitset>*)B_in));
+        return (Set<hybrid>)set_intersect((Set<bitset>*)C_in,(Set<bitset>*)A_in,(Set<bitset>*)B_in);
       } else if(B_in->type == common::UINTEGER){
-        return Set<hybrid>(set_intersect((Set<uinteger>*)C_in,(Set<uinteger>*)B_in,(Set<bitset>*)A_in));
+        return (Set<hybrid>)set_intersect((Set<uinteger>*)C_in,(Set<uinteger>*)B_in,(Set<bitset>*)A_in);
       } else if(B_in->type == common::PSHORT){
-        return Set<hybrid>(set_intersect((Set<pshort>*)C_in,(Set<pshort>*)B_in,(Set<bitset>*)A_in));
+        return (Set<hybrid>)set_intersect((Set<pshort>*)C_in,(Set<pshort>*)B_in,(Set<bitset>*)A_in);
       }
     }
     cout << "ERROR" << endl;

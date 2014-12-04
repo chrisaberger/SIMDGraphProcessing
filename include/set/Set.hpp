@@ -17,16 +17,27 @@ class Set{
     uint8_t *data;
     size_t cardinality;
     size_t number_of_bytes;
+    double density;
     common::type type;
 
     Set(uint8_t *data_in, 
       size_t cardinality_in, 
       size_t number_of_bytes_in,
+      double density_in,
       common::type type_in):
       data(data_in),
       cardinality(cardinality_in),
       number_of_bytes(number_of_bytes_in),
+      density(density_in),
       type(type_in){}
+
+    Set(uint8_t *data_in):
+      data(data_in){
+        cardinality = 0;
+        number_of_bytes = 0;
+        density = 0;
+        type = T::get_type();
+      }
 
     //Implicit Conversion Between Unlike Types
     template <class U> 
@@ -34,11 +45,13 @@ class Set{
       data = in.data;
       cardinality = in.cardinality;
       number_of_bytes = in.number_of_bytes;
+      density = in.density;
       type = in.type;
     }
 
     //basic traversal
     void foreach(const std::function <void (uint32_t)>& f);
+    void repackage(uint8_t *buffer);
     Set<uinteger> decode(uint32_t *buffer);
 
     //Constructors
@@ -56,15 +69,27 @@ inline void Set<T>::foreach(const std::function <void (uint32_t)>& f){
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+//REPACKAGE
+///////////////////////////////////////////////////////////////////////////////
+template <class T>
+inline void Set<T>::repackage(uint8_t *buffer){ 
+  //compute type
+  //return ops::repackage(this,buffer);
+  //only does something for hybrid
+}
+///////////////////////////////////////////////////////////////////////////////
 //DECODE ARRAY
 ///////////////////////////////////////////////////////////////////////////////
 template <class T>
 inline Set<uinteger> Set<T>::decode(uint32_t *buffer){ 
-  size_t i = 0;
-  T::foreach( ([&i,&buffer] (uint32_t data){
-    buffer[i++] = data;
-  }),data,cardinality,number_of_bytes,type);
-  return Set<uinteger>((uint8_t*)buffer,cardinality,cardinality*sizeof(int),common::UINTEGER);
+  if(type != common::UINTEGER){
+    size_t i = 0;
+    T::foreach( ([&i,&buffer] (uint32_t data){
+      buffer[i++] = data;
+    }),data,cardinality,number_of_bytes,type);
+    return Set<uinteger>((uint8_t*)buffer,cardinality,cardinality*sizeof(int),0.0,common::UINTEGER);
+  }
+  return Set<uinteger>(data,cardinality,number_of_bytes,density,type);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -73,7 +98,7 @@ inline Set<uinteger> Set<T>::decode(uint32_t *buffer){
 template <class T>
 inline Set<T> Set<T>::from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size){
   size_t bytes_in = T::build(set_data,array_data,data_size);
-  return Set<T>(set_data,data_size,bytes_in,T::get_type());
+  return Set<T>(set_data,data_size,bytes_in,0.0,T::get_type());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -83,7 +108,7 @@ inline Set<T> Set<T>::from_array(uint8_t *set_data, uint32_t *array_data, size_t
 template <class T>
 inline Set<T> Set<T>::from_flattened(uint8_t *set_data, size_t cardinality_in){
   auto flattened_data = T::get_flattened_data(set_data,cardinality_in);
-  return Set<T>(&set_data[get<0>(flattened_data)],cardinality_in,get<1>(flattened_data),get<2>(flattened_data));
+  return Set<T>(&set_data[get<0>(flattened_data)],cardinality_in,get<1>(flattened_data),0.0,get<2>(flattened_data));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

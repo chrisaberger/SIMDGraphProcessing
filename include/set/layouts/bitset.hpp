@@ -43,16 +43,18 @@ inline common::type bitset::get_type(){
 }
 //Copies data from input array of ints to our set data r_in
 inline size_t bitset::build(uint8_t *R, const uint32_t *A, const size_t s_a){
-  uint32_t max = A[s_a-1];
-  size_t num_words = word_index(max);
-  if(s_a != 0){
-    num_words++;
-  }
-
   size_t i = 0;
+  size_t word = 0;
+  size_t cleared_word_index = 0;
   while(i<s_a){
     uint32_t cur = A[i];
-    size_t word = word_index(cur);
+    word = word_index(cur);
+    //zero out lower bits
+    while(cleared_word_index < word){
+      R[cleared_word_index++] = 0;
+    }
+    cleared_word_index = word+1;
+
     uint8_t set_value = 1 << (cur % BITS_PER_WORD);
     bool same_word = true;
     ++i;
@@ -65,7 +67,7 @@ inline size_t bitset::build(uint8_t *R, const uint32_t *A, const size_t s_a){
     }
     R[word] = set_value; 
   }
-  return num_words;
+  return word;
 }
 //Nothing is different about build flattened here. The number of bytes
 //can be infered from the type. This gives us back a true CSR representation.

@@ -1,7 +1,7 @@
 // class templates
 #include <stdio.h>
 #include <stdlib.h>
-#include "UnsignedIntegerArray.hpp"
+#include "SparseMatrix.hpp"
 #include <set>
 #include <vector>
 
@@ -80,77 +80,9 @@ int main (int argc, char* argv[]) {
   print_arrays(a_data,b_data,a_size,b_size);
   #endif 
 
-  uint_array::preprocess(a_preproccessed,0,a_data,a_size,common::UINTEGER);
-  uint_array::preprocess(b_preproccessed,0,b_data,b_size,common::UINTEGER);
+  Set<uinteger> set_a = Set<uinteger>(a_preproccessed,a_data,a_size);
+  Set<uinteger> set_b = Set<uinteger>(b_preproccessed,b_data,b_size);
 
-  common::stopClock("CREATING ARRAYS");
 
-  ofstream myfile;
-  std::vector<uint32_t>::iterator itv;
-  size_t count;
-
-  ///////////////////////////////////////////////////////////////////////////////////////
-  #if UNION == 1
-  common::startClock();
-  for(size_t i = 0; i < num_times; i++){
-    count  = uint_array::set_union(result,a_preproccessed,b_preproccessed,a_size,b_size,common::HYBRID_PERF);
-  }
-  common::stopClock("SIMD UNION");  
-  
-  #if PRINT == 1
-  myfile.open("simd_union.txt");
-  uint_array::print_data(result,count,common::HYBRID_PERF,myfile);
-  myfile.close();
-  #endif
-
-  uint32_t *result_32 = new uint32_t[a_size+b_size];
-  common::startClock();
-  for(size_t i = 0; i < num_times; i++){
-    count = array32::set_union_std(result_32,a_data,b_data,a_size,b_size);
-  }
-  common::stopClock("STD UNION");
-
-  #if PRINT == 1
-  myfile.open("std_union.txt");
-  for(size_t i = 0; i < count; i++){
-    myfile << " Data: " << result_32[i] << endl;
-  }
-  myfile.close();
-  #endif
-
-  #endif
-  /*
-  ///////////////////////////////////////////////////////////////////////////////////////
-  #if DIFFERENCE == 1
-  common::startClock();
-  for(size_t i = 0; i < num_times; i++){
-    count  = array32::set_difference_std(result,a_data,b_data,a_size,b_size);
-  }
-  common::stopClock("STD DIFFERENCE");  
-  
-  #if PRINT == 1
-  myfile.open("std_difference.txt");
-  for(size_t i = 0; i < count; i++){
-    myfile << "difference[" << i << "]: " << result[i] << endl;
-  }
-  myfile.close();
-  #endif
-
-  common::startClock();
-  for(size_t i = 0; i < num_times; i++){
-    count = array32::set_difference(result,a_data,b_data,a_size,b_size);
-  }
-  common::stopClock("SIMD DIFFERENCE");
-  
-  #if PRINT == 1
-  myfile.open("simd_difference.txt");
-  for(size_t i = 0; i < count; i++){
-    myfile << "difference[" << i << "]: " << result[i] << endl;
-  }
-  myfile.close();
-  #endif
-
-  #endif
-  */
   return 0;
 }

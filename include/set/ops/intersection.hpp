@@ -1,10 +1,17 @@
 #ifndef _INTERSECTION_H_
 #define _INTERSECTION_H_
 
+#include "../Set.hpp"
 #include "sse_masks.hpp"
 
 namespace ops{
- inline tuple<size_t,size_t,common::type> intersect_uint_uint(uint32_t *C, const uint32_t *A, const uint32_t *B, const size_t s_a, const size_t s_b) {
+  inline Set<uinteger> set_intersect(Set<uinteger> C_in, Set<uinteger> A_in, Set<uinteger> B_in){
+    uint32_t *C = (uint32_t*) C_in.data; 
+    const uint32_t *A = (uint32_t*) A_in.data;
+    const uint32_t *B = (uint32_t*) B_in.data;
+    const size_t s_a = A_in.cardinality;
+    const size_t s_b = B_in.cardinality;
+
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
 
@@ -77,8 +84,9 @@ namespace ops{
     #if WRITE_VECTOR == 0
     C = C;
     #endif
-    
-    return make_tuple(count,count*sizeof(uint32_t),common::UINTEGER);
+
+    double density = ((count > 0) ? (double)((C[count]-C[0])/count) : 0.0);
+    return Set<uinteger>(C_in.data,count,count*sizeof(uint32_t),density,common::UINTEGER);
   }
   inline size_t simd_intersect_vector16(uint16_t *C, const uint16_t *A, const uint16_t *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0

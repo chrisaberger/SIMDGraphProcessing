@@ -10,7 +10,7 @@ filename = os.path.join(sys.argv[1], "edgelist", "data.txt")
 
 print "Loading data (directed)"
 `edge(int a:0..20000000, (int b)).
- edge(a, b) :- l = $read($filename), (v1,v2) = $split(l, "\t"), a = $toInt(v1), b = $toInt(v2).`
+ edge(a, b) :- l = $read($filename), (v1,v2) = $split(l, " "), a = $toInt(v1), b = $toInt(v2).`
 
 print "4-path"
 start = time.time()

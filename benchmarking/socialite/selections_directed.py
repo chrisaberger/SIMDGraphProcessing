@@ -30,16 +30,12 @@ for k in range(0, num_runs):
     `clear path.
      clear total.
      clear filtered_edge.
-     clear filtered_node.
-     filtered_node(n) :- node(n, p), p > 500.
-     filtered_edge(frm, to) :- edge(frm, to, year), year == 2012, filtered_node(frm), filtered_node(to).
-     out_deg(long a, int b).
-     max_out(int x:0..0, int b).
-     maxnode(long a).
-     out_deg(a, $sum(1)) :- filtered_edge(a, b).
-     max_out(0, $max(b)) :- out_deg(a, b).
-     maxnode(a) :- max_out(0, b), out_deg(a, b).
-     path(b, $min(d)) :- filtered_edge(14293652286639L, b), d = 1;
+     clear filtered_node.`
+
+    `filtered_node(n) :- node(n, p), p > 500.
+     filtered_edge(frm, to) :- edge(frm, to, year), year == 2012, filtered_node(frm), filtered_node(to).`
+
+    `path(b, $min(d)) :- filtered_edge(14293652286639L, b), d = 1;
                       :- path(a, d1), d1 < 4, filtered_edge(a, b), d = d1 + 1.
      total(0, $sum(1)) :- path(x, 4).`
 

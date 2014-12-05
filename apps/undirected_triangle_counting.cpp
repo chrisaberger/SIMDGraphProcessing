@@ -93,7 +93,7 @@ class application{
         Set<R> A = graphs[0]->get_decoded_row(i,src_buffer);
         A.foreach( [i,&A,&C,&dst_buffer,&graphs,&t_local_reducer] (uint32_t j){
           Set<R> B = graphs[0]->get_decoded_row(j,dst_buffer);
-          t_local_reducer += ops::intersect(C,A,B).cardinality;
+          t_local_reducer += ops::set_intersect(C,A,B).cardinality;
         });
       }
 

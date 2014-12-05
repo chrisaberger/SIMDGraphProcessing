@@ -4,7 +4,13 @@
 #include "sse_masks.hpp"
 
 namespace ops{
- inline tuple<size_t,size_t,common::type> intersect_u32_u32(uint32_t *C, const uint32_t *A, const uint32_t *B, const size_t s_a, const size_t s_b) {
+  inline Set<uinteger> set_intersect(const Set<uinteger> &C_in, const Set<uinteger> &A_in, const Set<uinteger> &B_in){
+    uint32_t * const C = (uint32_t*) C_in.data; 
+    const uint32_t * const A = (uint32_t*) A_in.data;
+    const uint32_t * const B = (uint32_t*) B_in.data;
+    const size_t s_a = A_in.cardinality;
+    const size_t s_b = B_in.cardinality;
+
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
 
@@ -75,10 +81,11 @@ namespace ops{
     }
 
     #if WRITE_VECTOR == 0
-    C = C;
+    (void) C;
     #endif
-    
-    return make_tuple(count,count*sizeof(uint32_t),common::UINTEGER);
+
+    double density = ((count > 0) ? (double)((C[count]-C[0])/count) : 0.0);
+    return Set<uinteger>(C_in.data,count,count*sizeof(uint32_t),common::UINTEGER);
   }
   inline size_t simd_intersect_vector16(uint16_t *C, const uint16_t *A, const uint16_t *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
@@ -136,12 +143,19 @@ namespace ops{
     }
     return count;
   }
-  inline tuple<size_t,size_t,common::type> intersect_pshort_pshort(uint16_t *C,const uint16_t *A, const uint16_t *B, const size_t s_a, const size_t s_b) {
+  inline Set<pshort> set_intersect(const Set<pshort> &C_in, const Set<pshort> &A_in, const Set<pshort> &B_in){
+    uint16_t * const C = (uint16_t*)C_in.data;
+    const uint16_t * const A = (uint16_t*)A_in.data;
+    const uint16_t * const B = (uint16_t*)B_in.data;
+    const size_t s_a = A_in.number_of_bytes/sizeof(uint16_t);
+    const size_t s_b = B_in.number_of_bytes/sizeof(uint16_t);
+
     size_t i_a = 0, i_b = 0;
     size_t counter = 0;
     size_t count = 0;
     bool notFinished = i_a < s_a && i_b < s_b;
- 
+
+    uint16_t *last_ptr = 0;
     while(notFinished) {
       //size_t limLower = limLowerHolder;
       if(A[i_a] < B[i_b]) {
@@ -154,6 +168,7 @@ namespace ops{
         uint16_t partition_size = 0;
         //If we are not in the range of the limit we don't need to worry about it.
         #if WRITE_VECTOR == 1
+        last_ptr = &C[counter];
         C[counter++] = A[i_a]; // write partition prefix
         #endif
         partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2],&B[i_b + 2],A[i_a + 1], B[i_b + 1]);
@@ -169,9 +184,22 @@ namespace ops{
       }
     }
 
-    return make_tuple(count,counter*sizeof(short),common::PSHORT);
+    double density = 0.0;
+    if(count > 0){
+      uint32_t first = ((uint32_t)C[0] << 16) | C[2];
+      size_t last = ((uint32_t)last_ptr[0] << 16) | last_ptr[last_ptr[1]];
+      density = (last-first)/count;
+    }
+
+    return Set<pshort>(C_in.data,count,counter*sizeof(short),common::PSHORT);
   }
-  inline tuple<size_t,size_t,common::type> intersect_bs_bs(uint8_t *C, const uint8_t *A, const uint8_t *B, const size_t s_a, const size_t s_b) {
+inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_in, const Set<bitset> &B_in){
+    uint8_t * const C = C_in.data;
+    const uint8_t * const A = A_in.data;
+    const uint8_t * const B = B_in.data;
+    const size_t s_a = A_in.number_of_bytes;
+    const size_t s_b = B_in.number_of_bytes;
+
     #if WRITE_VECTOR == 0
     (void) C;
     #endif
@@ -181,7 +209,7 @@ namespace ops{
     const size_t small_length = (s_a > s_b) ? s_b : s_a;
     const uint8_t *large = (s_a <= s_b) ? B : A;
 
-    //16 unsigned shorts
+    //16 uint16_ts
     //8 ints
     //4 longs
     size_t i = 0;
@@ -215,19 +243,26 @@ namespace ops{
       
       count += _mm_popcnt_u32(result);
     }
-
-    return make_tuple(count,small_length,common::BITSET);
+    double density = (count > 0) ? (sizeof(uint8_t)*(small_length-0))/count : 0.0;
+    return Set<bitset>(C_in.data,count,small_length,common::BITSET);
   }
-  inline tuple<size_t,size_t,common::type> intersect_pshort_bs(uint16_t *C, const unsigned short *A, const uint8_t *B, const size_t s_a, const size_t s_b) {
+  inline Set<pshort> set_intersect(const Set<pshort> &C_in, const Set<pshort> &A_in, const Set<bitset> &B_in){
+    uint16_t * const C = (uint16_t*)C_in.data;
+    const uint16_t * const A = (uint16_t*)A_in.data;
+    const uint8_t * const B = B_in.data;
+    const size_t s_a = A_in.number_of_bytes/sizeof(uint16_t);
+    const size_t s_b = B_in.number_of_bytes;
+
     #if WRITE_VECTOR == 0
     (void) C;   
     #endif 
 
+    uint16_t *last_ptr = &C[0];
     size_t count = 0;
     size_t counter = 0;
     for(size_t i = 0; i < s_a; i++){
       uint32_t prefix = (A[i] << 16);
-      unsigned short size = A[i+1];
+      uint16_t size = A[i+1];
       i += 2;
 
       size_t old_count = count;
@@ -250,14 +285,31 @@ namespace ops{
       if(old_counter == (counter-2)){
         counter = old_counter;
       } else{
+        last_ptr = &C[old_counter];
         C[old_counter] = (prefix >> 16);
         C[old_counter+1] = old_count-count;
       }
     }
-    return make_tuple(count,counter*sizeof(uint16_t),common::PSHORT);
+
+    double density = 0.0;
+    if(count > 0){
+      uint32_t first = ((uint32_t)C[0] << 16) | C[2];
+      size_t last = ((uint32_t)last_ptr[0] << 16) | last_ptr[last_ptr[1]];
+      density = (last-first)/count;
+    }
+
+    return Set<pshort>(C_in.data,count,counter*sizeof(uint16_t),common::PSHORT);
   }
-  //untested
-  inline tuple<size_t,size_t,common::type> intersect_uint_bs(uint32_t *C, const uint32_t *A, const uint8_t *B, const size_t s_a, const size_t s_b) {
+  inline Set<pshort> set_intersect(const Set<pshort> &C_in,const Set<bitset> &A_in,const Set<pshort> &B_in){
+    return set_intersect(C_in,B_in,A_in);
+  }
+  inline Set<uinteger> set_intersect(const Set<uinteger> &C_in,const Set<uinteger> &A_in,const Set<bitset> &B_in){
+    uint32_t * const C = (uint32_t*)C_in.data;
+    const uint32_t * const A = (uint32_t*)A_in.data;
+    const uint8_t * const B = B_in.data;
+    const size_t s_a = A_in.cardinality;
+    const size_t s_b = B_in.number_of_bytes;
+
     #if WRITE_VECTOR == 0
     (void) C;   
     #endif
@@ -272,10 +324,19 @@ namespace ops{
         count++;
       }
     }
-
-    return make_tuple(count,count*sizeof(uint32_t),common::UINTEGER);
+    double density = ((count > 0) ? (double)((C[count]-C[0])/count) : 0.0);
+    return Set<uinteger>(C_in.data,count,count*sizeof(uint32_t),common::UINTEGER);
   }
-  inline tuple<size_t,size_t,common::type> intersect_uint_pshort(uint32_t *C, const uint32_t *A, const uint16_t *B, const size_t s_a, const size_t s_b){
+  inline Set<uinteger> set_intersect(const Set<uinteger> &C_in,const Set<bitset> &A_in,const Set<uinteger> &B_in){
+    return set_intersect(C_in,B_in,A_in);
+  }
+  inline Set<uinteger> set_intersect(const Set<uinteger> &C_in,const Set<uinteger> &A_in,const Set<pshort> &B_in){
+    uint32_t * const C = (uint32_t*)C_in.data;
+    const uint32_t * const A = (uint32_t*)A_in.data;
+    const uint16_t * const B = (uint16_t*)B_in.data;
+    const size_t s_a = A_in.cardinality;
+    const size_t s_b = B_in.number_of_bytes/sizeof(uint16_t);
+
     #if WRITE_VECTOR == 0
     (void)C;
     #endif
@@ -371,7 +432,41 @@ namespace ops{
         not_finished = a_i < s_a && b_i < s_b;
       }
     }
-    return make_tuple(count,count*sizeof(uint32_t),common::UINTEGER);
+    double density = ((count > 0) ? (double)((C[count]-C[0])/count) : 0.0);
+    return Set<uinteger>(C_in.data,count,count*sizeof(uint32_t),common::UINTEGER);
+  }
+  inline Set<uinteger> set_intersect(const Set<uinteger> &C_in,const Set<pshort> &A_in,const Set<uinteger> &B_in){
+    return set_intersect(C_in,B_in,A_in);
+  }
+  inline Set<hybrid> set_intersect(const Set<hybrid> &C_in,const Set<hybrid> &A_in,const Set<hybrid> &B_in){
+    if(A_in.type == common::UINTEGER){
+      if(B_in.type == common::UINTEGER){
+        return set_intersect((const Set<uinteger>&)C_in,(const Set<uinteger>&)A_in,(const Set<uinteger>&)B_in);
+      } else if(B_in.type == common::PSHORT){
+        return set_intersect((const Set<uinteger>&)C_in,(const Set<uinteger>&)A_in,(const Set<pshort>&)B_in);
+      } else if(B_in.type == common::BITSET){
+        return set_intersect((const Set<uinteger>&)C_in,(const Set<uinteger>&)A_in,(const Set<bitset>&)B_in);
+      }
+    } else if(A_in.type == common::PSHORT){
+      if(B_in.type == common::PSHORT){
+        return set_intersect((const Set<pshort>&)C_in,(const Set<pshort>&)A_in,(const Set<pshort>&)B_in);
+      } else if(B_in.type == common::UINTEGER){
+        return set_intersect((const Set<uinteger>&)C_in,(const Set<uinteger>&)B_in,(const Set<pshort>&)A_in);
+      } else if(B_in.type == common::BITSET){
+        return set_intersect((const Set<pshort>&)C_in,(const Set<pshort>&)A_in,(const Set<bitset>&)B_in);
+      } 
+    } else if(A_in.type == common::BITSET){
+      if(B_in.type == common::BITSET){
+        return set_intersect((const Set<bitset>&)C_in,(const Set<bitset>&)A_in,(const Set<bitset>&)B_in);
+      } else if(B_in.type == common::UINTEGER){
+        return set_intersect((const Set<uinteger>&)C_in,(const Set<uinteger>&)B_in,(const Set<bitset>&)A_in);
+      } else if(B_in.type == common::PSHORT){
+        return set_intersect((const Set<pshort>&)C_in,(const Set<pshort>&)B_in,(const Set<bitset>&)A_in);
+      }
+    }
+
+    cout << "ERROR" << endl;
+    return C_in;
   }
 }
 

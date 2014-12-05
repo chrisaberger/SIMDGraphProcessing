@@ -4,6 +4,8 @@
 #include "Set.hpp"
 #include "ops/sse_masks.hpp"
 #include "ops/intersection.hpp"
+#include "ops/union.hpp"
+#include "ops/difference.hpp"
 #include "ops/repackage.hpp"
 
 #endif

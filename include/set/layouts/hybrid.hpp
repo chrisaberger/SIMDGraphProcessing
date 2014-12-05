@@ -18,16 +18,24 @@ class hybrid{
   public:
     static common::type get_type();
     static common::type get_type(const uint32_t *data, const size_t length);
+    static common::type compute_type(const double density);
     static size_t build(uint8_t *r_in, const uint32_t *data, const size_t length);
     static size_t build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length);
     static tuple<size_t,size_t,common::type> get_flattened_data(const uint8_t *set_data, const size_t cardinality);
     static void foreach(const std::function <void (uint32_t)>& f,const uint8_t *data_in, const size_t cardinality, const size_t number_of_bytes, const common::type t);
 };
-
 inline common::type hybrid::get_type(){
   return common::HYBRID_PERF;
 }
-
+inline common::type hybrid::compute_type(const double density){
+  if( density > (double) 1/32 ){
+    return common::BITSET;
+  } else if(((1/density)*(1/65536)) > 12){
+    return common::PSHORT;
+  } else {
+    return common::UINTEGER;
+  } 
+}
 inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
   if(length > 0){
     uint32_t max_value = data[length-1];

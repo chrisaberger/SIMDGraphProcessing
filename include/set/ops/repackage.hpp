@@ -1,9 +1,6 @@
 #ifndef _REPACKAGE_H_
 #define _REPACKAGE_H_
 
-#include "../Set.hpp"
-#include "sse_masks.hpp"
-
 namespace ops{
     inline Set<uinteger> repackage(Set<uinteger> cur, const uint8_t *new_data, const common::type type){
     (void) new_data; (void) type;
@@ -86,7 +83,7 @@ namespace ops{
   }
   inline Set<hybrid> repackage(Set<hybrid> cur, uint8_t *new_data){
     common::type type = hybrid::compute_type(cur.density);
-    if(type == cur.type){
+    if(type == cur.type || cur.density == 0.0){
       return cur;
     } else if(type == common::UINTEGER){
       return Set<hybrid>(repackage_as_uinteger(cur,new_data));

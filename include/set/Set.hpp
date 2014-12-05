@@ -17,8 +17,22 @@ class Set{
     uint8_t *data;
     size_t cardinality;
     size_t number_of_bytes;
+    double density;
     common::type type;
 
+    //All values passed in
+    Set(uint8_t *data_in, 
+      size_t cardinality_in, 
+      size_t number_of_bytes_in,
+      double density_in,
+      common::type type_in):
+      data(data_in),
+      cardinality(cardinality_in),
+      number_of_bytes(number_of_bytes_in),
+      density(density_in),
+      type(type_in){}
+
+    //Density is optional in read-only sets
     Set(uint8_t *data_in, 
       size_t cardinality_in, 
       size_t number_of_bytes_in,
@@ -26,7 +40,18 @@ class Set{
       data(data_in),
       cardinality(cardinality_in),
       number_of_bytes(number_of_bytes_in),
-      type(type_in){}
+      type(type_in){
+        density = 0.0;
+      }
+
+    //A set that is just a buffer.
+    Set(uint8_t *data_in):
+      data(data_in){
+        cardinality = 0;
+        number_of_bytes = 0;
+        density = 0.0;
+        type = T::get_type();
+      }
 
     //Implicit Conversion Between Unlike Types
     template <class U> 
@@ -34,6 +59,7 @@ class Set{
       data = in.data;
       cardinality = in.cardinality;
       number_of_bytes = in.number_of_bytes;
+      density = in.density;
       type = in.type;
     }
 
@@ -64,7 +90,7 @@ inline Set<uinteger> Set<T>::decode(uint32_t *buffer){
   T::foreach( ([&i,&buffer] (uint32_t data){
     buffer[i++] = data;
   }),data,cardinality,number_of_bytes,type);
-  return Set<uinteger>((uint8_t*)buffer,cardinality,cardinality*sizeof(int),common::UINTEGER);
+  return Set<uinteger>((uint8_t*)buffer,cardinality,cardinality*sizeof(int),density,common::UINTEGER);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -72,13 +98,15 @@ inline Set<uinteger> Set<T>::decode(uint32_t *buffer){
 ///////////////////////////////////////////////////////////////////////////////
 template <class T>
 inline Set<T> Set<T>::from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size){
-  size_t bytes_in = T::build(set_data,array_data,data_size);
-  return Set<T>(set_data,data_size,bytes_in,T::get_type());
+  const double density = ((data_size > 0) ? (double)((array_data[data_size-1]-array_data[0])/data_size) : 0.0);
+  const size_t bytes_in = T::build(set_data,array_data,data_size);
+  return Set<T>(set_data,data_size,bytes_in,density,T::get_type());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //CREATE A SET FROM A FLATTENED ARRAY WITH INFO.  
 //THIS IS USED FOR A CSR GRAPH IMPLEMENTATION.
+//Assume these are already packaged and re-optimized, density is not adjusted
 ///////////////////////////////////////////////////////////////////////////////
 template <class T>
 inline Set<T> Set<T>::from_flattened(uint8_t *set_data, size_t cardinality_in){

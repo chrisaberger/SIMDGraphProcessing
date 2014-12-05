@@ -29,7 +29,7 @@
 //#define ENABLE_PCM
 
 #define WRITE_VECTOR 0
-#define COMPRESSION 1
+#define COMPRESSION 0
 #define VECTORIZE 1
 
 #define SHORTS_PER_REG 8
@@ -123,11 +123,7 @@ namespace common{
     PSHORT = 1,
     UINTEGER = 2,
     BITPACKED = 3,
-    VARIANT = 4,
-    HYBRID_PERF = 5,
-    HYBRID_COMP = 6,
-    DENSE_RUNS = 7,
-    EMPTY = 8
+    VARIANT = 4
   };
 
   static void* allocate_local(size_t num, size_t size, int node) {

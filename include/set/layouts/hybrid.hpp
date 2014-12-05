@@ -25,7 +25,7 @@ class hybrid{
     static void foreach(const std::function <void (uint32_t)>& f,const uint8_t *data_in, const size_t cardinality, const size_t number_of_bytes, const common::type t);
 };
 inline common::type hybrid::get_type(){
-  return common::HYBRID_PERF;
+  return common::PSHORT;
 }
 inline common::type hybrid::compute_type(const double density){
   if( density > (double) 1/32 ){
@@ -42,7 +42,7 @@ inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
     double sparsity = (double) length/max_value;
     if( sparsity > (double) 1/32 ){
       return common::BITSET;
-    } else if((length/((max_value >> 16) - (data[0] >> 16) + 1)) > 12){
+    } else if((length/((max_value >> 16) - (data[0] >> 16) + 1)) > 8){
       return common::PSHORT;
     } else {
       return common::UINTEGER;

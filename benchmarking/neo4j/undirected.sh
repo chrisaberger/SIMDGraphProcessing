@@ -15,15 +15,15 @@ EOF
 
 echo "Triangle counting"
 ${NEO4J_HOME}/bin/neo4j-shell << EOF
-MATCH (n:AwesomeNode)-[:AwesomeEdge*2]->(n3:AwesomeNode)<-[:AwesomeEdge]-(n) RETURN COUNT(n);
+MATCH (n:AwesomeNode)-[:AwesomeEdge*2]->(n3:AwesomeNode) WHERE n3<-[:AwesomeEdge]-n RETURN COUNT(n);
 EOF
 
 echo "Clique counting"
 ${NEO4J_HOME}/bin/neo4j-shell << EOF
-MATCH (n:AwesomeNode)-->(n2:AwesomeNode)-->(n3:AwesomeNode)-->(n4:AwesomeNode)<--(n) WHERE  n-->n3 AND  n2-->n4  RETURN COUNT(n);
+MATCH (n:AwesomeNode)-->(n2:AwesomeNode)-->(n3:AwesomeNode)-->(n4:AwesomeNode) WHERE  n-->n3 AND  n2-->n4 AND n-->n4 RETURN COUNT(n);
 EOF
 
 echo "Cycle counting"
 ${NEO4J_HOME}/bin/neo4j-shell << EOF
-MATCH (n:AwesomeNode)-[:AwesomeEdge*3]->(n3:AwesomeNode)<-[:AwesomeEdge]-(n) RETURN COUNT(n);
+MATCH (n:AwesomeNode)-[:AwesomeEdge*3]->(n3:AwesomeNode) WHERE n3<-[:AwesomeEdge]-(n) RETURN COUNT(n);
 EOF

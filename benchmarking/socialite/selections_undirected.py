@@ -35,14 +35,15 @@ for k in range(0, num_runs):
     print "Run " + str(k)
     `clear total.
      clear filtered_edge.
-     clear filtered_node.
-     filtered_node(n) :- node(n, p), p > 500.
+     clear filtered_node.`
+
+    `filtered_node(n) :- node(n, p), p > 500.
      filtered_edge(frm, to) :- edge(frm, to, year), year == 2012, filtered_node(frm), filtered_node(to).
      total(0, $sum(1)) :- filtered_edge(x, y), filtered_edge(y, z), filtered_edge(x, z).`
 
 print "Triangle time: " + str((time.time() - start) / num_runs)
 for i, s in `total(i, s)`:
-    print "Triangles: " + str(s / num_runs)
+    print "Triangles: " + str(s)
 
 print "4-clique counting"
 start = time.time()
@@ -50,14 +51,15 @@ for k in range(0, num_runs):
     print "Run " + str(k)
     `clear total.
      clear filtered_edge.
-     clear filtered_node.
-     filtered_node(n) :- node(n, p), p > 500.
+     clear filtered_node.`
+
+    `filtered_node(n) :- node(n, p), p > 500.
      filtered_edge(frm, to) :- edge(frm, to, year), year == 2012, filtered_node(frm), filtered_node(to).
      total(0, $sum(1)) :- filtered_edge(x, y), filtered_edge(y, z), filtered_edge(z, w), filtered_edge(x, w), filtered_edge(x, z), filtered_edge(y, w).`
 
 print "4-clique time: " + str((time.time() - start) / num_runs)
 for i, s in `total(i, s)`:
-    print "4-cliques: " + str(s / num_runs)
+    print "4-cliques: " + str(s)
 
 print "4-cycle counting"
 start = time.time()
@@ -65,11 +67,12 @@ for k in range(0, num_runs):
     print "Run " + str(k)
     `clear total.
      clear filtered_edge.
-     clear filtered_node.
-     filtered_node(n) :- node(n, p), p > 500.
+     clear filtered_node.`
+
+    `filtered_node(n) :- node(n, p), p > 500.
      filtered_edge(frm, to) :- edge(frm, to, year), year == 2012, filtered_node(frm), filtered_node(to).
      total(0, $sum(1)) :- filtered_edge(x, y), filtered_edge(y, z), filtered_edge(z, w), filtered_edge(x, w).`
 
 print "4-cycles time: " + str((time.time() - start) / num_runs)
 for i, s in `total(i, s)`:
-    print "4-cycles: " + str(s / num_runs)
+    print "4-cycles: " + str(s)

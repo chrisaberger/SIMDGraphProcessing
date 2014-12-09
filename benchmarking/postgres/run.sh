@@ -18,7 +18,7 @@ else
    psql -p ${PORT} -v dataset="${1}/edgelist/data.txt" -f load_directed.sql
    for app in "num_nbrs" "path_counting"; do
       echo "----- ${app} -----"
-      psql -p ${PORT} -v dataset=${1} -f ${app}.sql
+      psql -p ${PORT} -v dataset=${1} -v start_node=222074 -f ${app}.sql
    done
 
    psql -p ${PORT} -v dataset="${1}/glab_undirected/data.txt" -f load_undirected.sql

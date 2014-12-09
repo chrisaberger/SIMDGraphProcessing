@@ -49,31 +49,52 @@ class application{
     start_array[0] = start_node;
     Set<hybrid> frontier = Set<uinteger>::from_array(f_data,start_array,1);
 
-    Set<uinteger> next_frontier((graphs[0]->matrix_size/sizeof(uint32_t))+1);
+    //Set<uinteger> next_frontier(graphs[0]->matrix_size*sizeof(uint32_t));
+    Set<bitset> next_frontier((graphs[0]->matrix_size/sizeof(uint32_t))+1);
+    
     Set<bitset> visited((graphs[0]->matrix_size/sizeof(uint32_t))+1);
+    bitset::set(start_node,visited.data);
+
     Set<bitset> old_visited((graphs[0]->matrix_size/sizeof(uint32_t))+1);
 
+    //Set<T> outnbrs = graphs[0]->get_row(132365);
     bool finished = false;
     size_t path_length = 0;
     while(!finished){
-      cout << "Path: " << path_length << endl;
       old_visited.copy_from(visited);
-      frontier.foreach( [&visited,&graphs] (uint32_t f){
-        //cout << " Frontier: " << graphs[0]->id_map[f] << " " << f << endl;
-        Set<R> outnbrs = graphs[0]->get_row(f);
-        ops::set_union(visited,outnbrs);
-      });
+      //cout << "Path: " << path_length << endl;
+      if(frontier.type == common::BITSET){
+        for(size_t i=0; i<graphs[0]->matrix_size; i++){
+          if(!bitset::is_set(i,visited.data)){
+            Set<T> innbrs = graphs[0]->get_column(i);
+            innbrs.foreach([frontier,i,&visited] (uint32_t nbr){
+              if(bitset::is_set(nbr,frontier.data)){
+                bitset::set(i,visited.data);
+              }
+            });
+          }
+        }
+        memset(next_frontier.data,(uint8_t)0,frontier.number_of_bytes);
+      } else{
+        frontier.foreach( [&visited,&graphs] (uint32_t f){
+          //cout << " Frontier: " << graphs[0]->id_map[f] << " " << f << endl;
+          Set<T> outnbrs = graphs[0]->get_row(f);
+          ops::set_union(visited,outnbrs);
+        }); 
+      }
 
-      frontier = ops::set_difference(next_frontier,visited,old_visited);  
+
+      //IF YOU WANT FUSED REPACKAGING 
+      //frontier = ops::set_difference(next_frontier,visited,old_visited);  
 
       //CODE IF WE WANT TO REPACKAGE
-      //next_frontier = ops::set_difference(next_frontier,visited,old_visited);    
-      //frontier = ops::repackage(next_frontier,frontier.data);
+      next_frontier = ops::set_difference(next_frontier,visited,old_visited);    
+      frontier = ops::repackage(next_frontier,frontier.data);
       cout << "F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << endl;
-
       path_length++;
-      finished = path_length == 4;
+      finished = frontier.cardinality == 0;
     }
+    cout << "path length: " << (path_length-1) << endl;
   }
   
   inline void run(){
@@ -82,16 +103,16 @@ class application{
     common::stopClock("Selections");
     
     //graphs[0]->print_data("graph.txt");
-    cout << "searching for: " << id << endl;
-    uint32_t start_node = graphs[0]->get_internal_id(id);
+    uint32_t start_node = graphs[0]->get_max_row_id();
+    //uint32_t start_node = graphs[0]->get_internal_id(id);
 
     if(pcm_init() < 0)
       return;
 
     common::startClock();
     queryOver(start_node);
-    common::stopClock("Application Time for Layout " + layout);
-    
+    common::stopClock("BFS");
+
     pcm_cleanup();
   }
 };
@@ -119,22 +140,22 @@ int main (int argc, char* argv[]) {
     application<uinteger,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout,atoi(argv[4]));
     myapp.run();
   } else if(input_layout.compare("bs") == 0){
-    //application<bitset,bitset> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    //myapp.run();  
+    application<bitset,bitset> myapp(num_nodes,inputGraph,num_threads,input_layout,atoi(argv[4]));
+    myapp.run();  
   } else if(input_layout.compare("a16") == 0){
-    //application<pshort,pshort> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    //myapp.run();  
+    application<pshort,pshort> myapp(num_nodes,inputGraph,num_threads,input_layout,atoi(argv[4]));
+    myapp.run();  
   } else if(input_layout.compare("hybrid") == 0){
-    //application<hybrid,hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    //myapp.run();  
+    application<hybrid,hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout,atoi(argv[4]));
+    myapp.run();  
   } 
   #if COMPRESSION == 1
   else if(input_layout.compare("v") == 0){
-    //application<variant,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    //myapp.run();  
+    application<variant,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout,atoi(argv[4]));
+    myapp.run();  
   } else if(input_layout.compare("bp") == 0){
-    //application<bitpacked,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    //myapp.run();
+    application<bitpacked,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout,atoi(argv[4]));
+    myapp.run();
   } 
   #endif
   else{

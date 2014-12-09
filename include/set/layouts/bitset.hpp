@@ -14,6 +14,7 @@ class bitset{
     static size_t word_index(const uint32_t bit_index);
     static int get_bit(const uint32_t value, const uint32_t position);
     static bool is_set(const uint32_t index, const uint8_t *in_array);
+    static void set(const uint32_t index, uint8_t *in_array);
 
     static common::type get_type();
     static size_t build(uint8_t *r_in, const uint32_t *data, const size_t length);
@@ -37,6 +38,10 @@ inline int bitset::get_bit(const uint32_t value, const uint32_t position) {
 //check if a bit is set
 inline bool bitset::is_set(uint32_t index, const uint8_t *in_array){
   return (in_array[word_index(index)] & (1 << (index%BITS_PER_WORD)));
+}
+//check if a bit is set
+inline void bitset::set(uint32_t index, uint8_t *in_array){
+  in_array[word_index(index)] |= (1 << (index%BITS_PER_WORD));
 }
 inline common::type bitset::get_type(){
   return common::BITSET;
@@ -98,8 +103,6 @@ inline void bitset::foreach(const std::function <void (uint32_t)>& f,
   const size_t number_of_bytes, 
   const common::type type){
   (void) cardinality; (void) type;
-
-  cout << "bs foreach: " << number_of_bytes << endl;
 
   for(size_t i = 0; i < number_of_bytes; i++){
     uint8_t cur_word = A[i];

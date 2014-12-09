@@ -64,7 +64,6 @@ namespace ops{
 
   template<class T>
   inline Set<hybrid> repackage(Set<T> cur, uint8_t *new_data){
-    cout << "repackaging: " << cur.density << endl;
     common::type type = hybrid::compute_type(cur.density);
     if(type == cur.type || cur.density == 0.0){
       return cur;

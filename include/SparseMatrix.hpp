@@ -93,11 +93,27 @@ class SparseMatrix{
       const std::function<bool(uint32_t,uint32_t)> node_selection,
       const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection);
 
+    uint32_t get_max_row_id();
     uint32_t get_internal_id(uint64_t external_id);
     Set<T> get_row(uint32_t row);
+    Set<T> get_column(uint32_t column);
     Set<R> get_decoded_row(uint32_t row, uint32_t *decoded_a);
     void print_data(string filename);
 };
+
+template<class T,class R>
+inline uint32_t SparseMatrix<T,R>::get_max_row_id(){
+  size_t max = 0;
+  uint32_t max_id = 0;
+  for(size_t i=0; i<matrix_size; i++){
+    if(row_lengths[i] > max){
+      max_id = i;
+      max = row_lengths[i];
+    }
+  }
+  cout << "MAXIMUM NODE: " << id_map[max_id] << endl; 
+  return max_id;
+}
 
 template<class T,class R>
 inline uint32_t SparseMatrix<T,R>::get_internal_id(uint64_t external_id){
@@ -105,6 +121,7 @@ inline uint32_t SparseMatrix<T,R>::get_internal_id(uint64_t external_id){
     if(id_map[i] == external_id)
       return i;
   }
+  return 0;
 }
 
 template<class T,class R>
@@ -112,7 +129,11 @@ inline Set<T> SparseMatrix<T,R>::get_row(uint32_t row){
   size_t card = row_lengths[row];
   return Set<T>::from_flattened(row_arrays[row],card);
 }
-
+template<class T,class R>
+inline Set<T> SparseMatrix<T,R>::get_column(uint32_t column){
+  size_t card = column_lengths[column];
+  return Set<T>::from_flattened(column_arrays[column],card);
+}
 /*
 This function decodes the variant and bitpacked types into UINTEGER arrays.
 This function is not necessary if these types are not used (thus the pragma.)
@@ -382,7 +403,8 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputG
   }
 
   cout << "Number of edges: " << new_cardinality << endl;
-  cout << "ROW DATA SIZE (Bytes): " << (row_total_bytes_used+col_total_bytes_used) << endl;
+  cout << "ROW DATA SIZE (Bytes): " << row_total_bytes_used << endl;
+  cout << "COL DATA SIZE (Bytes): " << col_total_bytes_used << endl;
 
   return new SparseMatrix(matrix_size_in,new_cardinality,row_total_bytes_used,
     col_total_bytes_used,inputGraph->max_nbrhood_size,false,

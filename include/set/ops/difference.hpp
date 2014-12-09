@@ -20,7 +20,6 @@ namespace ops{
     //8 ints
     //4 longs
     size_t i = 0;
-    
     #if VECTORIZE == 1
     while((i+31) < small_length){
       __m256 a1 = _mm256_loadu_ps((const float*)&A[i]);
@@ -42,10 +41,7 @@ namespace ops{
     for(; i < small_length; i++){
       uint8_t result = A[i] & ~(B[i]);
 
-      #if WRITE_VECTOR == 1
-      C[i] = result;
-      #endif
-      
+      C[i] = result;      
       count += _mm_popcnt_u32(result);
     }
 
@@ -79,7 +75,6 @@ namespace ops{
     size_t i = 0;
     #if VECTORIZE == 1
     uint8_t *tmp_buffer = new uint8_t[32];
-    cout << small_length << endl;
     while((i+31) < small_length){
       __m256 a1 = _mm256_loadu_ps((const float*)&A[i]);
       __m256 a2 = _mm256_loadu_ps((const float*)&B[i]);

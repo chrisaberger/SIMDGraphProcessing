@@ -115,12 +115,12 @@ int main (int argc, char* argv[]) {
     while(cur_size <= size_end){
       create_synthetic_array(data,cur_size-size_start,max_size);
 
-      my_data = new UnsignedIntegerArray(data,cur_size,common::A32BITPACKED);
+      my_data = new UnsignedIntegerArray(data,cur_size,common::BITPACKED);
       a32bp_sizes[i] = my_data->length;
       time_decode(a32bp_time, my_data,i);
       my_data->~UnsignedIntegerArray();
 
-      my_data = new UnsignedIntegerArray(data,cur_size,common::A32BITPACKED_DELTA);
+      my_data = new UnsignedIntegerArray(data,cur_size,common::BITPACKED_DELTA);
       a32bpd_sizes[i] = my_data->length;
       time_decode(a32bpd_time, my_data,i);
       my_data->~UnsignedIntegerArray();
@@ -135,12 +135,12 @@ int main (int argc, char* argv[]) {
       time_decode(vd_time, my_data,i);
       my_data->~UnsignedIntegerArray();
 
-      my_data = new UnsignedIntegerArray(data,cur_size,common::ARRAY16);
+      my_data = new UnsignedIntegerArray(data,cur_size,common::PSHORT);
       a16_sizes[i] = my_data->length;
       time_decode(a16_time, my_data,i);
       my_data->~UnsignedIntegerArray();
 
-      my_data = new UnsignedIntegerArray(data,cur_size,common::ARRAY32);
+      my_data = new UnsignedIntegerArray(data,cur_size,common::UINTEGER);
       a32_sizes[i] = my_data->length;
       my_data->print_data(fn);
       time_decode(a32_time, my_data,i);
@@ -198,12 +198,12 @@ int main (int argc, char* argv[]) {
   while(max_size < max_sparsity){
     create_synthetic_array(data,cur_size,max_size);
 
-    UnsignedIntegerArray *my_data = new UnsignedIntegerArray(data,cur_size,common::A32BITPACKED);
+    UnsignedIntegerArray *my_data = new UnsignedIntegerArray(data,cur_size,common::BITPACKED);
     time_decode(a32bp_time, my_data, i);
     a32bp_sizes[i] = my_data->length;
     my_data->~UnsignedIntegerArray();
 
-    my_data = new UnsignedIntegerArray(data,cur_size,common::A32BITPACKED_DELTA);
+    my_data = new UnsignedIntegerArray(data,cur_size,common::BITPACKED_DELTA);
     time_decode(a32bpd_time, my_data, i);
     a32bpd_sizes[i] = my_data->length;
     my_data->~UnsignedIntegerArray();
@@ -218,12 +218,12 @@ int main (int argc, char* argv[]) {
     vd_sizes[i] = my_data->length;
     my_data->~UnsignedIntegerArray();
 
-    my_data = new UnsignedIntegerArray(data,cur_size,common::ARRAY16);
+    my_data = new UnsignedIntegerArray(data,cur_size,common::PSHORT);
     time_decode(a16_time, my_data, i);
     a16_sizes[i] = my_data->length;
     my_data->~UnsignedIntegerArray();
 
-    my_data = new UnsignedIntegerArray(data,cur_size,common::ARRAY32);
+    my_data = new UnsignedIntegerArray(data,cur_size,common::UINTEGER);
     time_decode(a32_time, my_data, i);
     a32_sizes[i] = my_data->length;
     my_data->~UnsignedIntegerArray();

@@ -5,31 +5,28 @@
 
 using namespace pcm_helper;
 
-template<class T,class R>
+template<class T>
 class thread_data{
   public:
     size_t thread_id;
     uint8_t *buffer;
     uint32_t *decoded_src;
-    uint32_t *decoded_dst;
+    SparseMatrix<T> *graph;
 
-    SparseMatrix<T,R> *graph;
-
-    thread_data(SparseMatrix<T,R>* graph_in, size_t buffer_lengths, const size_t thread_id_in){
+    thread_data(SparseMatrix<T>* graph_in, size_t buffer_lengths, const size_t thread_id_in){
       graph = graph_in;
       thread_id = thread_id_in;
-      decoded_src = new uint32_t[buffer_lengths]; //space for A and B
-      decoded_dst = new uint32_t[buffer_lengths]; //space for A and B
-      buffer = new uint8_t[buffer_lengths*sizeof(int)];
+      decoded_src = new uint32_t[buffer_lengths];
+      buffer = new uint8_t[buffer_lengths*sizeof(int)]; //should not be used
     }
 };
 
-template<class T, class R>
+template<class T>
 class application{
   public:
-    SparseMatrix<T,R>** graphs;
+    SparseMatrix<T>** graphs;
     long num_triangles;
-    thread_data<T,R> **t_data_pointers;
+    thread_data<T> **t_data_pointers;
     MutableGraph *inputGraph;
     size_t num_numa_nodes;
     size_t num_threads;
@@ -42,8 +39,8 @@ class application{
       num_threads = num_threads_in;
       layout = input_layout;
 
-      graphs = new SparseMatrix<T,R>*[num_numa_nodes];
-      t_data_pointers = new thread_data<T,R>*[num_threads];
+      graphs = new SparseMatrix<T>*[num_numa_nodes];
+      t_data_pointers = new thread_data<T>*[num_threads];
     }
     inline bool myNodeSelection(uint32_t node, uint32_t attribute){
       (void)node; (void) attribute;
@@ -57,13 +54,13 @@ class application{
       int threads_per_node = (num_threads - 1) / num_numa_nodes + 1;
       for(size_t k= 0; k < num_threads; k++){
         int node = k / threads_per_node;
-        t_data_pointers[k] = new thread_data<T,R>(graphs[node], graphs[node]->max_nbrhood_size,k);
+        t_data_pointers[k] = new thread_data<T>(graphs[node], graphs[node]->max_nbrhood_size,k);
       }
     }
     inline void produceSubgraph(){
       auto node_selection = std::bind(&application::myNodeSelection, this, _1, _2);
       auto edge_selection = std::bind(&application::myEdgeSelection, this, _1, _2, _3);
-      graphs[0] = SparseMatrix<T,R>::from_symmetric_graph(inputGraph,node_selection,edge_selection);
+      graphs[0] = SparseMatrix<T>::from_symmetric(inputGraph,node_selection,edge_selection);
       for(size_t i = 1; i < num_numa_nodes; i++) {
         graphs[i] = graphs[0]->clone_on_node(i);
       }
@@ -73,8 +70,6 @@ class application{
       system_counter_state_t before_sstate = pcm_get_counter_state();
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
-      size_t matrix_size = graphs[0]->matrix_size;
-
       //thread* threads = new thread[num_threads];
       double* thread_times = new double[num_threads];
       std::atomic<long> reducer;
@@ -83,20 +78,26 @@ class application{
       std::atomic<size_t> next_work;
       next_work = 0;
 
-      uint32_t *src_buffer = t_data_pointers[0]->decoded_src;
-      uint32_t *dst_buffer = t_data_pointers[0]->decoded_dst;
-      Set<R> C(t_data_pointers[0]->buffer);
-
       long t_local_reducer = 0;
-      double t_begin = omp_get_wtime();
-      for(size_t i = 0; i < matrix_size; i++){
-        Set<R> A = graphs[0]->get_decoded_row(i,src_buffer);
-        A.foreach( [i,&A,&C,&dst_buffer,&graphs,&t_local_reducer] (uint32_t j){
-          Set<R> B = graphs[0]->get_decoded_row(j,dst_buffer);
-          t_local_reducer += ops::set_intersect(C,A,B).cardinality;
-        });
-      }
+      uint32_t src = 142;
+      uint32_t dst = 123;
 
+      Set<T> row = Set<T>::from_flattened(graphs[0]->row_arrays[src],graphs[0]->row_lengths[src]);
+      cout << "SRC: " << src << endl;
+      row.foreach( [] (uint32_t data){
+        cout << " DATA: " << data << endl;
+      });
+      row = Set<T>::from_flattened(graphs[0]->row_arrays[dst],graphs[0]->row_lengths[dst]);
+      cout << "DST: " << dst << endl;
+      row.foreach( [] (uint32_t data){
+        cout << " DATA: " << data << endl;
+      });
+
+
+      double t_begin = omp_get_wtime();
+      cout << "Intersecting: " << src << " " << dst << endl;
+      t_local_reducer += graphs[0]->row_intersect(t_data_pointers[0]->buffer,src,dst,t_data_pointers[0]->decoded_src);
+      cout << t_local_reducer << endl;
       double t_end = omp_get_wtime();
       thread_times[0] = t_end - t_begin;
       reducer = t_local_reducer;
@@ -112,22 +113,22 @@ class application{
     num_triangles = reducer;
   }
   inline void run(){
-    common::startClock();
+    //common::startClock();
     produceSubgraph();
-    common::stopClock("Selections");
+    //common::stopClock("Selections");
 
     //common::startClock();
     allocBuffers();
     //common::stopClock("Allocating Buffers");
 
-    //graphs[0]->print_data("graph.txt");
+    graphs[0]->print_data("graph_right.txt");
 
     if(pcm_init() < 0)
        return;
 
-    common::startClock();
+    //common::startClock();
     queryOver();
-    common::stopClock("Application Time for Layout " + layout);
+    //common::stopClock("Application Time for Layout " + layout);
 
     cout << "Count: " << num_triangles << endl << endl;
     pcm_cleanup();
@@ -150,29 +151,27 @@ int main (int argc, char* argv[]) {
 
   size_t num_nodes = 1;
   //common::startClock();
-  MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
+  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files
   //common::stopClock("Reading File");
 
   if(input_layout.compare("a32") == 0){
-    application<uinteger,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    application<uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();
   } else if(input_layout.compare("bs") == 0){
-    application<bitset,bitset> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    application<bitset> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();  
   } else if(input_layout.compare("a16") == 0){
-    application<pshort,pshort> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    application<pshort> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();  
   } else if(input_layout.compare("hybrid") == 0){
-    application<hybrid,hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout);
+    application<hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();  
   } 
   #if COMPRESSION == 1
   else if(input_layout.compare("v") == 0){
-    application<variant,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    myapp.run();  
+    num_nodes = 1;
   } else if(input_layout.compare("bp") == 0){
-    application<bitpacked,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
-    myapp.run();
+    num_nodes = 1;
   } 
   #endif
   else{

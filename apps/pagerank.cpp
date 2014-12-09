@@ -1,11 +1,15 @@
+int main () { 
+  return 0;
+}
+/*
 // class templates
-#include "AOA_Matrix.hpp"
+#include "SparseMatrix.hpp"
 #include "MutableGraph.hpp"
 
 #define PRINT 1
 
 namespace application{
-  AOA_Matrix *graph;
+  SparseMatrix *graph;
   float *pr_data;
   size_t max_iterations;
   
@@ -37,7 +41,7 @@ namespace application{
     pr_data = new float[num_nodes];
 
     auto nbr_function = std::bind(&nbrApply, _1);
-    auto col_function = std::bind(&AOA_Matrix::sum_over_rows_in_column<float>,graph,_1,_2);
+    auto col_function = std::bind(&SparseMatrix::sum_over_rows_in_column<float>,graph,_1,_2);
 
     const size_t st_a = (num_nodes / 8) * 8;
 
@@ -128,7 +132,7 @@ namespace application{
     }    
 
     auto nbr_function = std::bind(&nbrApply_old, _1);
-    auto col_function = std::bind(&AOA_Matrix::sum_over_rows_in_column<float>,graph,_1,_2);
+    auto col_function = std::bind(&SparseMatrix::sum_over_rows_in_column<float>,graph,_1,_2);
 
     size_t num_iterations = 0;
     while(num_iterations < max_iterations){
@@ -158,17 +162,17 @@ int main (int argc, char* argv[]) {
 
   common::type layout;
   if(input_layout.compare("a32") == 0){
-    layout = common::ARRAY32;
+    layout = common::UINTEGER;
   } else if(input_layout.compare("bs") == 0){
     layout = common::BITSET;
   } else if(input_layout.compare("a16") == 0){
-    layout = common::ARRAY16;
+    layout = common::PSHORT;
   } else if(input_layout.compare("hybrid") == 0){
     layout = common::HYBRID_PERF;
   } else if(input_layout.compare("v") == 0){
     layout = common::VARIANT;
   } else if(input_layout.compare("bp") == 0){
-    layout = common::A32BITPACKED;
+    layout = common::BITPACKED;
   } else{
     cout << "No valid layout entered." << endl;
     exit(0);
@@ -188,7 +192,7 @@ int main (int argc, char* argv[]) {
   cout << endl;
 
   common::startClock();
-  application::graph = AOA_Matrix::from_asymmetric(inputGraph,node_selection,edge_selection,layout);
+  application::graph = SparseMatrix::from_asymmetric(inputGraph,node_selection,edge_selection,layout);
   common::stopClock("selections");
   
   inputGraph->MutableGraph::~MutableGraph(); 
@@ -205,3 +209,4 @@ int main (int argc, char* argv[]) {
   
   return 0;
 }
+*/

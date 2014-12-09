@@ -99,6 +99,8 @@ inline void bitset::foreach(const std::function <void (uint32_t)>& f,
   const common::type type){
   (void) cardinality; (void) type;
 
+  cout << "bs foreach: " << number_of_bytes << endl;
+
   for(size_t i = 0; i < number_of_bytes; i++){
     uint8_t cur_word = A[i];
     for(size_t j = 0; j < BITS_PER_WORD; j++){

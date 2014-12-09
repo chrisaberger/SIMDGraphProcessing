@@ -44,6 +44,17 @@ class Set{
         density = 0.0;
       }
 
+    //A set that is just a buffer zeroed out to certain size.
+    Set(size_t number_of_bytes_in){
+        cardinality = 0;
+        number_of_bytes = number_of_bytes_in;
+        density = 0.0;
+        type = T::get_type();
+        
+        data = new uint8_t[number_of_bytes];
+        memset(data,(uint8_t)0,number_of_bytes);
+      }
+
     //A set that is just a buffer.
     Set(uint8_t *data_in):
       data(data_in){
@@ -66,6 +77,7 @@ class Set{
     //basic traversal
     void foreach(const std::function <void (uint32_t)>& f);
     Set<uinteger> decode(uint32_t *buffer);
+    void copy_from(Set<T> src);
 
     //Constructors
     static Set<T> from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size);
@@ -80,7 +92,17 @@ template <class T>
 inline void Set<T>::foreach(const std::function <void (uint32_t)>& f){ 
   T::foreach(f,data,cardinality,number_of_bytes,type);
 }
-
+///////////////////////////////////////////////////////////////////////////////
+//Copy Data from one set into another
+///////////////////////////////////////////////////////////////////////////////
+template <class T>
+inline void Set<T>::copy_from(Set<T> src){ 
+  memcpy(data,src.data,src.number_of_bytes);
+  cardinality = src.cardinality;
+  number_of_bytes = src.number_of_bytes;
+  density = src.density;
+  type = src.type;
+}
 ///////////////////////////////////////////////////////////////////////////////
 //DECODE ARRAY
 ///////////////////////////////////////////////////////////////////////////////

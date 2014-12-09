@@ -2,26 +2,6 @@
 #define _REPACKAGE_H_
 
 namespace ops{
-    inline Set<uinteger> repackage(Set<uinteger> cur, const uint8_t *new_data, const common::type type){
-    (void) new_data; (void) type;
-    return cur;    
-  }
-  inline Set<pshort> repackage(Set<pshort> cur, const uint8_t *new_data, const common::type type){
-    (void) new_data; (void) type;
-    return cur;    
-  }
-  inline Set<bitset> repackage(Set<bitset> cur, const uint8_t *new_data, const common::type type){
-    (void) new_data; (void) type;
-    return cur;    
-  }
-  inline Set<variant> repackage(Set<variant> cur, const uint8_t *new_data, const common::type type){
-    (void) new_data; (void) type;
-    return cur;    
-  }
-  inline Set<bitpacked> repackage(Set<bitpacked> cur, const uint8_t *new_data, const common::type type){
-    (void) new_data; (void) type;
-    return cur;    
-  }
   template <class T>
   inline Set<uinteger> repackage_as_uinteger(Set<T> cur, uint8_t *new_data){
     uint32_t *R = (uint32_t*) new_data;
@@ -81,7 +61,10 @@ namespace ops{
     });
     return Set<bitset>(new_data,count,word,cur.density,common::BITSET);
   }
-  inline Set<hybrid> repackage(Set<hybrid> cur, uint8_t *new_data){
+
+  template<class T>
+  inline Set<hybrid> repackage(Set<T> cur, uint8_t *new_data){
+    cout << "repackaging: " << cur.density << endl;
     common::type type = hybrid::compute_type(cur.density);
     if(type == cur.type || cur.density == 0.0){
       return cur;

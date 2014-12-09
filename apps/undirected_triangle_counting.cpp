@@ -63,7 +63,7 @@ class application{
     inline void produceSubgraph(){
       auto node_selection = std::bind(&application::myNodeSelection, this, _1, _2);
       auto edge_selection = std::bind(&application::myEdgeSelection, this, _1, _2, _3);
-      graphs[0] = SparseMatrix<T,R>::from_symmetric(inputGraph,node_selection,edge_selection);
+      graphs[0] = SparseMatrix<T,R>::from_symmetric_graph(inputGraph,node_selection,edge_selection);
       for(size_t i = 1; i < num_numa_nodes; i++) {
         graphs[i] = graphs[0]->clone_on_node(i);
       }
@@ -85,7 +85,7 @@ class application{
 
       uint32_t *src_buffer = t_data_pointers[0]->decoded_src;
       uint32_t *dst_buffer = t_data_pointers[0]->decoded_dst;
-      Set<R> C(t_data_pointers[0]->buffer,0,0,(R::get_type()));
+      Set<R> C(t_data_pointers[0]->buffer);
 
       long t_local_reducer = 0;
       double t_begin = omp_get_wtime();

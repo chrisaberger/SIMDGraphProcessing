@@ -82,7 +82,7 @@ namespace ops{
     (void) C;
     #endif
 
-    const double density = ((count > 0) ? (double)((C[count]-C[0])/count) : 0.0);
+    const double density = ((count > 0) ? ((double)count/(C[count]-C[0])) : 0.0);
     return Set<uinteger>(C_in.data,count,count*sizeof(uint32_t),density,common::UINTEGER);
   }
   inline size_t simd_intersect_vector16(uint16_t *C, const uint16_t *A, const uint16_t *B, const size_t s_a, const size_t s_b) {
@@ -186,7 +186,7 @@ namespace ops{
     if(count > 0){
       uint32_t first = ((uint32_t)C[0] << 16) | C[2];
       size_t last = ((uint32_t)last_ptr[0] << 16) | last_ptr[last_ptr[1]-1];
-      density = (last-first)/count;
+      density = (double)count/(last-first);
     }
 
     return Set<pshort>(C_in.data,count,counter*sizeof(short),density,common::PSHORT);
@@ -241,7 +241,7 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
       
       count += _mm_popcnt_u32(result);
     }
-    const double density = (count > 0) ? (sizeof(uint8_t)*(small_length-0))/count : 0.0;
+    const double density = (count > 0) ? count/(sizeof(uint8_t)*small_length) : 0.0;
     return Set<bitset>(C_in.data,count,small_length,density,common::BITSET);
   }
   inline Set<pshort> set_intersect(const Set<pshort> &C_in, const Set<pshort> &A_in, const Set<bitset> &B_in){
@@ -293,7 +293,7 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
     if(count > 0){
       uint32_t first = ((uint32_t)C[0] << 16) | C[2];
       size_t last = ((uint32_t)last_ptr[0] << 16) | last_ptr[last_ptr[1]-1];
-      density = (last-first)/count;
+      density = (double)count/(last-first);
     }
 
     return Set<pshort>(C_in.data,count,counter*sizeof(uint16_t),density,common::PSHORT);
@@ -322,7 +322,7 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
         count++;
       }
     }
-    const double density = ((count > 0) ? (double)((C[count]-C[0])/count) : 0.0);
+    const double density = ((count > 0) ? ((double)count/(C[count]-C[0])) : 0.0);
     return Set<uinteger>(C_in.data,count,count*sizeof(uint32_t),density,common::UINTEGER);
   }
   inline Set<uinteger> set_intersect(const Set<uinteger> &C_in,const Set<bitset> &A_in,const Set<uinteger> &B_in){
@@ -430,7 +430,7 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
         not_finished = a_i < s_a && b_i < s_b;
       }
     }
-    const double density = ((count > 0) ? (double)((C[count]-C[0])/count) : 0.0);
+    const double density = ((count > 0) ? ((double)count/(C[count]-C[0])) : 0.0);
     return Set<uinteger>(C_in.data,count,count*sizeof(uint32_t),density,common::UINTEGER);
   }
   inline Set<uinteger> set_intersect(const Set<uinteger> &C_in,const Set<pshort> &A_in,const Set<uinteger> &B_in){

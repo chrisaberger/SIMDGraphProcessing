@@ -12,6 +12,7 @@ class thread_data{
     uint8_t *buffer;
     uint32_t *decoded_src;
     uint32_t *decoded_dst;
+    long result;
 
     SparseMatrix<T,R> *graph;
 
@@ -21,6 +22,7 @@ class thread_data{
       decoded_src = new uint32_t[buffer_lengths]; //space for A and B
       decoded_dst = new uint32_t[buffer_lengths]; //space for A and B
       buffer = new uint8_t[buffer_lengths*sizeof(int)];
+      result = 0;
     }
 };
 
@@ -83,23 +85,29 @@ class application{
       std::atomic<size_t> next_work;
       next_work = 0;
 
-      uint32_t *src_buffer = t_data_pointers[0]->decoded_src;
-      uint32_t *dst_buffer = t_data_pointers[0]->decoded_dst;
-      Set<R> C(t_data_pointers[0]->buffer);
-
-      long t_local_reducer = 0;
       double t_begin = omp_get_wtime();
-      for(size_t i = 0; i < matrix_size; i++){
+      common::par_for_range(num_threads, 0, matrix_size, [t_data_pointers, &graphs](size_t tid, size_t i) {
+        long t_num_triangles = 0;
+        uint32_t *src_buffer = t_data_pointers[tid]->decoded_src;
+        uint32_t *dst_buffer = t_data_pointers[tid]->decoded_dst;
+
         Set<R> A = graphs[0]->get_decoded_row(i,src_buffer);
-        A.foreach( [i,&A,&C,&dst_buffer,&graphs,&t_local_reducer] (uint32_t j){
+        Set<R> C(t_data_pointers[tid]->buffer);
+
+        A.foreach([&A, &C, &dst_buffer, &graphs, &t_num_triangles] (uint32_t j){
           Set<R> B = graphs[0]->get_decoded_row(j,dst_buffer);
-          t_local_reducer += ops::set_intersect(C,A,B).cardinality;
+          t_num_triangles += ops::set_intersect(C,A,B).cardinality;
         });
-      }
+
+        t_data_pointers[tid]->result += t_num_triangles;
+      });
+
+      num_triangles = 0;
+      for(size_t k = 0; k < num_threads; k++)
+         num_triangles += t_data_pointers[k]->result;
 
       double t_end = omp_get_wtime();
       thread_times[0] = t_end - t_begin;
-      reducer = t_local_reducer;
 
       for(size_t k = 0; k < num_threads; k++){
           std::cout << "Execution time of thread " << k << ": " << thread_times[k] << std::endl;
@@ -109,8 +117,8 @@ class application{
     pcm_print_uncore_power_state(before_uncstate, after_uncstate);
     system_counter_state_t after_sstate = pcm_get_counter_state();
     pcm_print_counter_stats(before_sstate, after_sstate);
-    num_triangles = reducer;
   }
+
   inline void run(){
     common::startClock();
     produceSubgraph();

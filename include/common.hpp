@@ -145,5 +145,45 @@ namespace common{
        cout << "WARNING: get_mempolicy failed" << endl;
     return numa_node;
   }
+
+  static void par_for_range(const size_t num_threads, const size_t from, const size_t to, std::function<void(size_t, size_t)> body) {
+     if(num_threads == 1) {
+        for(size_t i = from; i < to; i++) {
+           body(0, i);
+        }
+     }
+     else {
+        thread* threads = new thread[num_threads];
+        const size_t block_size = 1500;
+        const size_t range_len = to - from;
+        std::atomic<size_t> next_work;
+        next_work = 0;
+
+        for(size_t k = 0; k < num_threads; k++) {
+           threads[k] = thread([](int k, std::atomic<size_t>* next_work, size_t offset, size_t range_len, std::function<void(size_t, size_t)> body) -> void {
+              size_t local_block_size = block_size;
+
+              while(true) {
+                 size_t work_start = next_work->fetch_add(local_block_size, std::memory_order_relaxed);
+                 if(work_start > range_len)
+                    break;
+
+
+                 size_t work_end = min(work_start + local_block_size, range_len);
+                 local_block_size = 100 + (work_start / range_len) * block_size;
+                 for(size_t j = work_start; j < work_end; j++) {
+                     body(k, offset + j);
+                 }
+              }
+           }, k, &next_work, from, range_len, body);
+        }
+
+        for(size_t k = 0; k < num_threads; k++) {
+           threads[k].join();
+        }
+
+        //delete[] threads;
+     }
+  }
 }
 #endif

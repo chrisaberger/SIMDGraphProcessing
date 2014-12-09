@@ -19,7 +19,7 @@ int main (int argc, char* argv[]) {
   
   Matrix *m = new Matrix(inputGraph->out_neighborhoods,inputGraph->in_neighborhoods,
     inputGraph->num_nodes,inputGraph->num_edges,
-    &myNodeSelection,&myEdgeSelection,inputGraph->external_ids,common::ARRAY32);
+    &myNodeSelection,&myEdgeSelection,inputGraph->external_ids,common::UINTEGER);
   
   m->print_data("output.txt");
 

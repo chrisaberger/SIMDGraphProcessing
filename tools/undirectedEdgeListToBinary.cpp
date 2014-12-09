@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "MutableGraph.hpp"
-#include "Matrix.hpp"
 
 int main (int argc, char* argv[]) {
   if(argc != 3){

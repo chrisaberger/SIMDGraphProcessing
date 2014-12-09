@@ -80,8 +80,8 @@ int main (int argc, char* argv[]) {
   print_arrays(a_data,b_data,a_size,b_size);
   #endif 
 
-  uint_array::preprocess(a_preproccessed,0,a_data,a_size,common::ARRAY32);
-  uint_array::preprocess(b_preproccessed,0,b_data,b_size,common::ARRAY32);
+  uint_array::preprocess(a_preproccessed,0,a_data,a_size,common::UINTEGER);
+  uint_array::preprocess(b_preproccessed,0,b_data,b_size,common::UINTEGER);
 
   common::stopClock("CREATING ARRAYS");
 

@@ -1,10 +1,14 @@
+int main () { 
+  return 0;
+}
 // class templates
-#include "AOA_Matrix.hpp"
+/*
+#include "SparseMatrix.hpp"
 #include "MutableGraph.hpp"
 #include "Table.hpp"
 
 namespace application{
-  AOA_Matrix *graph;
+  SparseMatrix *graph;
   long num_triangles = 0;
   Table *output;
   size_t num_threads;
@@ -38,10 +42,6 @@ namespace application{
       decoded_src = new uint32_t[buffer_lengths];
     }
     ~thread_data() { 
-      /*
-      for(size_t i = 0; i < query_depth-2; i++){
-        delete[] buffers[i];
-      }*/
       delete[] buffers;
       delete[] decoded_src;
       delete[] buffer_cardinalities;
@@ -96,7 +96,7 @@ namespace application{
     }
   }
   inline void queryOver(){
-    auto row_function = std::bind(&AOA_Matrix::sum_over_columns_in_row<long>, graph, _1, _2, _3);
+    auto row_function = std::bind(&SparseMatrix::sum_over_columns_in_row<long>, graph, _1, _2, _3);
 
     const size_t matrix_size = graph->matrix_size;
     
@@ -157,11 +157,11 @@ int main (int argc, char* argv[]) {
 
   common::type layout;
   if(input_layout.compare("a32") == 0){
-    layout = common::ARRAY32;
+    layout = common::UINTEGER;
   } else if(input_layout.compare("bs") == 0){
     layout = common::BITSET;
   } else if(input_layout.compare("a16") == 0){
-    layout = common::ARRAY16;
+    layout = common::PSHORT;
   } else if(input_layout.compare("hybrid") == 0){
     layout = common::HYBRID_PERF;
   }
@@ -169,7 +169,7 @@ int main (int argc, char* argv[]) {
   else if(input_layout.compare("v") == 0){
     layout = common::VARIANT;
   } else if(input_layout.compare("bp") == 0){
-    layout = common::A32BITPACKED;
+    layout = common::BITPACKED;
   } 
   #endif
   else{
@@ -192,7 +192,7 @@ int main (int argc, char* argv[]) {
   cout << endl;
 
   common::startClock();
-  application::graph = AOA_Matrix::from_symmetric(inputGraph,node_selection,edge_selection,layout);
+  application::graph = SparseMatrix::from_symmetric(inputGraph,node_selection,edge_selection,layout);
   common::stopClock("selections");
   
   inputGraph->MutableGraph::~MutableGraph(); 
@@ -205,9 +205,10 @@ int main (int argc, char* argv[]) {
   application::queryOver();
   common::stopClock(input_layout);  
 
-  //application::graph->AOA_Matrix::~AOA_Matrix();
+  //application::graph->SparseMatrix::~SparseMatrix();
   cout << "Count: " << application::num_triangles << endl << endl;
 
   application::output->print_data("table.txt",application::graph->id_map);
   return 0;
 }
+*/

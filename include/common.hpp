@@ -22,15 +22,16 @@
 #include <unistd.h>
 #include <thread>
 #include <atomic>
+#include <tuple>
 #include <cstdarg>
+#include <set>
 
 //#define ENABLE_PCM
 
 #define WRITE_VECTOR 1
-#define VECTORIZE 1
 #define COMPRESSION 1
+#define VECTORIZE 1
 
-#define HYBRID_LAYOUT 1
 #define SHORTS_PER_REG 8
 #define INTS_PER_REG 4
 #define BYTES_PER_REG 16
@@ -119,14 +120,10 @@ namespace common{
 
   enum type: uint8_t {
     BITSET = 0,
-    ARRAY16 = 1,
-    ARRAY32 = 2,
-    A32BITPACKED = 3,
-    VARIANT = 4,
-    HYBRID_PERF = 5,
-    HYBRID_COMP = 6,
-    DENSE_RUNS = 7,
-    EMPTY = 8
+    PSHORT = 1,
+    UINTEGER = 2,
+    BITPACKED = 3,
+    VARIANT = 4
   };
 
   static void* allocate_local(size_t num, size_t size, int node) {

@@ -6,7 +6,7 @@ namespace application{
   Matrix *graph;
   uint8_t *result;
   long num_triangles = 0;
-  common::type graphType = common::A32BITPACKED;
+  common::type graphType = common::BITPACKED;
   
   inline bool myNodeSelection(uint32_t node){
     (void)node;

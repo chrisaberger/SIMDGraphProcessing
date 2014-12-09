@@ -133,8 +133,12 @@ namespace pcm_helper {
    int32_t pcm_cleanup() { return 0; }
    system_counter_state_t pcm_get_counter_state() { return 0; }
    server_uncore_power_state_t* pcm_get_uncore_power_state() { return 0; }
-   void pcm_print_uncore_power_state(server_uncore_power_state_t* before_uncstate, server_uncore_power_state_t* after_uncstate) {}
-   void pcm_print_counter_stats(system_counter_state_t before_sstate, system_counter_state_t after_sstate) {}
+   void pcm_print_uncore_power_state(server_uncore_power_state_t* before_uncstate, server_uncore_power_state_t* after_uncstate) {
+      (void) before_uncstate; (void) after_uncstate;
+   }
+   void pcm_print_counter_stats(system_counter_state_t before_sstate, system_counter_state_t after_sstate) {
+      (void) before_sstate; (void) after_sstate;
+   }
 }
 #endif
 

@@ -6,7 +6,7 @@ namespace application{
   Matrix *graph;
   uint8_t *result;
   long num_triangles = 0;
-  common::type graphType = common::A32BITPACKED;
+  common::type graphType = common::BITPACKED;
   
   inline bool myNodeSelection(uint32_t node){
     (void)node;
@@ -45,7 +45,7 @@ int main (int argc, char* argv[]) {
   
   application::graph = new Matrix(inputGraph.out_neighborhoods,
     inputGraph.num_nodes,inputGraph.num_edges,
-    &application::myNodeSelection,&application::myEdgeSelection,common::ARRAY32);
+    &application::myNodeSelection,&application::myEdgeSelection,common::UINTEGER);
   application::graph->print_rows(14,10,"da.txt");
   application::num_triangles = application::graph->row_intersect(application::result,14,10);
 
@@ -70,7 +70,7 @@ int main (int argc, char* argv[]) {
   /*
   application::graph = new Matrix(inputGraph.out_neighborhoods,
       inputGraph.num_nodes,inputGraph.num_edges,
-      &application::myNodeSelection,&application::myEdgeSelection,common::A32BITPACKED);
+      &application::myNodeSelection,&application::myEdgeSelection,common::BITPACKED);
   common::startClock();
   application::graph->print_data("a32bitpacked.txt");
   application::queryOver();

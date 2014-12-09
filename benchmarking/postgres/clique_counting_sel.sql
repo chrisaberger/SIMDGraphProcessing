@@ -6,7 +6,7 @@ WHERE
    e1.year = 2012 AND e2.year = 2012 AND e3.year = 2012 AND e4.year = 2012 AND
    e5.year = 2012 AND e6.year = 2012 AND
    n1.place > 500 AND n2.place > 500 AND n3.place > 500 AND n4.place > 500 AND
-   n1.a = e1.a AND n2.a = e2.a AND n3.a = e3.b AND n4.a = e4.a AND
+   n1.a = e1.a AND n2.a = e2.a AND n3.a = e3.a AND n4.a = e4.b AND
    e1.b = e2.a AND e2.b = e3.a AND e3.b = e4.b AND
    e1.a = e4.a AND e5.a = e1.b AND e5.b = e3.b AND
    e6.a = e1.a AND e6.b = e3.a;

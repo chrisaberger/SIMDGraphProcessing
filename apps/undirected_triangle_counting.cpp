@@ -106,9 +106,9 @@ class application{
   }
 
   inline void run(){
-    common::startClock();
+    double start_time = common::startClock();
     produceSubgraph();
-    common::stopClock("Selections");
+    common::stopClock("Selections",start_time);
 
     //common::startClock();
     allocBuffers();
@@ -119,9 +119,9 @@ class application{
     if(pcm_init() < 0)
        return;
 
-    common::startClock();
+    start_time = common::startClock();
     queryOver();
-    common::stopClock("Application Time for Layout " + layout);
+    common::stopClock("Application Time for Layout " + layout,start_time);
 
     cout << "Count: " << num_triangles << endl << endl;
     pcm_cleanup();

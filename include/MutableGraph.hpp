@@ -24,7 +24,8 @@ struct MutableGraph {
   void reorder_by_degree();
 
   void reassign_ids(vector< vector<uint32_t>* > *neighborhoods,vector< vector<uint32_t>* > *new_neighborhoods,uint32_t *new2old_ids,uint32_t *old2new_ids);
-
+  
+  void writeDirectedToLigra(const string path);
   void writeUndirectedToBinary(const string path);
   void writeDirectedToBinary(const string path);
 

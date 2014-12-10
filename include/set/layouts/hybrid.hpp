@@ -28,7 +28,7 @@ inline common::type hybrid::get_type(){
   return common::PSHORT;
 }
 inline common::type hybrid::compute_type(const double density){
-  if( density > (double) 1/32 ){
+  if( density > (double) 4/32 ){
     return common::BITSET;
   } else if(((1/density)*(1/65536)) > 12){
     return common::PSHORT;

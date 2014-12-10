@@ -30,7 +30,7 @@
 //#define ENABLE_PRINT_THREAD_TIMES
 
 #define WRITE_VECTOR 1
-#define COMPRESSION 1
+#define COMPRESSION 0
 #define VECTORIZE 1
 
 #define SHORTS_PER_REG 8
@@ -61,17 +61,14 @@ using namespace std;
 using namespace std::placeholders;
 
 namespace common{
-  static double t1;
-  static double t2;
-
-  static void startClock (){
-    t1=omp_get_wtime();
+  static double startClock (){
+    return omp_get_wtime();
   }
 
-  static double stopClock(string in){
-    t2=omp_get_wtime();
-    std::cout << "Time["+in+"]: " << t2-t1 << " s" << std::endl;
-    return t2 - t1;
+  static double stopClock(string in,double t_in){
+    double t2=omp_get_wtime();
+    std::cout << "Time["+in+"]: " << t2-t_in << " s" << std::endl;
+    return t2 - t_in;
   }
 
   static void allocateStack(){

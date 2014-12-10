@@ -52,7 +52,7 @@ namespace ops{
     }
     #endif 
     
-    const double density = (count > 0) ? (double)count/(sizeof(uint8_t)*small_length) : 0.0;
+    const double density = (count > 0) ? (double)count/(8*small_length) : 0.0;
     return Set<bitset>(C_in.data,count,small_length,density,common::BITSET);
   }
   inline Set<uinteger> set_difference(const Set<uinteger> &C_in, const Set<bitset> &A_in, const Set<bitset> &B_in){

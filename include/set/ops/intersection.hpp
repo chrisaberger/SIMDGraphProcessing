@@ -241,7 +241,7 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
       
       count += _mm_popcnt_u32(result);
     }
-    const double density = (count > 0) ? count/(sizeof(uint8_t)*small_length) : 0.0;
+    const double density = (count > 0) ? (double)count/(8*small_length) : 0.0;
     return Set<bitset>(C_in.data,count,small_length,density,common::BITSET);
   }
   inline Set<pshort> set_intersect(const Set<pshort> &C_in, const Set<pshort> &A_in, const Set<bitset> &B_in){

@@ -6,6 +6,7 @@ namespace ops{
   inline Set<uinteger> repackage_as_uinteger(Set<T> cur, uint8_t *new_data){
     uint32_t *R = (uint32_t*) new_data;
     size_t i = 0; 
+    cout <<"repack uint"<< endl;
     cur.foreach( [&i,&R] (uint32_t old_data){
       R[i++] = old_data; 
     });
@@ -65,6 +66,7 @@ namespace ops{
   template<class T>
   inline Set<hybrid> repackage(Set<T> cur, uint8_t *new_data){
     common::type type = hybrid::compute_type(cur.density);
+    cout << "repack type: " << (unsigned int)type << endl;
     if(type == cur.type || cur.density == 0.0){
       return cur;
     } else if(type == common::UINTEGER){

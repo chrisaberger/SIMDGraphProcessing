@@ -43,10 +43,12 @@ class application{
     }
 
   inline void queryOver(uint32_t start_node){
-    uint8_t *f_data = new uint8_t[graphs[0]->max_nbrhood_size*sizeof(uint32_t)];
+    uint8_t *f_data = new uint8_t[graphs[0]->matrix_size*sizeof(uint32_t)];
     uint32_t *start_array = new uint32_t[1];
-    cout << "start node: " << start_node << " max size: " << graphs[0]->max_nbrhood_size << endl;
+    cout << "alloc size: " << graphs[0]->matrix_size*1000 << endl;
+    cout << "start node: " << start_node << "  num nodes: " << graphs[0]->matrix_size << endl;
     start_array[0] = start_node;
+
     Set<hybrid> frontier = Set<uinteger>::from_array(f_data,start_array,1);
 
     //Set<uinteger> next_frontier(graphs[0]->matrix_size*sizeof(uint32_t));
@@ -57,11 +59,20 @@ class application{
 
     Set<bitset> old_visited((graphs[0]->matrix_size/sizeof(uint32_t))+1);
 
+    double compute_timer  = common::startClock();
+
     //Set<T> outnbrs = graphs[0]->get_row(132365);
     bool finished = false;
     size_t path_length = 0;
     while(!finished){
+      //cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << endl;
+      double start_time = common::startClock();
+      
+      //double copy_time = common::startClock();
       old_visited.copy_from(visited);
+      //common::stopClock("copy time",copy_time);
+
+      //double union_time = common::startClock();
       //cout << "Path: " << path_length << endl;
       if(frontier.type == common::BITSET){
         for(size_t i=0; i<graphs[0]->matrix_size; i++){
@@ -74,7 +85,7 @@ class application{
             });
           }
         }
-        memset(next_frontier.data,(uint8_t)0,frontier.number_of_bytes);
+        //memset(next_frontier.data,(uint8_t)0,frontier.number_of_bytes);
       } else{
         frontier.foreach( [&visited,&graphs] (uint32_t f){
           //cout << " Frontier: " << graphs[0]->id_map[f] << " " << f << endl;
@@ -82,25 +93,37 @@ class application{
           ops::set_union(visited,outnbrs);
         }); 
       }
+      //common::stopClock("union time",union_time);
 
 
       //IF YOU WANT FUSED REPACKAGING 
-      //frontier = ops::set_difference(next_frontier,visited,old_visited);  
+      /*
+      double diff_time = common::startClock();
+      frontier = ops::set_difference(next_frontier,visited,old_visited);  
+      common::stopClock("difference",diff_time);
+    */
 
       //CODE IF WE WANT TO REPACKAGE
-      next_frontier = ops::set_difference(next_frontier,visited,old_visited);    
-      frontier = ops::repackage(next_frontier,frontier.data);
-      cout << "F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << endl;
+      //double diff_time = common::startClock();
+      next_frontier = ops::set_difference(next_frontier,visited,old_visited);  
+      //common::stopClock("difference",diff_time);
+
+      //double repack_time = common::startClock();
+      frontier = ops::repackage(next_frontier,f_data);
+      //common::stopClock("repack",repack_time);
+
       path_length++;
       finished = frontier.cardinality == 0;
+      common::stopClock("Iteration",start_time);
     }
-    cout << "path length: " << (path_length-1) << endl;
+    common::stopClock("compute time",compute_timer);
+    //cout << "path length: " << (path_length-1) << endl;
   }
   
   inline void run(){
-    common::startClock();
+    double selection_time = common::startClock();
     produceSubgraph();
-    common::stopClock("Selections");
+    common::stopClock("Selections",selection_time);
     
     //graphs[0]->print_data("graph.txt");
     uint32_t start_node = graphs[0]->get_max_row_id();
@@ -109,9 +132,9 @@ class application{
     if(pcm_init() < 0)
       return;
 
-    common::startClock();
+    double bfs_time = common::startClock();
     queryOver(start_node);
-    common::stopClock("BFS");
+    common::stopClock("BFS",bfs_time);
 
     pcm_cleanup();
   }
@@ -133,7 +156,7 @@ int main (int argc, char* argv[]) {
 
   size_t num_nodes = 1;
   //common::startClock();
-  MutableGraph *inputGraph = MutableGraph::directedFromEdgeList(argv[1]); //filename, # of files
+  MutableGraph *inputGraph = MutableGraph::directedFromBinary(argv[1]); //filename, # of files
   //common::stopClock("Reading File");
 
   if(input_layout.compare("a32") == 0){

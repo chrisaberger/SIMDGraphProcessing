@@ -111,7 +111,7 @@ inline uint32_t SparseMatrix<T,R>::get_max_row_id(){
       max = row_lengths[i];
     }
   }
-  cout << "MAXIMUM NODE: " << id_map[max_id] << endl; 
+  cout << "MAXIMUM NODE: " << id_map[max_id] << " INTERNAL ID: " << max_id << endl; 
   return max_id;
 }
 

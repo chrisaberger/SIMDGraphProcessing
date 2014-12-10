@@ -566,6 +566,41 @@ MutableGraph* MutableGraph::undirectedFromEdgeList(const string path) {
   return new MutableGraph(neighborhoods->size(),num_edges,max_nbrhood_size,true,id_map,id_attributes,neighborhoods,neighborhoods,edge_attributes,edge_attributes); 
 }
 
+void MutableGraph::writeDirectedToLigra(const string path) {
+  ofstream myfile;
+  myfile.open(path);
+
+  myfile << "AdjacencyGraph" << endl;
+  myfile << num_nodes << endl;
+
+  size_t numedges = 0;
+  for(size_t i = 0; i < num_nodes; ++i){
+    /////////////////////////////////////////////////////////////////////
+    vector<uint32_t> *row = out_neighborhoods->at(i);
+    numedges += row->size();
+  }
+  myfile << numedges << endl;
+
+
+  size_t index = 0;
+  for(size_t i = 0; i < num_nodes; ++i){
+    myfile << index << endl;
+
+    /////////////////////////////////////////////////////////////////////
+    vector<uint32_t> *row = out_neighborhoods->at(i);
+    size_t rsize = row->size();
+    index += rsize;
+  }
+  for(size_t i = 0; i < num_nodes; ++i){
+    vector<uint32_t> *row = out_neighborhoods->at(i);
+    size_t rsize = row->size();
+    for(size_t j = 0; j < rsize; j++){
+      myfile << row->at(j) << endl;
+    }
+  }
+  myfile.close();
+}
+
 void MutableGraph::writeDirectedToBinary(const string path) {
   ofstream outfile;
   outfile.open(path, ios::binary | ios::out);

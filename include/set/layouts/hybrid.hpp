@@ -43,6 +43,7 @@ inline common::type hybrid::compute_type(const double density){
     return common::UINTEGER;
   } 
 }
+#if PERFORMANCE == 1
 inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
   if(length > 0){
     uint32_t max_value = data[length-1];
@@ -58,6 +59,22 @@ inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
     return common::UINTEGER;
   }
 }
+#endif
+#if COMPRESSION == 1
+  if(length > 0){
+    uint32_t max_value = data[length-1];
+    double sparsity = (double) length/max_value;
+    if( sparsity > (double) 1/32 ){
+      return common::BITSET;
+    } else if(length > 100){
+      return common::BITPACKED;
+    } else {
+      return common::VARIANT;
+    } 
+  } else{
+    return common::VARIANT;
+  }
+#endif
 
 //Copies data from input array of ints to our set data r_in
 inline size_t hybrid::build(uint8_t *r_in, const uint32_t *data, const size_t length){

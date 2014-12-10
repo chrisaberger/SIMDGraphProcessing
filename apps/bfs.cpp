@@ -45,8 +45,6 @@ class application{
   inline void queryOver(uint32_t start_node){
     uint8_t *f_data = new uint8_t[graphs[0]->matrix_size*sizeof(uint32_t)];
     uint32_t *start_array = new uint32_t[1];
-    cout << "alloc size: " << graphs[0]->matrix_size*1000 << endl;
-    cout << "start node: " << start_node << "  num nodes: " << graphs[0]->matrix_size << endl;
     start_array[0] = start_node;
 
     Set<hybrid> frontier = Set<uinteger>::from_array(f_data,start_array,1);
@@ -65,7 +63,7 @@ class application{
     bool finished = false;
     size_t path_length = 0;
     while(!finished){
-      //cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << endl;
+      cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << endl;
       double start_time = common::startClock();
       
       //double copy_time = common::startClock();

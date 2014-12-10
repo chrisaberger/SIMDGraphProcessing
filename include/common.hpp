@@ -27,6 +27,7 @@
 #include <set>
 
 //#define ENABLE_PCM
+//#define ENABLE_PRINT_THREAD_TIMES
 
 #define WRITE_VECTOR 1
 #define COMPRESSION 1
@@ -146,6 +147,7 @@ namespace common{
     return numa_node;
   }
 
+  // Iterates over a range of numbers in parallel
   static void par_for_range(const size_t num_threads, const size_t from, const size_t to, std::function<void(size_t, size_t)> body) {
      if(num_threads == 1) {
         for(size_t i = from; i < to; i++) {
@@ -153,6 +155,12 @@ namespace common{
         }
      }
      else {
+        double t_begin = omp_get_wtime();
+        double* thread_times = NULL;
+
+#ifdef ENABLE_PRINT_THREAD_TIMES
+        thread_times = new double[num_threads];
+#endif
         thread* threads = new thread[num_threads];
         const size_t block_size = 1500;
         const size_t range_len = to - from;
@@ -160,7 +168,7 @@ namespace common{
         next_work = 0;
 
         for(size_t k = 0; k < num_threads; k++) {
-           threads[k] = thread([](int k, std::atomic<size_t>* next_work, size_t offset, size_t range_len, std::function<void(size_t, size_t)> body) -> void {
+           threads[k] = thread([](double t_begin, double* thread_times, int k, std::atomic<size_t>* next_work, size_t offset, size_t range_len, std::function<void(size_t, size_t)> body) -> void {
               size_t local_block_size = block_size;
 
               while(true) {
@@ -175,14 +183,29 @@ namespace common{
                      body(k, offset + j);
                  }
               }
-           }, k, &next_work, from, range_len, body);
+
+
+#ifdef ENABLE_PRINT_THREAD_TIMES
+              double t_end = omp_get_wtime();
+              thread_times[k] = t_end - t_begin;
+#else
+              (void) t_begin;
+              (void) thread_times;
+#endif
+           }, t_begin, thread_times, k, &next_work, from, range_len, body);
         }
 
         for(size_t k = 0; k < num_threads; k++) {
            threads[k].join();
         }
 
-        //delete[] threads;
+#ifdef ENABLE_PRINT_THREAD_TIMES
+        for(size_t k = 0; k < num_threads; k++){
+            std::cout << "Execution time of thread " << k << ": " << thread_times[k] << std::endl;
+        }
+#endif
+
+        delete[] threads;
      }
   }
 }

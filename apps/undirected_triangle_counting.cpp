@@ -77,41 +77,27 @@ class application{
 
       size_t matrix_size = graphs[0]->matrix_size;
 
-      //thread* threads = new thread[num_threads];
-      double* thread_times = new double[num_threads];
-      std::atomic<long> reducer;
-      reducer = 0;
-      //const size_t block_size = 1500; //matrix_size / num_threads;
-      std::atomic<size_t> next_work;
-      next_work = 0;
+      common::par_for_range(num_threads, 0, matrix_size,
+        [t_data_pointers, &graphs](size_t tid, size_t i) {
+           long t_num_triangles = 0;
+           uint32_t *src_buffer = t_data_pointers[tid]->decoded_src;
+           uint32_t *dst_buffer = t_data_pointers[tid]->decoded_dst;
 
-      double t_begin = omp_get_wtime();
-      common::par_for_range(num_threads, 0, matrix_size, [t_data_pointers, &graphs](size_t tid, size_t i) {
-        long t_num_triangles = 0;
-        uint32_t *src_buffer = t_data_pointers[tid]->decoded_src;
-        uint32_t *dst_buffer = t_data_pointers[tid]->decoded_dst;
+           Set<R> A = graphs[0]->get_decoded_row(i,src_buffer);
+           Set<R> C(t_data_pointers[tid]->buffer);
 
-        Set<R> A = graphs[0]->get_decoded_row(i,src_buffer);
-        Set<R> C(t_data_pointers[tid]->buffer);
+           A.foreach([&A, &C, &dst_buffer, &graphs, &t_num_triangles] (uint32_t j){
+             Set<R> B = graphs[0]->get_decoded_row(j,dst_buffer);
+             t_num_triangles += ops::set_intersect(C,A,B).cardinality;
+           });
 
-        A.foreach([&A, &C, &dst_buffer, &graphs, &t_num_triangles] (uint32_t j){
-          Set<R> B = graphs[0]->get_decoded_row(j,dst_buffer);
-          t_num_triangles += ops::set_intersect(C,A,B).cardinality;
-        });
-
-        t_data_pointers[tid]->result += t_num_triangles;
-      });
+           t_data_pointers[tid]->result += t_num_triangles;
+        }
+      );
 
       num_triangles = 0;
       for(size_t k = 0; k < num_threads; k++)
          num_triangles += t_data_pointers[k]->result;
-
-      double t_end = omp_get_wtime();
-      thread_times[0] = t_end - t_begin;
-
-      for(size_t k = 0; k < num_threads; k++){
-          std::cout << "Execution time of thread " << k << ": " << thread_times[k] << std::endl;
-      }
 
     server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();
     pcm_print_uncore_power_state(before_uncstate, after_uncstate);

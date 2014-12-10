@@ -20,13 +20,20 @@ class bitset{
     static size_t build(uint8_t *r_in, const uint32_t *data, const size_t length);
     static size_t build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length);
     static tuple<size_t,size_t,common::type> get_flattened_data(const uint8_t *set_data, const size_t cardinality);
-   
+
     static void notforeach(const std::function <void (uint32_t)>& f, const uint8_t *A, const size_t number_of_bytes, const size_t mat_size);
     static void foreach(const std::function <void (uint32_t)>& f,
-      const uint8_t *data_in, 
-      const size_t cardinality, 
+      const uint8_t *data_in,
+      const size_t cardinality,
       const size_t number_of_bytes,
       const common::type type);
+    static void par_foreach(
+      const size_t num_threads,
+      const std::function <void (size_t, uint32_t)>& f,
+      const uint8_t* A,
+      const size_t cardinality,
+      const size_t number_of_bytes,
+      const common::type t);
 };
 //compute word of data
 inline size_t bitset::word_index(const uint32_t bit_index){
@@ -98,10 +105,10 @@ inline tuple<size_t,size_t,common::type> bitset::get_flattened_data(const uint8_
 }
 
 //Iterates over set applying a lambda.
-inline void bitset::foreach(const std::function <void (uint32_t)>& f, 
-  const uint8_t *A, 
-  const size_t cardinality, 
-  const size_t number_of_bytes, 
+inline void bitset::foreach(const std::function <void (uint32_t)>& f,
+  const uint8_t *A,
+  const size_t cardinality,
+  const size_t number_of_bytes,
   const common::type type){
   (void) cardinality; (void) type;
 
@@ -114,9 +121,11 @@ inline void bitset::foreach(const std::function <void (uint32_t)>& f,
     }
   }
 }
-//Iterates over set applying a lambda.
-inline void bitset::notforeach(const std::function <void (uint32_t)>& f, 
-  const uint8_t *A, 
+
+// Iterates over set applying a lambda.
+// Haters gonna hate...
+inline void bitset::notforeach(const std::function <void (uint32_t)>& f,
+  const uint8_t *A,
   const size_t number_of_bytes,
   const size_t mat_size){
 
@@ -129,4 +138,21 @@ inline void bitset::notforeach(const std::function <void (uint32_t)>& f,
       }
     }
   }
+}
+
+// Iterates over set applying a lambda in parallel.
+inline void bitset::par_foreach(
+      const size_t num_threads,
+      const std::function <void (size_t, uint32_t)>& f,
+      const uint8_t* A,
+      const size_t cardinality,
+      const size_t number_of_bytes,
+      const common::type t) {
+   (void) number_of_bytes; (void) t;
+
+   common::par_for_range(num_threads, 0, cardinality,
+         [&f, &A](size_t tid, size_t i) {
+            if((A[i / BITS_PER_WORD] >> (i % BITS_PER_WORD)) == 0)
+               f(tid, i);
+         });
 }

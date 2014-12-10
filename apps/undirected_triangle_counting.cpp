@@ -138,7 +138,7 @@ int main (int argc, char* argv[]) {
 
   size_t num_threads = atoi(argv[2]);
   cout << endl << "Number of threads: " << num_threads << endl;
-  omp_set_num_threads(num_threads);        
+  omp_set_num_threads(num_threads);
 
   std::string input_layout = argv[3];
 

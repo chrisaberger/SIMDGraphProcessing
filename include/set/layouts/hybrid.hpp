@@ -23,6 +23,13 @@ class hybrid{
     static size_t build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length);
     static tuple<size_t,size_t,common::type> get_flattened_data(const uint8_t *set_data, const size_t cardinality);
     static void foreach(const std::function <void (uint32_t)>& f,const uint8_t *data_in, const size_t cardinality, const size_t number_of_bytes, const common::type t);
+    static void par_foreach(
+      const size_t num_threads,
+      const std::function <void (size_t, uint32_t)>& f,
+      const uint8_t *data_in,
+      const size_t cardinality,
+      const size_t number_of_bytes,
+      const common::type t);
 };
 inline common::type hybrid::get_type(){
   return common::PSHORT;
@@ -160,4 +167,38 @@ inline void hybrid::foreach(const std::function <void (uint32_t)>& f, const uint
   }
 }
 
+//Iterates over set applying a lambda.
+inline void hybrid::par_foreach(
+      const size_t num_threads,
+      const std::function <void (size_t, uint32_t)>& f,
+      const uint8_t *data_in,
+      const size_t cardinality,
+      const size_t number_of_bytes,
+      const common::type t) {
+  switch(t){
+    case common::UINTEGER :
+      uinteger::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::UINTEGER);
+    break;
+    case common::PSHORT :
+      std::cout << "Parallel foreach for PSHORT is not implemented" << std::endl;
+      exit(EXIT_FAILURE);
+      // pshort::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::PSHORT);
+    break;
+    case common::BITSET :
+      bitset::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::BITSET);
+    break;
+    case common::VARIANT :
+      std::cout << "Parallel foreach for VARIANT is not implemented" << std::endl;
+      exit(EXIT_FAILURE);
+      // variant::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::BITSET);
+    break;
+    case common::BITPACKED :
+      std::cout << "Parallel foreach for BITPACKED is not implemented" << std::endl;
+      exit(EXIT_FAILURE);
+      // bitpacked::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::BITSET);
+    break;
+    default:
+    break;
+  }
+}
 #endif

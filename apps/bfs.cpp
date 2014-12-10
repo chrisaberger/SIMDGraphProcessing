@@ -13,14 +13,12 @@ class application{
     size_t num_numa_nodes;
     size_t num_threads;
     string layout;
-    size_t id;
 
-    application(size_t num_numa_nodes_in, MutableGraph *inputGraph_in, size_t num_threads_in, string input_layout, size_t id_in){
+    application(size_t num_numa_nodes_in, MutableGraph *inputGraph_in, size_t num_threads_in, string input_layout) {
       num_numa_nodes = num_numa_nodes_in;
       inputGraph = inputGraph_in; 
       num_threads = num_threads_in;
       layout = input_layout;
-      id = id_in;
 
       graphs = new SparseMatrix<T,R>*[num_numa_nodes];
     }
@@ -49,11 +47,12 @@ class application{
     cout << "start node: " << start_node << "  num nodes: " << graphs[0]->matrix_size << endl;
     start_array[0] = start_node;
 
+    //Set<uinteger> frontier = Set<uinteger>::from_array(f_data,start_array,1);
     Set<hybrid> frontier = Set<uinteger>::from_array(f_data,start_array,1);
 
     //Set<uinteger> next_frontier(graphs[0]->matrix_size*sizeof(uint32_t));
     Set<bitset> next_frontier((graphs[0]->matrix_size/sizeof(uint32_t))+1);
-    
+
     Set<bitset> visited((graphs[0]->matrix_size/sizeof(uint32_t))+1);
     bitset::set(start_node,visited.data);
 
@@ -65,7 +64,7 @@ class application{
     bool finished = false;
     size_t path_length = 0;
     while(!finished){
-      //cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << endl;
+      cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << endl;
       double start_time = common::startClock();
       
       //double copy_time = common::startClock();
@@ -75,34 +74,40 @@ class application{
       //double union_time = common::startClock();
       //cout << "Path: " << path_length << endl;
       if(frontier.type == common::BITSET){
-        for(size_t i=0; i<graphs[0]->matrix_size; i++){
-          if(!bitset::is_set(i,visited.data)){
-            Set<T> innbrs = graphs[0]->get_column(i);
-            innbrs.foreach([frontier,i,&visited] (uint32_t nbr){
-              if(bitset::is_set(nbr,frontier.data)){
-                bitset::set(i,visited.data);
-              }
-            });
+        common::par_for_range(num_threads, 0, graphs[0]->matrix_size,
+          [&graphs, &visited, &frontier](size_t tid, size_t i) {
+             (void) tid;
+
+             if(!bitset::is_set(i,visited.data)) {
+               Set<T> innbrs = graphs[0]->get_column(i);
+               innbrs.foreach([frontier,i,&visited] (uint32_t nbr){
+                 if(bitset::is_set(nbr,frontier.data)){
+                   bitset::set(i,visited.data);
+                 }
+               });
+             }
           }
-        }
+        );
         //memset(next_frontier.data,(uint8_t)0,frontier.number_of_bytes);
       } else{
-        frontier.foreach( [&visited,&graphs] (uint32_t f){
-          //cout << " Frontier: " << graphs[0]->id_map[f] << " " << f << endl;
-          Set<T> outnbrs = graphs[0]->get_row(f);
-          ops::set_union(visited,outnbrs);
-        }); 
+        frontier.par_foreach(num_threads,
+          [&visited,&graphs] (size_t tid, uint32_t f){
+             (void) tid;
+
+             //cout << " Frontier: " << graphs[0]->id_map[f] << " " << f << endl;
+             Set<T> outnbrs = graphs[0]->get_row(f);
+             ops::set_union(visited,outnbrs);
+        });
       }
       //common::stopClock("union time",union_time);
 
 
       //IF YOU WANT FUSED REPACKAGING 
-      /*
+/*
       double diff_time = common::startClock();
       frontier = ops::set_difference(next_frontier,visited,old_visited);  
       common::stopClock("difference",diff_time);
-    */
-
+*/
       //CODE IF WE WANT TO REPACKAGE
       //double diff_time = common::startClock();
       next_frontier = ops::set_difference(next_frontier,visited,old_visited);  
@@ -142,9 +147,9 @@ class application{
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
-  if(argc != 5){
+  if(argc != 4){
     cout << "Please see usage below: " << endl;
-    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp> <start node id>" << endl;
+    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp>" << endl;
     exit(0);
   }
 
@@ -160,24 +165,24 @@ int main (int argc, char* argv[]) {
   //common::stopClock("Reading File");
 
   if(input_layout.compare("a32") == 0){
-    application<uinteger,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout,atoi(argv[4]));
+    application<uinteger,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();
   } else if(input_layout.compare("bs") == 0){
-    application<bitset,bitset> myapp(num_nodes,inputGraph,num_threads,input_layout,atoi(argv[4]));
+    application<bitset,bitset> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();  
   } else if(input_layout.compare("a16") == 0){
-    application<pshort,pshort> myapp(num_nodes,inputGraph,num_threads,input_layout,atoi(argv[4]));
+    application<pshort,pshort> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();  
   } else if(input_layout.compare("hybrid") == 0){
-    application<hybrid,hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout,atoi(argv[4]));
+    application<hybrid,hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();  
   } 
   #if COMPRESSION == 1
   else if(input_layout.compare("v") == 0){
-    application<variant,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout,atoi(argv[4]));
+    application<variant,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();  
   } else if(input_layout.compare("bp") == 0){
-    application<bitpacked,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout,atoi(argv[4]));
+    application<bitpacked,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();
   } 
   #endif

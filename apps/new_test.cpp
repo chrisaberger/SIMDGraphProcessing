@@ -3,7 +3,8 @@
 #include "MutableGraph.hpp"
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
-int main (int argc, char* argv[]) { 
+int main (int argc, char* argv[]) {
+  (void) argc; (void) argv;
 
   uint32_t *a_data = new uint32_t[10];
   for(size_t i = 0; i < 10; i++){

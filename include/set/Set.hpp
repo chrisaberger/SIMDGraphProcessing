@@ -50,7 +50,7 @@ class Set{
         number_of_bytes = number_of_bytes_in;
         density = 0.0;
         type = T::get_type();
-        
+
         data = new uint8_t[number_of_bytes];
         memset(data,(uint8_t)0,number_of_bytes);
       }
@@ -76,6 +76,7 @@ class Set{
 
     //basic traversal
     void foreach(const std::function <void (uint32_t)>& f);
+    void par_foreach(const size_t num_threads, const std::function <void (size_t, uint32_t)>& f);
     Set<uinteger> decode(uint32_t *buffer);
     void copy_from(Set<T> src);
 
@@ -86,12 +87,23 @@ class Set{
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-//FOR EACH ELEMNT IN SET APPLY A LAMBDA
+// Apply a function to each element in the set
 ///////////////////////////////////////////////////////////////////////////////
 template <class T>
-inline void Set<T>::foreach(const std::function <void (uint32_t)>& f){ 
+inline void Set<T>::foreach(const std::function <void (uint32_t)>& f) {
   T::foreach(f,data,cardinality,number_of_bytes,type);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// Apply a function to each element in the set in parallel
+///////////////////////////////////////////////////////////////////////////////
+template <class T>
+inline void Set<T>::par_foreach(
+      const size_t num_threads,
+      const std::function <void (size_t, uint32_t)>& f) {
+  T::par_foreach(num_threads, f, data, cardinality, number_of_bytes, type);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //Copy Data from one set into another
 ///////////////////////////////////////////////////////////////////////////////

@@ -28,6 +28,7 @@
 
 //#define ENABLE_PCM
 //#define ENABLE_PRINT_THREAD_TIMES
+#define ENABLE_ATOMIC_UNION
 
 #define WRITE_VECTOR 1
 #define COMPRESSION 0
@@ -146,7 +147,11 @@ namespace common{
 
   // Iterates over a range of numbers in parallel
   static void par_for_range(const size_t num_threads, const size_t from, const size_t to, std::function<void(size_t, size_t)> body) {
-     if(num_threads == 1) {
+     const size_t block_size = 100;
+     const size_t range_len = to - from;
+     const size_t real_num_threads = min(range_len / block_size + 1, num_threads);
+
+     if(real_num_threads == 1) {
         for(size_t i = from; i < to; i++) {
            body(0, i);
         }
@@ -156,15 +161,14 @@ namespace common{
         double* thread_times = NULL;
 
 #ifdef ENABLE_PRINT_THREAD_TIMES
-        thread_times = new double[num_threads];
+        thread_times = new double[real_num_threads];
 #endif
-        thread* threads = new thread[num_threads];
-        const size_t block_size = 1500;
+        thread* threads = new thread[real_num_threads];
         const size_t range_len = to - from;
         std::atomic<size_t> next_work;
         next_work = 0;
 
-        for(size_t k = 0; k < num_threads; k++) {
+        for(size_t k = 0; k < real_num_threads; k++) {
            threads[k] = thread([](double t_begin, double* thread_times, int k, std::atomic<size_t>* next_work, size_t offset, size_t range_len, std::function<void(size_t, size_t)> body) -> void {
               size_t local_block_size = block_size;
 
@@ -192,12 +196,12 @@ namespace common{
            }, t_begin, thread_times, k, &next_work, from, range_len, body);
         }
 
-        for(size_t k = 0; k < num_threads; k++) {
+        for(size_t k = 0; k < real_num_threads; k++) {
            threads[k].join();
         }
 
 #ifdef ENABLE_PRINT_THREAD_TIMES
-        for(size_t k = 0; k < num_threads; k++){
+        for(size_t k = 0; k < real_num_threads; k++){
             std::cout << "Execution time of thread " << k << ": " << thread_times[k] << std::endl;
         }
 #endif

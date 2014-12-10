@@ -14,6 +14,7 @@ class uinteger{
     static size_t build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length);
     static tuple<size_t,size_t,common::type> get_flattened_data(const uint8_t *set_data, const size_t cardinality);
     static void foreach(const std::function <void (uint32_t)>& f,const uint8_t *data_in, const size_t cardinality, const size_t number_of_bytes, const common::type t);
+    static void par_foreach(const size_t num_threads, const std::function <void (size_t, uint32_t)>& f, const uint8_t *data_in, const size_t cardinality, const size_t number_of_bytes, const common::type t);
     static tuple<size_t,size_t,common::type> intersect(uint8_t *C_in, const uint8_t *A_in, const uint8_t *B_in, const size_t A_cardinality, const size_t B_cardinality, const size_t A_num_bytes, const size_t B_num_bytes, const common::type a_t, const common::type b_t);
 };
 
@@ -46,4 +47,21 @@ inline void uinteger::foreach(const std::function <void (uint32_t)>& f, const ui
  for(size_t i=0; i<cardinality;i++){
   f(data[i]);
  }
+}
+
+// Iterates over set applying a lambda in parallel.
+inline void uinteger::par_foreach(
+      const size_t num_threads,
+      const std::function <void (size_t, uint32_t)>& f,
+      const uint8_t *data_in,
+      const size_t cardinality,
+      const size_t number_of_bytes,
+      const common::type t) {
+   (void) number_of_bytes; (void) t;
+
+   uint32_t* data = (uint32_t*) data_in;
+   common::par_for_range(num_threads, 0, cardinality,
+         [&f, &data](size_t tid, size_t i) {
+            f(tid, data[i]);
+         });
 }

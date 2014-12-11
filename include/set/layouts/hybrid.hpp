@@ -35,7 +35,7 @@ inline common::type hybrid::get_type(){
   return common::PSHORT;
 }
 inline common::type hybrid::compute_type(const double density){
-  if( density > (double) 4/32 ){
+  if( density > (double) 1/32 ){
     return common::BITSET;
   } else if(((1/density)*(1/65536)) > 12){
     return common::PSHORT;
@@ -61,6 +61,7 @@ inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
 }
 #endif
 #if COMPRESSION == 1
+inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
   if(length > 0){
     uint32_t max_value = data[length-1];
     double sparsity = (double) length/max_value;
@@ -74,6 +75,7 @@ inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
   } else{
     return common::VARIANT;
   }
+}
 #endif
 
 //Copies data from input array of ints to our set data r_in

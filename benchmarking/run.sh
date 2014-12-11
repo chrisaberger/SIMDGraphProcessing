@@ -3,8 +3,9 @@
 output="/dfs/scratch0/caberger/output"
 curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
+numruns="5"
 
-for system in "galois"; do
+for system in "graphlab" "galois"; do
   odir="${output}/${system}_${curtime}_${date}"
   mkdir $odir
   echo $odir
@@ -12,7 +13,7 @@ for system in "galois"; do
       for threads in "1" "24" "48"; do
          cd ${system}
          echo "Benchmarking ${system} on ${dataset} with ${threads} threads"
-         ./run.sh /dfs/scratch0/caberger/datasets/${dataset} $threads | tee $odir/${system}.${dataset}.${threads}.log
+         ./run.sh $numruns /dfs/scratch0/caberger/datasets/${dataset} $threads | tee $odir/${system}.${dataset}.${threads}.log
          cd ..
       done
    done

@@ -315,7 +315,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGr
   size_t new_cardinality = 0;
   size_t total_bytes_used = 0;
 
-  size_t alloc_size = cardinality_in*sizeof(uint32_t)*4;//sizeof(size_t)*(cardinality_in/omp_get_num_threads());
+  size_t alloc_size = cardinality_in*sizeof(uint32_t)*100;//sizeof(size_t)*(cardinality_in/omp_get_num_threads());
   if(alloc_size < matrix_size_in){
     alloc_size = matrix_size_in*sizeof(uint32_t);
   }

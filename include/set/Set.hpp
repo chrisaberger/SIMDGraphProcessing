@@ -76,6 +76,8 @@ class Set{
 
     //basic traversal
     void foreach(const std::function <void (uint32_t)>& f);
+    void foreach_until(const std::function <bool (uint32_t)>& f);
+
     void par_foreach(const size_t num_threads, const std::function <void (size_t, uint32_t)>& f);
     Set<uinteger> decode(uint32_t *buffer);
     void copy_from(Set<T> src);
@@ -92,6 +94,14 @@ class Set{
 template <class T>
 inline void Set<T>::foreach(const std::function <void (uint32_t)>& f) {
   T::foreach(f,data,cardinality,number_of_bytes,type);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Iterate over the set until something is true
+///////////////////////////////////////////////////////////////////////////////
+template <class T>
+inline void Set<T>::foreach_until(const std::function <bool (uint32_t)>& f) {
+  T::foreach_until(f,data,cardinality,number_of_bytes,type);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

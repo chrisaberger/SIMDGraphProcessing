@@ -44,12 +44,14 @@ inline int bitset::get_bit(const uint32_t value, const uint32_t position) {
   return ( ( value & (1 << position) ) >> position);
 }
 //check if a bit is set
-inline bool bitset::is_set(uint32_t index, const uint8_t *in_array){
-  return (in_array[word_index(index)] & (1 << (index%BITS_PER_WORD)));
+inline bool bitset::is_set(const uint32_t index, const uint8_t * const in_array){
+  //return (in_array[word_index(index)] & ((1 << (index%BITS_PER_WORD)));
+  return *((uint64_t*)in_array + (index >> 6)) & ((uint64_t)1 << (index & 0x3F));
 }
 //check if a bit is set
-inline void bitset::set(uint32_t index, uint8_t *in_array){
-  in_array[word_index(index)] |= (1 << (index%BITS_PER_WORD));
+inline void bitset::set(const uint32_t index, uint8_t * const in_array){
+  //in_array[word_index(index)] |= (1 << (index%BITS_PER_WORD));
+  *((uint64_t*)in_array + (index >> 6)) |= ((uint64_t)1 << (index & 0x3F));
 }
 inline common::type bitset::get_type(){
   return common::BITSET;

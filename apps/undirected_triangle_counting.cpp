@@ -121,7 +121,7 @@ class application{
 
     start_time = common::startClock();
     queryOver();
-    common::stopClock("Application Time for Layout " + layout,start_time);
+    common::stopClock("UNDIRECTED TRIANGLE COUNTING",start_time);
 
     cout << "Count: " << num_triangles << endl << endl;
     pcm_cleanup();

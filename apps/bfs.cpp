@@ -56,56 +56,53 @@ class application{
 
     Set<bitset> old_visited((graphs[0]->matrix_size/sizeof(uint32_t))+1);
 
-    double compute_timer  = common::startClock();
-
     //Set<T> outnbrs = graphs[0]->get_row(132365);
     bool finished = false;
     size_t path_length = 0;
     while(!finished){
-      cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << endl;
+      cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << frontier.density << endl;
       double start_time = common::startClock();
       
       //double copy_time = common::startClock();
       old_visited.copy_from(visited);
       //common::stopClock("copy time",copy_time);
 
-      //double union_time = common::startClock();
-      //cout << "Path: " << path_length << endl;
+      double union_time = common::startClock();
       if(frontier.type == common::BITSET){
         common::par_for_range(num_threads, 0, graphs[0]->matrix_size,
           [&graphs, &visited, &frontier](size_t tid, size_t i) {
              (void) tid;
-
-             if(!bitset::is_set(i,visited.data)) {
+            if(!bitset::is_set(i,visited.data)) {
                Set<T> innbrs = graphs[0]->get_column(i);
-               innbrs.foreach([frontier,i,&visited] (uint32_t nbr){
+               innbrs.foreach_until([frontier,i,&visited] (uint32_t nbr){
                  if(bitset::is_set(nbr,frontier.data)){
                    bitset::set(i,visited.data);
+                   return true;
                  }
+                 return false;
                });
              }
           }
         );
-        //memset(next_frontier.data,(uint8_t)0,frontier.number_of_bytes);
       } else{
         frontier.par_foreach(num_threads,
           [&visited,&graphs] (size_t tid, uint32_t f){
              (void) tid;
-
-             //cout << " Frontier: " << graphs[0]->id_map[f] << " " << f << endl;
              Set<T> outnbrs = graphs[0]->get_row(f);
              ops::set_union(visited,outnbrs);
         });
       }
-      //common::stopClock("union time",union_time);
+      common::stopClock("union time",union_time);
 
 
       //IF YOU WANT FUSED REPACKAGING 
-/*
+
+      /*
       double diff_time = common::startClock();
       frontier = ops::set_difference(next_frontier,visited,old_visited);  
       common::stopClock("difference",diff_time);
-*/
+      */
+
       //CODE IF WE WANT TO REPACKAGE
       //double diff_time = common::startClock();
       next_frontier = ops::set_difference(next_frontier,visited,old_visited);  
@@ -119,8 +116,7 @@ class application{
       finished = frontier.cardinality == 0;
       common::stopClock("Iteration",start_time);
     }
-    common::stopClock("compute time",compute_timer);
-    //cout << "path length: " << (path_length-1) << endl;
+    cout << "path length: " << (path_length-1) << endl;
   }
   
   inline void run(){
@@ -165,7 +161,7 @@ int main (int argc, char* argv[]) {
   if(input_layout.compare("a32") == 0){
     application<uinteger,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();
-  } else if(input_layout.compare("bs") == 0){
+  } /*else if(input_layout.compare("bs") == 0){
     application<bitset,bitset> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();  
   } else if(input_layout.compare("a16") == 0){
@@ -184,6 +180,7 @@ int main (int argc, char* argv[]) {
     myapp.run();
   } 
   #endif
+  */
   else{
     cout << "No valid layout entered." << endl;
     exit(0);

@@ -64,12 +64,12 @@ class application{
 
       double union_time = common::startClock();
       if(frontier.type == common::BITSET){
-        common::par_for_range(num_threads, 0, graph->matrix_size, 100,
-          [&graph, &visited, &frontier](size_t tid, size_t i) {
+        common::par_for_range(num_threads, 0, graph->matrix_size, 4096,
+          [this, &visited, &frontier](size_t tid, size_t i) {
              (void) tid;
             if(!bitset::is_set(i,visited.data)) {
-               Set<T> innbrs = graph->get_column(i);
-               innbrs.foreach_until([frontier,i,&visited] (uint32_t nbr){
+               Set<T> innbrs = this->graph->get_column(i);
+               innbrs.foreach_until([frontier,i,&visited] (uint32_t nbr) {
                 if(bitset::is_set(nbr,frontier.data)){
                   bitset::set(i,visited.data);
                   return true;
@@ -81,9 +81,9 @@ class application{
         );
       } else{
         frontier.par_foreach(num_threads,
-          [&visited,&graph] (size_t tid, uint32_t f){
+          [this, &visited] (size_t tid, uint32_t f){
              (void) tid;
-             Set<T> outnbrs = graph->get_row(f);
+             Set<T> outnbrs = this->graph->get_row(f);
              ops::set_union(visited,outnbrs);
         });
       }
@@ -144,7 +144,8 @@ int main (int argc, char* argv[]) {
 
   size_t num_threads = atoi(argv[2]);
   cout << endl << "Number of threads: " << num_threads << endl;
-  omp_set_num_threads(num_threads);        
+  omp_set_num_threads(num_threads);
+  common::init_threads(num_threads);
 
   std::string input_layout = argv[3];
 

@@ -44,8 +44,7 @@ void MutableGraph::reassign_ids(vector< vector<uint32_t>* > *neighborhoods,vecto
     new_neighborhoods->push_back(hood);
   }
 
-  delete id_map;
-  id_map = new_id_map;
+  id_map->swap(*new_id_map);
 }
 void MutableGraph::reorder_bfs(){
   //Pull out what you are going to reorder.
@@ -110,6 +109,7 @@ void MutableGraph::reorder_bfs(){
 
   uint32_t *old2new_ids = new uint32_t[num_nodes];
   for(size_t i = 0; i < num_nodes; i++){
+    assert(new2old_ids[i] < num_nodes);
     old2new_ids[new2old_ids[i]] = i;
   }
 
@@ -261,15 +261,7 @@ void MutableGraph::reorder_by_rev_degree(){
 
 void MutableGraph::reorder_by_the_game() {
   reorder_bfs();
-  vector<uint64_t> id_map_after_bfs = *id_map;
-  std::cout << id_map_after_bfs.size() << std::endl;
   reorder_by_degree();
-  vector<uint64_t> id_map_after_degree = *id_map;
-  this->id_map->clear();
-  std::cout << id_map_after_degree.size() << std::endl;
-  for(size_t i = 0; i < num_nodes; i++) {
-    this->id_map->push_back(id_map_after_degree.at(id_map_after_bfs.at(i)));
-  }
 }
 
 /*

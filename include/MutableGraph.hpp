@@ -4,6 +4,7 @@
 #include "common.hpp"
 #include <sstream>
 #include <unordered_set>
+#include <assert.h>
 
 struct MutableGraph {
   size_t num_nodes;

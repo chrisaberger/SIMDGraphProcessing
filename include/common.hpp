@@ -27,7 +27,7 @@
 #include <set>
 
 //#define ENABLE_PCM
-#define ENABLE_PRINT_THREAD_TIMES
+//#define ENABLE_PRINT_THREAD_TIMES
 #define ENABLE_ATOMIC_UNION
 
 #define WRITE_VECTOR 0
@@ -147,6 +147,11 @@ namespace common{
     return numa_node;
   }
 
+  static thread* threads = NULL;
+  static void init_threads(const size_t num_threads) {
+    threads = new thread[num_threads];
+  }
+
   // Iterates over a range of numbers in parallel
   static void par_for_range(const size_t num_threads, const size_t from, const size_t to, const size_t block_size, std::function<void(size_t, size_t)> body) {
      const size_t range_len = to - from;
@@ -178,7 +183,6 @@ namespace common{
                  if(work_start > range_len)
                     break;
 
-
                  size_t work_end = min(work_start + local_block_size, range_len);
                  local_block_size = block_size;//100 + (work_start / range_len) * block_size;
                  for(size_t j = work_start; j < work_end; j++) {
@@ -205,9 +209,8 @@ namespace common{
         for(size_t k = 0; k < real_num_threads; k++){
             std::cout << "Execution time of thread " << k << ": " << thread_times[k] << std::endl;
         }
+        delete[] thread_times;
 #endif
-
-        delete[] threads;
      }
   }
   static void par_for_range(const size_t num_threads, const size_t from, const size_t to, const size_t block_size,

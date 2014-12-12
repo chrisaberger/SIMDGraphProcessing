@@ -8,6 +8,7 @@ ifeq ($(UNAME), Linux)
 endif
 
 CXX ?= g++-4.7
+# CXX = /dfs/scratch0/noetzli/downloads/tmp/cilkplus-install/bin/g++
 override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -O3 -Wall -Wextra  -Wcast-align
 
 INCLUDE_DIRS=-Iinclude

@@ -70,20 +70,20 @@ class application{
       size_t matrix_size = graph->matrix_size;
 
       common::par_for_range(num_threads, 0, matrix_size, 100,
-        [t_data_pointers, &graph](size_t tid, size_t i) {
+        [this](size_t tid, size_t i) {
            long t_num_triangles = 0;
            uint32_t *src_buffer = t_data_pointers[tid]->decoded_src;
            uint32_t *dst_buffer = t_data_pointers[tid]->decoded_dst;
 
-           Set<R> A = graph->get_decoded_row(i,src_buffer);
-           Set<R> C(t_data_pointers[tid]->buffer);
+           Set<R> A = this->graph->get_decoded_row(i,src_buffer);
+           Set<R> C(this->t_data_pointers[tid]->buffer);
 
-           A.foreach([&A, &C, &dst_buffer, &graph, &t_num_triangles] (uint32_t j){
-             Set<R> B = graph->get_decoded_row(j,dst_buffer);
+           A.foreach([this, &A, &C, &dst_buffer, &t_num_triangles] (uint32_t j){
+             Set<R> B = this->graph->get_decoded_row(j,dst_buffer);
              t_num_triangles += ops::set_intersect(C,A,B).cardinality;
            });
 
-           t_data_pointers[tid]->result += t_num_triangles;
+           this->t_data_pointers[tid]->result += t_num_triangles;
         }
       );
 
@@ -131,6 +131,7 @@ int main (int argc, char* argv[]) {
   size_t num_threads = atoi(argv[2]);
   cout << endl << "Number of threads: " << num_threads << endl;
   omp_set_num_threads(num_threads);
+  common::init_threads(num_threads);
 
   std::string input_layout = argv[3];
 

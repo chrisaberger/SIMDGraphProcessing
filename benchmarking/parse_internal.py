@@ -39,7 +39,7 @@ def main():
   options = parseInput();
 
   datasets = ["higgs"]
-  orderings = ["u_degree","u_bfs","u_random","u_rev_degree","u_strong_run"]
+  orderings = ["u_the_game","u_degree","u_bfs","u_random","u_rev_degree","u_strong_run"]
   layouts = ["uint","pshort","hybrid_perf","hybrid_comp","bp","v"]
   threads = ["1","24","48"]
 

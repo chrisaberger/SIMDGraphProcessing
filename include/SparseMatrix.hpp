@@ -318,7 +318,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGr
   size_t new_cardinality = 0;
   size_t total_bytes_used = 0;
 
-  size_t alloc_size = (cardinality_in*sizeof(uint32_t)*2)/num_threads;
+  size_t alloc_size = (cardinality_in*sizeof(uint32_t)*ALLOCATOR)/num_threads;
 
   ParallelBuffer<uint8_t> *row_data_buffer = new ParallelBuffer<uint8_t>(num_threads,alloc_size);
   ParallelBuffer<uint32_t> *selected_data_buffer = new ParallelBuffer<uint32_t>(num_threads,alloc_size);
@@ -391,7 +391,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputG
   size_t row_total_bytes_used = 0;
   size_t col_total_bytes_used = 0;
 
-  size_t alloc_size = (cardinality_in*sizeof(uint32_t)*2)/num_threads;
+  size_t alloc_size = (cardinality_in*sizeof(uint32_t)*ALLOCATOR)/num_threads;
 
   ParallelBuffer<uint8_t>row_data_buffer(num_threads,alloc_size);
   ParallelBuffer<uint8_t>col_data_buffer(num_threads,alloc_size);
@@ -403,7 +403,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputG
   size_t *col_indices = new size_t[num_threads*m];
   size_t *cardinalities= new size_t[num_threads*m];
   
-  common::par_for_range(num_threads, 0, matrix_size_in, 1000,
+  common::par_for_range(num_threads,0,matrix_size_in,100,
     //////////////////////////////////////////////////////////
     [&selected_data_buffer,&row_data_buffer,&col_data_buffer,&row_indices,&col_indices,&cardinalities](size_t tid){
       row_indices[tid*m] = 0;

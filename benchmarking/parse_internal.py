@@ -40,7 +40,7 @@ def main():
 
   datasets = ["higgs"]
   orderings = ["u_degree","u_bfs","u_random","u_rev_degree","u_strong_run"]
-  layouts = ["a32","a16","hybrid_perf","hybrid_comp","bp","v"]
+  layouts = ["uint","pshort","hybrid_perf","hybrid_comp","bp","v"]
   threads = ["1","24","48"]
 
   perf_file = open(options.perf_output, 'w')

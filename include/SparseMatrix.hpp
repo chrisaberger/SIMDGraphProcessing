@@ -208,8 +208,8 @@ inline pair<size_t,size_t> pack_attribute_data(const uint32_t i,
 }
 template<class T>
 inline pair<size_t,size_t> pack_data(const uint32_t i,
-  const vector<uint32_t> *neighborhood, uint32_t *selected_neighborhood, 
-  uint8_t *data, size_t index,
+  const vector<uint32_t> * const neighborhood, uint32_t * const selected_neighborhood, 
+  uint8_t * const data, size_t index,
   const std::function<bool(uint32_t,uint32_t)> node_selection,
   const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection){
 
@@ -320,42 +320,46 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGr
 
   size_t alloc_size = (cardinality_in*sizeof(uint32_t)*2)/num_threads;
 
-  ParallelBuffer<uint8_t>row_data_buffer(num_threads,alloc_size);
-  ParallelBuffer<uint32_t>selected_data_buffer(num_threads,alloc_size);
-  size_t *indices = new size_t[num_threads];
-  size_t *cardinalities= new size_t[num_threads];
+  ParallelBuffer<uint8_t> *row_data_buffer = new ParallelBuffer<uint8_t>(num_threads,alloc_size);
+  ParallelBuffer<uint32_t> *selected_data_buffer = new ParallelBuffer<uint32_t>(num_threads,alloc_size);
   
-  common::par_for_range(num_threads, 0, matrix_size_in, 100,
+  const size_t m = 300;  //Don't ask don't tell.
+  size_t *indices = new size_t[num_threads * m];
+  size_t *cardinalities= new size_t[num_threads * m];
+  
+  double parallel_range = common::startClock();
+  common::par_for_range(num_threads,0,matrix_size_in,128,
     //////////////////////////////////////////////////////////
-    [&selected_data_buffer,&row_data_buffer,&indices,&cardinalities](size_t tid){
-      indices[tid] = 0;
-      cardinalities[tid] = 0;
-      row_data_buffer.allocate(tid);
-      selected_data_buffer.allocate(tid);
+    [selected_data_buffer,row_data_buffer,indices,cardinalities](size_t tid){
+      indices[tid * m] = 0;
+      cardinalities[tid * m] = 0;
+      row_data_buffer->allocate(tid);
+      selected_data_buffer->allocate(tid);
     },
     /////////////////////////////////////////////////////////////
-    [&cardinalities,&row_data_buffer,&selected_data_buffer,&row_arrays_in,&indices,&row_lengths_in,&inputGraph,&node_selection,&edge_selection]
+    [cardinalities,row_data_buffer,selected_data_buffer,row_arrays_in,indices,row_lengths_in,inputGraph,node_selection,edge_selection]
     (size_t tid, size_t i) {
-      uint8_t * const row_data_in = row_data_buffer.data[tid];
-      uint32_t * const selected_row = selected_data_buffer.data[tid];
+      uint8_t * const row_data_in = row_data_buffer->data[tid];
+      uint32_t * const selected_data = selected_data_buffer->data[tid];
 
-      row_arrays_in[i] = &row_data_in[indices[tid]];  
-      pair<size_t,size_t> index_size = pack_data<T>(i,inputGraph->out_neighborhoods->at(i),
-        selected_row,row_data_in,indices[tid],node_selection,edge_selection); 
-      indices[tid] = index_size.first;
+      row_arrays_in[i] = &row_data_in[indices[tid*m]];
+      const pair<size_t,size_t> index_size = pack_data<T>(i,inputGraph->out_neighborhoods->at(i),
+        selected_data,row_data_in,indices[tid*m],node_selection,edge_selection); 
+      indices[tid * m] = index_size.first;
       row_lengths_in[i] = index_size.second;
-      cardinalities[tid] += row_lengths_in[i];
+      cardinalities[tid * m] += row_lengths_in[i];
     },
     /////////////////////////////////////////////////////////////
-    [&row_data_buffer,&selected_data_buffer,&cardinalities,&new_cardinality,&total_bytes_used,&indices](size_t tid){
-      selected_data_buffer.unallocate(tid);
-      new_cardinality += cardinalities[tid];
-      total_bytes_used += indices[tid];
-      row_data_buffer.data[tid] = (uint8_t*) realloc((void *) row_data_buffer.data[tid], indices[tid]*sizeof(uint8_t));  
+    [row_data_buffer,selected_data_buffer,cardinalities,&new_cardinality,&total_bytes_used,indices](size_t tid){
+      selected_data_buffer->unallocate(tid);
+      new_cardinality += cardinalities[tid * m];
+      total_bytes_used += indices[tid * m];
+      row_data_buffer->data[tid] = (uint8_t*) realloc((void *) row_data_buffer->data[tid], indices[tid*m]*sizeof(uint8_t));  
     }
   );
   delete[] indices;
   delete[] cardinalities;
+  common::stopClock("parallel section",parallel_range);
 
   cout << "Number of edges: " << new_cardinality << endl;
   cout << "ROW DATA SIZE (Bytes): " << total_bytes_used << endl;
@@ -393,16 +397,18 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputG
   ParallelBuffer<uint8_t>col_data_buffer(num_threads,alloc_size);
 
   ParallelBuffer<uint32_t>selected_data_buffer(num_threads,alloc_size);
-  size_t *row_indices = new size_t[num_threads];
-  size_t *col_indices = new size_t[num_threads];
-  size_t *cardinalities= new size_t[num_threads];
   
-  common::par_for_range(num_threads, 0, matrix_size_in, 100,
+  const size_t m = 300;  //Don't ask don't tell.
+  size_t *row_indices = new size_t[num_threads*m];
+  size_t *col_indices = new size_t[num_threads*m];
+  size_t *cardinalities= new size_t[num_threads*m];
+  
+  common::par_for_range(num_threads, 0, matrix_size_in, 1000,
     //////////////////////////////////////////////////////////
     [&selected_data_buffer,&row_data_buffer,&col_data_buffer,&row_indices,&col_indices,&cardinalities](size_t tid){
-      row_indices[tid] = 0;
-      col_indices[tid] = 0;
-      cardinalities[tid] = 0;
+      row_indices[tid*m] = 0;
+      col_indices[tid*m] = 0;
+      cardinalities[tid*m] = 0;
       row_data_buffer.allocate(tid);
       col_data_buffer.allocate(tid);
       selected_data_buffer.allocate(tid);
@@ -417,20 +423,20 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputG
       uint32_t * const selected_data = selected_data_buffer.data[tid];
 
       uint8_t * const row_data_in = row_data_buffer.data[tid];
-      row_arrays_in[i] = &row_data_in[row_indices[tid]];  
+      row_arrays_in[i] = &row_data_in[row_indices[tid*m]];  
       pair<size_t,size_t> index_size = pack_data<T>(i,inputGraph->out_neighborhoods->at(i),
-        selected_data,row_data_in,row_indices[tid],node_selection,edge_selection); 
-      row_indices[tid] = index_size.first;
+        selected_data,row_data_in,row_indices[tid*m],node_selection,edge_selection); 
+      row_indices[tid*m] = index_size.first;
       row_lengths_in[i] = index_size.second;
-      cardinalities[tid] += row_lengths_in[i];
+      cardinalities[tid*m] += row_lengths_in[i];
 
       uint8_t * const col_data_in = col_data_buffer.data[tid];
-      col_arrays_in[i] = &col_data_in[col_indices[tid]];  
+      col_arrays_in[i] = &col_data_in[col_indices[tid*m]];  
       index_size = pack_data<T>(i,inputGraph->in_neighborhoods->at(i),
-        selected_data,col_data_in,col_indices[tid],node_selection,edge_selection); 
-      col_indices[tid] = index_size.first;
+        selected_data,col_data_in,col_indices[tid*m],node_selection,edge_selection); 
+      col_indices[tid*m] = index_size.first;
       col_lengths_in[i] = index_size.second;
-      cardinalities[tid] += col_lengths_in[i];
+      cardinalities[tid*m] += col_lengths_in[i];
     },
     /////////////////////////////////////////////////////////////
     [&row_data_buffer,&col_data_buffer,&selected_data_buffer,&cardinalities,
@@ -438,11 +444,11 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputG
       &row_indices,&col_indices]
     (size_t tid){
       selected_data_buffer.unallocate(tid);
-      new_cardinality += cardinalities[tid];
-      row_total_bytes_used += row_indices[tid];
-      col_total_bytes_used += col_indices[tid];
-      row_data_buffer.data[tid] = (uint8_t*) realloc((void *) row_data_buffer.data[tid], row_indices[tid]*sizeof(uint8_t));  
-      col_data_buffer.data[tid] = (uint8_t*) realloc((void *) col_data_buffer.data[tid], col_indices[tid]*sizeof(uint8_t));  
+      new_cardinality += cardinalities[tid*m];
+      row_total_bytes_used += row_indices[tid*m];
+      col_total_bytes_used += col_indices[tid*m];
+      row_data_buffer.data[tid] = (uint8_t*) realloc((void *) row_data_buffer.data[tid], row_indices[tid*m]*sizeof(uint8_t));  
+      col_data_buffer.data[tid] = (uint8_t*) realloc((void *) col_data_buffer.data[tid], col_indices[tid*m]*sizeof(uint8_t));  
     }
   );
   delete[] row_indices;

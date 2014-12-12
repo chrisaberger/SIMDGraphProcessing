@@ -27,12 +27,12 @@
 #include <set>
 
 //#define ENABLE_PCM
-//#define ENABLE_PRINT_THREAD_TIMES
+#define ENABLE_PRINT_THREAD_TIMES
 #define ENABLE_ATOMIC_UNION
 
 #define WRITE_VECTOR 0
-#define COMPRESSION 1
-#define PERFORMANCE 0
+#define COMPRESSION 0
+#define PERFORMANCE 1
 #define VECTORIZE 1
 
 #define SHORTS_PER_REG 8
@@ -213,14 +213,32 @@ namespace common{
     std::function<void(size_t)> setup, 
     std::function<void(size_t, size_t)> body,
     std::function<void(size_t)> tear_down) {
+
+    #ifdef ENABLE_PRINT_THREAD_TIMES
+    double setup1 = common::startClock();
+    #endif
     
     for(size_t i = 0; i < num_threads; i++){
       setup(i);
     }
+    
+    #ifdef ENABLE_PRINT_THREAD_TIMES
+    common::stopClock("PARALLEL SETUP",setup1);
+    #endif
+    
     par_for_range(num_threads,from,to,block_size,body);
+    
+    #ifdef ENABLE_PRINT_THREAD_TIMES
+    double td = common::startClock();
+    #endif
+    
     for(size_t i = 0; i < num_threads; i++){
       tear_down(i);
     }
+    
+    #ifdef ENABLE_PRINT_THREAD_TIMES
+    common::stopClock("PARALLEL TEAR DOWN",td);
+    #endif
   }
 }
 #endif

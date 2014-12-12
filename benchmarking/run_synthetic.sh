@@ -12,7 +12,7 @@ mkdir $odir
 echo $odir
 
 cd ${system}
-for vertices "200000" in ; do
+for vertices in "200000"; do
   #"1000000" "2000000" "3000000" "4000000" "6000000" "8000000" "16000000" "32000000" "64000000"
   for degree in "128000000" "256000000" "512000000" "1250000000"; do
     for threads in "1" "24" "48"; do

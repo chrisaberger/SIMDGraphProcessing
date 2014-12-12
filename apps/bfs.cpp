@@ -58,9 +58,9 @@ class application{
       cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << frontier.density << endl;
       double start_time = common::startClock();
       
-      //double copy_time = common::startClock();
+      double copy_time = common::startClock();
       old_visited.copy_from(visited);
-      //common::stopClock("copy time",copy_time);
+      common::stopClock("copy time",copy_time);
 
       double union_time = common::startClock();
       if(frontier.type == common::BITSET){
@@ -79,7 +79,7 @@ class application{
              }
           }
         );
-      } else{
+      } else {
         frontier.par_foreach(num_threads,
           [this, &visited] (size_t tid, uint32_t f){
              (void) tid;
@@ -99,13 +99,13 @@ class application{
       */
 
       //CODE IF WE WANT TO REPACKAGE
-      //double diff_time = common::startClock();
+      double diff_time = common::startClock();
       next_frontier = ops::set_difference(next_frontier,visited,old_visited);  
-      //common::stopClock("difference",diff_time);
+      common::stopClock("difference",diff_time);
 
-      //double repack_time = common::startClock();
+      double repack_time = common::startClock();
       frontier = ops::repackage(next_frontier,f_data);
-      //common::stopClock("repack",repack_time);
+      common::stopClock("repack",repack_time);
 
       path_length++;
       finished = frontier.cardinality == 0;

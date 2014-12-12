@@ -8,7 +8,7 @@ using namespace pcm_helper;
 template<class T, class R>
 class application{
   public:
-    SparseMatrix<T,R>** graphs;
+    SparseMatrix<T,R>* graph;
     MutableGraph *inputGraph;
     size_t num_numa_nodes;
     size_t num_threads;
@@ -19,8 +19,6 @@ class application{
       inputGraph = inputGraph_in; 
       num_threads = num_threads_in;
       layout = input_layout;
-
-      graphs = new SparseMatrix<T,R>*[num_numa_nodes];
     }
     inline bool myNodeSelection(uint32_t node, uint32_t attribute){
       (void)node; (void) attribute;
@@ -34,29 +32,26 @@ class application{
     inline void produceSubgraph(){
       auto node_selection = std::bind(&application::myNodeSelection, this, _1, _2);
       auto edge_selection = std::bind(&application::myEdgeSelection, this, _1, _2, _3);
-      graphs[0] = SparseMatrix<T,R>::from_asymmetric_graph(inputGraph,node_selection,edge_selection);
-      for(size_t i = 1; i < num_numa_nodes; i++) {
-        graphs[i] = graphs[0]->clone_on_node(i);
-      }
+      graph = SparseMatrix<T,R>::from_asymmetric_graph(inputGraph,node_selection,edge_selection,num_threads);
     }
 
   inline void queryOver(uint32_t start_node){
-    uint8_t *f_data = new uint8_t[graphs[0]->matrix_size*sizeof(uint32_t)];
+    uint8_t *f_data = new uint8_t[graph->matrix_size*sizeof(uint32_t)];
     uint32_t *start_array = new uint32_t[1];
     start_array[0] = start_node;
 
     //Set<uinteger> frontier = Set<uinteger>::from_array(f_data,start_array,1);
     Set<hybrid> frontier = Set<uinteger>::from_array(f_data,start_array,1);
 
-    //Set<uinteger> next_frontier(graphs[0]->matrix_size*sizeof(uint32_t));
-    Set<bitset> next_frontier((graphs[0]->matrix_size/sizeof(uint32_t))+1);
+    //Set<uinteger> next_frontier(graph->matrix_size*sizeof(uint32_t));
+    Set<bitset> next_frontier((graph->matrix_size/sizeof(uint32_t))+1);
 
-    Set<bitset> visited((graphs[0]->matrix_size/sizeof(uint32_t))+1);
+    Set<bitset> visited((graph->matrix_size/sizeof(uint32_t))+1);
     bitset::set(start_node,visited.data);
 
-    Set<bitset> old_visited((graphs[0]->matrix_size/sizeof(uint32_t))+1);
+    Set<bitset> old_visited((graph->matrix_size/sizeof(uint32_t))+1);
 
-    //Set<T> outnbrs = graphs[0]->get_row(132365);
+    //Set<T> outnbrs = graph->get_row(132365);
     bool finished = false;
     size_t path_length = 0;
     while(!finished){
@@ -69,26 +64,26 @@ class application{
 
       double union_time = common::startClock();
       if(frontier.type == common::BITSET){
-        common::par_for_range(num_threads, 0, graphs[0]->matrix_size,
-          [&graphs, &visited, &frontier](size_t tid, size_t i) {
+        common::par_for_range(num_threads, 0, graph->matrix_size, 100,
+          [&graph, &visited, &frontier](size_t tid, size_t i) {
              (void) tid;
             if(!bitset::is_set(i,visited.data)) {
-               Set<T> innbrs = graphs[0]->get_column(i);
+               Set<T> innbrs = graph->get_column(i);
                innbrs.foreach_until([frontier,i,&visited] (uint32_t nbr){
-                 if(bitset::is_set(nbr,frontier.data)){
-                   bitset::set(i,visited.data);
-                   return true;
-                 }
-                 return false;
+                if(bitset::is_set(nbr,frontier.data)){
+                  bitset::set(i,visited.data);
+                  return true;
+                }
+                return false;
                });
              }
           }
         );
       } else{
         frontier.par_foreach(num_threads,
-          [&visited,&graphs] (size_t tid, uint32_t f){
+          [&visited,&graph] (size_t tid, uint32_t f){
              (void) tid;
-             Set<T> outnbrs = graphs[0]->get_row(f);
+             Set<T> outnbrs = graph->get_row(f);
              ops::set_union(visited,outnbrs);
         });
       }
@@ -124,9 +119,9 @@ class application{
     produceSubgraph();
     common::stopClock("Selections",selection_time);
     
-    //graphs[0]->print_data("graph.txt");
-    uint32_t start_node = graphs[0]->get_max_row_id();
-    //uint32_t start_node = graphs[0]->get_internal_id(id);
+    //graph->print_data("graph.txt");
+    uint32_t start_node = graph->get_max_row_id();
+    //uint32_t start_node = graph->get_internal_id(id);
 
     if(pcm_init() < 0)
       return;
@@ -158,13 +153,13 @@ int main (int argc, char* argv[]) {
   MutableGraph *inputGraph = MutableGraph::directedFromBinary(argv[1]); //filename, # of files
   //common::stopClock("Reading File");
 
-  if(input_layout.compare("a32") == 0){
+  if(input_layout.compare("uint") == 0){
     application<uinteger,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();
-  } /*else if(input_layout.compare("bs") == 0){
+  } else if(input_layout.compare("bs") == 0){
     application<bitset,bitset> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();  
-  } else if(input_layout.compare("a16") == 0){
+  } else if(input_layout.compare("pshort") == 0){
     application<pshort,pshort> myapp(num_nodes,inputGraph,num_threads,input_layout);
     myapp.run();  
   } else if(input_layout.compare("hybrid") == 0){
@@ -180,7 +175,6 @@ int main (int argc, char* argv[]) {
     myapp.run();
   } 
   #endif
-  */
   else{
     cout << "No valid layout entered." << endl;
     exit(0);

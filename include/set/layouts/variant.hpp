@@ -16,7 +16,12 @@ class variant{
     static uint32_t produce_deltas(const uint32_t *data_in, const size_t length, uint32_t *data, uint32_t prev); 
     static size_t encode(const uint32_t *data, size_t data_i, const size_t length, uint8_t *result, size_t result_i);
     static uint32_t decode(const uint8_t *data, size_t &data_i);
-    
+
+    static void foreach_until(const std::function <bool (uint32_t)>& f,
+      const uint8_t *data_in, 
+      const size_t cardinality, 
+      const size_t number_of_bytes,
+      const common::type type);
     static void foreach(const std::function <void (uint32_t)>& f,
       const uint8_t *data_in, 
       const size_t cardinality, 
@@ -113,6 +118,35 @@ inline tuple<size_t,size_t,common::type> variant::get_flattened_data(const uint8
     return make_tuple(sizeof(size_t),size_ptr[0],common::VARIANT);
   } else{
     return make_tuple(0,0,common::VARIANT);
+  }
+}
+
+//Iterates over set applying a lambda.
+inline void variant::foreach_until(const std::function <bool (uint32_t)>& f, 
+  const uint8_t *A_in, 
+  const size_t cardinality, 
+  const size_t number_of_bytes, 
+  const common::type type){
+  (void) number_of_bytes; (void) type;
+
+  if(cardinality != 0){
+    size_t data_i = 0;
+    size_t num_decoded = 0;
+
+    uint32_t prev = variant::decode(A_in,data_i);
+    if(f(prev))
+      return;
+    num_decoded++;
+
+    while(num_decoded < cardinality){
+      uint32_t cur = variant::decode(A_in,data_i);
+      cur += prev;
+      prev = cur;
+
+      if(f(prev))
+        f(prev);
+      num_decoded++;
+    }
   }
 }
 

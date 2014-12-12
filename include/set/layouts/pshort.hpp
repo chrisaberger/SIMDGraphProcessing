@@ -13,6 +13,11 @@ class pshort{
     static size_t build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length);
     static tuple<size_t,size_t,common::type> get_flattened_data(const uint8_t *set_data, const size_t cardinality);
    
+    static void foreach_until(const std::function <bool (uint32_t)>& f,
+      const uint8_t *data_in, 
+      const size_t cardinality, 
+      const size_t number_of_bytes,
+      const common::type type);
     static void foreach(const std::function <void (uint32_t)>& f,
       const uint8_t *data_in, 
       const size_t cardinality, 
@@ -71,6 +76,34 @@ inline tuple<size_t,size_t,common::type> pshort::get_flattened_data(const uint8_
   } else{
     return make_tuple(0,0,common::PSHORT);
   }
+}
+
+//Iterates over set applying a lambda.
+inline void pshort::foreach_until(const std::function <bool (uint32_t)>& f, 
+  const uint8_t *A_in, 
+  const size_t cardinality, 
+  const size_t number_of_bytes, 
+  const common::type type){
+  (void) number_of_bytes; (void) type;
+
+  uint16_t *A = (uint16_t*) A_in;
+  size_t count = 0;
+  size_t i = 0;
+  while(count < cardinality){
+    uint32_t prefix = (A[i] << 16);
+    unsigned short size = A[i+1];
+    i += 2;
+
+    size_t inner_end = i+size;
+    while(i < inner_end){
+      uint32_t tmp = prefix | A[i];
+      if(f(tmp))
+        goto DONE;
+      ++count;
+      ++i;
+    }
+  }
+  DONE: ;
 }
 
 //Iterates over set applying a lambda.

@@ -31,8 +31,8 @@
 #define ENABLE_ATOMIC_UNION
 
 #define WRITE_VECTOR 0
-#define COMPRESSION 0
-#define PERFORMANCE 1
+#define COMPRESSION 1
+#define PERFORMANCE 0
 #define VECTORIZE 1
 
 #define SHORTS_PER_REG 8
@@ -147,8 +147,7 @@ namespace common{
   }
 
   // Iterates over a range of numbers in parallel
-  static void par_for_range(const size_t num_threads, const size_t from, const size_t to, std::function<void(size_t, size_t)> body) {
-     const size_t block_size = 100;
+  static void par_for_range(const size_t num_threads, const size_t from, const size_t to, const size_t block_size, std::function<void(size_t, size_t)> body) {
      const size_t range_len = to - from;
      const size_t real_num_threads = min(range_len / block_size + 1, num_threads);
 
@@ -170,7 +169,7 @@ namespace common{
         next_work = 0;
 
         for(size_t k = 0; k < real_num_threads; k++) {
-           threads[k] = thread([](double t_begin, double* thread_times, int k, std::atomic<size_t>* next_work, size_t offset, size_t range_len, std::function<void(size_t, size_t)> body) -> void {
+           threads[k] = thread([&block_size](double t_begin, double* thread_times, int k, std::atomic<size_t>* next_work, size_t offset, size_t range_len, std::function<void(size_t, size_t)> body) -> void {
               size_t local_block_size = block_size;
 
               while(true) {
@@ -180,7 +179,7 @@ namespace common{
 
 
                  size_t work_end = min(work_start + local_block_size, range_len);
-                 local_block_size = 100 + (work_start / range_len) * block_size;
+                 local_block_size = block_size;//100 + (work_start / range_len) * block_size;
                  for(size_t j = work_start; j < work_end; j++) {
                      body(k, offset + j);
                  }
@@ -209,6 +208,19 @@ namespace common{
 
         delete[] threads;
      }
+  }
+  static void par_for_range(const size_t num_threads, const size_t from, const size_t to, const size_t block_size,
+    std::function<void(size_t)> setup, 
+    std::function<void(size_t, size_t)> body,
+    std::function<void(size_t)> tear_down) {
+    
+    for(size_t i = 0; i < num_threads; i++){
+      setup(i);
+    }
+    par_for_range(num_threads,from,to,block_size,body);
+    for(size_t i = 0; i < num_threads; i++){
+      tear_down(i);
+    }
   }
 }
 #endif

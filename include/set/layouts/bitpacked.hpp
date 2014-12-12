@@ -18,6 +18,11 @@ class bitpacked{
     static size_t simd_bit_pack(const uint8_t bits_used, const uint32_t *data, size_t data_index, size_t num_simd_packed, uint8_t *result_in, size_t result_i);
     static uint32_t produce_deltas(const uint32_t *data_in, size_t length, uint32_t *data, size_t num_simd_packed);
 
+    static void foreach_until(const std::function <bool (uint32_t)>& f,
+      const uint8_t *data_in, 
+      const size_t cardinality, 
+      const size_t number_of_bytes,
+      const common::type type);
     static void foreach(const std::function <void (uint32_t)>& f,
       const uint8_t *data_in, 
       const size_t cardinality, 
@@ -160,7 +165,99 @@ inline tuple<size_t,size_t,common::type> bitpacked::get_flattened_data(const uin
     return make_tuple(0,0,common::BITPACKED);
   }
 }
+inline void bitpacked::foreach_until(const std::function <bool (uint32_t)>& f, 
+  const uint8_t *A_in, 
+  const size_t cardinality, 
+  const size_t number_of_bytes, 
+  const common::type type){
+  (void) number_of_bytes; (void) type;
 
+  size_t data_i = 1;
+  const uint8_t bits_used = A_in[0];
+  size_t num_decoded = 0;
+  uint32_t prev = variant::decode(A_in,data_i);
+
+  size_t num_simd_packed = get_num_simd_packed(cardinality);
+  if(num_simd_packed > 0){
+    uint32_t mask32 = (long)((long)1 << (long)bits_used)-1;
+    __m128i mask = _mm_set1_epi32(mask32);
+    __m128i prev_result = _mm_set1_epi32(prev);
+    
+    bool incr_data_i = false;
+    size_t bit_i = 0;
+    __m128i data_register;
+    //cout << "num_simd_packed: " << num_simd_packed << endl;
+    while(num_decoded < num_simd_packed){
+      data_register = _mm_loadu_si128((__m128i*)&A_in[data_i]);
+      while(bit_i+bits_used <= 32 && num_decoded < num_simd_packed){
+        __m128i result = _mm_srli_epi32(data_register,bit_i);
+        result = _mm_and_si128(result,mask);
+        result = _mm_add_epi32(result,prev_result);
+        prev_result = result;
+        
+        bit_i += bits_used;
+
+        //Apply Function (intersection)
+        if(f(_mm_extract_epi32(result,0)))
+          goto DONE;
+        if(f(_mm_extract_epi32(result,1)))
+          goto DONE;
+        if(f(_mm_extract_epi32(result,2)))
+          goto DONE;
+        if(f(_mm_extract_epi32(result,3)))
+          goto DONE;
+
+        prev = _mm_extract_epi32(result,3);
+
+        num_decoded += INTS_PER_REG;
+      }
+      if(bit_i < 32 && num_decoded < num_simd_packed){
+        __m128i cur_lower = _mm_srli_epi32(data_register,bit_i);
+        data_register = _mm_loadu_si128((__m128i*)&A_in[data_i+INTS_PER_REG*4]);
+
+        __m128i cur_upper = _mm_slli_epi32(data_register,(32-bit_i));
+        __m128i result = _mm_and_si128(_mm_or_si128(cur_upper,cur_lower),mask);
+
+        result = _mm_add_epi32(result,prev_result);
+        prev_result = result;
+
+        bit_i = bits_used-(32-bit_i);      
+
+        //Apply Function (intersection)
+        if(f(_mm_extract_epi32(result,0)))
+          goto DONE;
+        if(f(_mm_extract_epi32(result,1)))
+          goto DONE;
+        if(f(_mm_extract_epi32(result,2)))
+          goto DONE;
+        if(f(_mm_extract_epi32(result,3)))
+          goto DONE;
+
+        prev = _mm_extract_epi32(result,3);
+
+        num_decoded += INTS_PER_REG;
+        data_i += INTS_PER_REG*4;
+        incr_data_i = true;
+      } else{
+        bit_i = 0;
+        data_i += INTS_PER_REG*4;
+        incr_data_i = false;
+      }
+    }
+    data_i += INTS_PER_REG*incr_data_i*4;
+  }
+  //cout << "Decoding at: " << data_i  << " Num decoded: " << num_decoded << " card: " << cardinality << endl;
+  //cout << "prev: " << prev << endl;
+
+  while(num_decoded < cardinality){
+    uint32_t cur = variant::decode(A_in,data_i)+prev;
+    if(f(cur))
+      goto DONE;
+    prev = cur;
+    num_decoded++;
+  }
+  DONE: ;
+}
 inline void bitpacked::foreach(const std::function <void (uint32_t)>& f, 
   const uint8_t *A_in, 
   const size_t cardinality, 
@@ -243,6 +340,4 @@ inline void bitpacked::foreach(const std::function <void (uint32_t)>& f,
     prev = cur;
     num_decoded++;
   }
-  
-
 }

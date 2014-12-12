@@ -3,7 +3,7 @@
 
 #include "MutableGraph.hpp"
 #include "set/ops.hpp"
-
+#include "ParallelBuffer.hpp"
 
 template<class T,class R>
 class SparseMatrix{
@@ -83,7 +83,8 @@ class SparseMatrix{
 
     static SparseMatrix* from_symmetric_graph(MutableGraph *inputGraph,
       const std::function<bool(uint32_t,uint32_t)> node_selection,
-      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection);
+      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
+      const size_t num_threads);
 
     static SparseMatrix* from_symmetric_attribute_graph(MutableGraph *inputGraph,
       const std::function<bool(uint32_t,uint32_t)> node_selection,
@@ -91,7 +92,7 @@ class SparseMatrix{
 
     static SparseMatrix* from_asymmetric_graph(MutableGraph *inputGraph,
       const std::function<bool(uint32_t,uint32_t)> node_selection,
-      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection);
+      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, const size_t num_threads);
 
     uint32_t get_max_row_id();
     uint32_t get_internal_id(uint64_t external_id);
@@ -302,8 +303,10 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_attribute_graph(MutableGrap
 template<class T,class R>
 SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGraph,
   const std::function<bool(uint32_t,uint32_t)> node_selection,
-  const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection){
+  const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
+  const size_t num_threads){
   
+  (void) num_threads;
   const size_t matrix_size_in = inputGraph->num_nodes;
   const size_t cardinality_in = inputGraph->num_edges;
 
@@ -315,28 +318,44 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGr
   size_t new_cardinality = 0;
   size_t total_bytes_used = 0;
 
-  size_t alloc_size = cardinality_in*sizeof(uint32_t)*100;//sizeof(size_t)*(cardinality_in/omp_get_num_threads());
-  if(alloc_size < matrix_size_in){
-    alloc_size = matrix_size_in*sizeof(uint32_t);
-  }
-  #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
-  {
-    uint8_t *row_data_in = new uint8_t[alloc_size];
-    uint32_t *selected_row = new uint32_t[matrix_size_in];
-    size_t index = 0;
-    #pragma omp for schedule(static)
-    for(size_t i = 0; i < matrix_size_in; ++i){   
-      row_arrays_in[i] = &row_data_in[index];    
+  size_t alloc_size = (cardinality_in*sizeof(uint32_t)*2)/num_threads;
+
+  ParallelBuffer<uint8_t>row_data_buffer(num_threads,alloc_size);
+  ParallelBuffer<uint32_t>selected_data_buffer(num_threads,alloc_size);
+  size_t *indices = new size_t[num_threads];
+  size_t *cardinalities= new size_t[num_threads];
+  
+  common::par_for_range(num_threads, 0, matrix_size_in, 100,
+    //////////////////////////////////////////////////////////
+    [&selected_data_buffer,&row_data_buffer,&indices,&cardinalities](size_t tid){
+      indices[tid] = 0;
+      cardinalities[tid] = 0;
+      row_data_buffer.allocate(tid);
+      selected_data_buffer.allocate(tid);
+    },
+    /////////////////////////////////////////////////////////////
+    [&cardinalities,&row_data_buffer,&selected_data_buffer,&row_arrays_in,&indices,&row_lengths_in,&inputGraph,&node_selection,&edge_selection]
+    (size_t tid, size_t i) {
+      uint8_t * const row_data_in = row_data_buffer.data[tid];
+      uint32_t * const selected_row = selected_data_buffer.data[tid];
+
+      row_arrays_in[i] = &row_data_in[indices[tid]];  
       pair<size_t,size_t> index_size = pack_data<T>(i,inputGraph->out_neighborhoods->at(i),
-        selected_row,row_data_in,index,node_selection,edge_selection); 
-      index = index_size.first;
+        selected_row,row_data_in,indices[tid],node_selection,edge_selection); 
+      indices[tid] = index_size.first;
       row_lengths_in[i] = index_size.second;
-      new_cardinality += row_lengths_in[i];
+      cardinalities[tid] += row_lengths_in[i];
+    },
+    /////////////////////////////////////////////////////////////
+    [&row_data_buffer,&selected_data_buffer,&cardinalities,&new_cardinality,&total_bytes_used,&indices](size_t tid){
+      selected_data_buffer.unallocate(tid);
+      new_cardinality += cardinalities[tid];
+      total_bytes_used += indices[tid];
+      row_data_buffer.data[tid] = (uint8_t*) realloc((void *) row_data_buffer.data[tid], indices[tid]*sizeof(uint8_t));  
     }
-    delete[] selected_row;
-    total_bytes_used += index;
-    row_data_in = (uint8_t*) realloc((void *) row_data_in, index*sizeof(uint8_t));
-  }
+  );
+  delete[] indices;
+  delete[] cardinalities;
 
   cout << "Number of edges: " << new_cardinality << endl;
   cout << "ROW DATA SIZE (Bytes): " << total_bytes_used << endl;
@@ -352,7 +371,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGr
 template<class T,class R>
 SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputGraph,
   const std::function<bool(uint32_t,uint32_t)> node_selection,
-  const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection){
+  const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, const size_t num_threads){
   
   const size_t matrix_size_in = inputGraph->num_nodes;
   const size_t cardinality_in = inputGraph->num_edges;
@@ -368,39 +387,67 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputG
   size_t row_total_bytes_used = 0;
   size_t col_total_bytes_used = 0;
 
-  size_t alloc_size = cardinality_in*sizeof(uint32_t)*4;//sizeof(size_t)*(cardinality_in/omp_get_num_threads());
-  if(alloc_size < matrix_size_in){
-    alloc_size = matrix_size_in*sizeof(uint32_t);
-  }
-  #pragma omp parallel default(shared) reduction(+:row_total_bytes_used) reduction(+:col_total_bytes_used) reduction(+:new_cardinality)
-  {
-    uint8_t *row_data_in = new uint8_t[alloc_size];
-    uint8_t *col_data_in = new uint8_t[alloc_size];
-    uint32_t *selected_data = new uint32_t[matrix_size_in];
-    size_t row_index = 0;
-    size_t col_index = 0;
-    #pragma omp for schedule(static)
-    for(size_t i = 0; i < matrix_size_in; ++i){   
-      row_arrays_in[i] = &row_data_in[row_index];    
-      pair<size_t,size_t> index_size = pack_data<T>(i,inputGraph->out_neighborhoods->at(i),
-        selected_data,row_data_in,row_index,node_selection,edge_selection); 
-      row_index = index_size.first;
-      row_lengths_in[i] = index_size.second;
-      new_cardinality += row_lengths_in[i];
+  size_t alloc_size = (cardinality_in*sizeof(uint32_t)*2)/num_threads;
 
-      col_arrays_in[i] = &col_data_in[col_index];    
+  ParallelBuffer<uint8_t>row_data_buffer(num_threads,alloc_size);
+  ParallelBuffer<uint8_t>col_data_buffer(num_threads,alloc_size);
+
+  ParallelBuffer<uint32_t>selected_data_buffer(num_threads,alloc_size);
+  size_t *row_indices = new size_t[num_threads];
+  size_t *col_indices = new size_t[num_threads];
+  size_t *cardinalities= new size_t[num_threads];
+  
+  common::par_for_range(num_threads, 0, matrix_size_in, 100,
+    //////////////////////////////////////////////////////////
+    [&selected_data_buffer,&row_data_buffer,&col_data_buffer,&row_indices,&col_indices,&cardinalities](size_t tid){
+      row_indices[tid] = 0;
+      col_indices[tid] = 0;
+      cardinalities[tid] = 0;
+      row_data_buffer.allocate(tid);
+      col_data_buffer.allocate(tid);
+      selected_data_buffer.allocate(tid);
+    },
+    /////////////////////////////////////////////////////////////
+    [&cardinalities,&row_data_buffer,&col_data_buffer,&selected_data_buffer,
+      &row_arrays_in,&col_arrays_in,
+      &row_indices,&col_indices,
+      &row_lengths_in,&col_lengths_in,
+      &inputGraph,&node_selection,&edge_selection]
+    (size_t tid, size_t i) {
+      uint32_t * const selected_data = selected_data_buffer.data[tid];
+
+      uint8_t * const row_data_in = row_data_buffer.data[tid];
+      row_arrays_in[i] = &row_data_in[row_indices[tid]];  
+      pair<size_t,size_t> index_size = pack_data<T>(i,inputGraph->out_neighborhoods->at(i),
+        selected_data,row_data_in,row_indices[tid],node_selection,edge_selection); 
+      row_indices[tid] = index_size.first;
+      row_lengths_in[i] = index_size.second;
+      cardinalities[tid] += row_lengths_in[i];
+
+      uint8_t * const col_data_in = col_data_buffer.data[tid];
+      col_arrays_in[i] = &col_data_in[col_indices[tid]];  
       index_size = pack_data<T>(i,inputGraph->in_neighborhoods->at(i),
-        selected_data,col_data_in,col_index,node_selection,edge_selection); 
-      col_index = index_size.first;
+        selected_data,col_data_in,col_indices[tid],node_selection,edge_selection); 
+      col_indices[tid] = index_size.first;
       col_lengths_in[i] = index_size.second;
-      new_cardinality += col_lengths_in[i];
+      cardinalities[tid] += col_lengths_in[i];
+    },
+    /////////////////////////////////////////////////////////////
+    [&row_data_buffer,&col_data_buffer,&selected_data_buffer,&cardinalities,
+      &new_cardinality,&row_total_bytes_used,&col_total_bytes_used,
+      &row_indices,&col_indices]
+    (size_t tid){
+      selected_data_buffer.unallocate(tid);
+      new_cardinality += cardinalities[tid];
+      row_total_bytes_used += row_indices[tid];
+      col_total_bytes_used += col_indices[tid];
+      row_data_buffer.data[tid] = (uint8_t*) realloc((void *) row_data_buffer.data[tid], row_indices[tid]*sizeof(uint8_t));  
+      col_data_buffer.data[tid] = (uint8_t*) realloc((void *) col_data_buffer.data[tid], col_indices[tid]*sizeof(uint8_t));  
     }
-    delete[] selected_data;
-    row_total_bytes_used += row_index;
-    col_total_bytes_used += col_index;
-    row_data_in = (uint8_t*) realloc((void *) row_data_in, row_index*sizeof(uint8_t));
-    col_data_in = (uint8_t*) realloc((void *) col_data_in, col_index*sizeof(uint8_t));
-  }
+  );
+  delete[] row_indices;
+  delete[] col_indices;
+  delete[] cardinalities;
 
   cout << "Number of edges: " << new_cardinality << endl;
   cout << "ROW DATA SIZE (Bytes): " << row_total_bytes_used << endl;
@@ -412,78 +459,5 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputG
     col_lengths_in,col_arrays_in,
     inputGraph->id_map->data(),NULL,NULL,NULL);
 }
-// FIXME: This code only works for undirected graphs
-template<class T,class R>
-SparseMatrix<T,R>* SparseMatrix<T,R>::clone_on_node(int node) {
-   numa_run_on_node(node);
-   numa_set_preferred(node);
-
-   size_t matrix_size = this->matrix_size;
-   uint64_t lengths_size = matrix_size * sizeof(uint32_t);
-   uint32_t* cloned_row_lengths =
-      (uint32_t*)numa_alloc_onnode(lengths_size, node);
-   std::copy(this->row_lengths, this->row_lengths + matrix_size + 1,
-         cloned_row_lengths);
-
-   std::cout << this->cardinality * sizeof(uint32_t) << std::endl;
-   std::cout << this->row_total_bytes_used << std::endl;
-   uint8_t** cloned_row_arrays =
-      (uint8_t**) numa_alloc_onnode(matrix_size * sizeof(uint8_t*), node);
-   uint8_t* neighborhood =
-      (uint8_t*) numa_alloc_onnode(this->row_total_bytes_used + matrix_size, node);
-   for(uint64_t i = 0; i < matrix_size; i++) {
-
-      uint32_t row_length = cloned_row_lengths[i];
-      uint8_t* data = this->row_arrays[i];
-      //FIXME:
-      (void) row_length;
-      size_t num_bytes = 0;//uint_array::size_of_array(data, row_length, this->t);
-      std::copy(data, data + num_bytes, neighborhood);
-      cloned_row_arrays[i] = (uint8_t*) neighborhood;
-      neighborhood += num_bytes;
-   }
-
-   uint32_t* cloned_column_lengths = NULL;
-   uint8_t** cloned_column_arrays = NULL;
-   /*
-   if(this->symmetric) {
-      cloned_column_lengths = (uint32_t*) numa_alloc_onnode(lengths_size, node);
-      std::copy(column_lengths, column_lengths + matrix_size, cloned_column_lengths);
-
-      cloned_column_arrays =
-         (uint8_t**) numa_alloc_onnode(col_total_bytes_used, node);
-      for(uint64_t i = 0; i < matrix_size; i++) {
-         uint32_t col_length = cloned_column_lengths[i];
-         uint8_t* neighborhood =
-            (uint8_t*) numa_alloc_onnode(col_length * sizeof(uint8_t), node);
-         std::copy(this->column_arrays[i], this->column_arrays[i] + col_length, neighborhood);
-         cloned_column_arrays[i] = neighborhood;
-      }
-   }
-   */
-
-   std::cout << "Target node: " << node << std::endl;
-   std::cout << "Node of row_lengths: " << common::find_memory_node_for_addr(cloned_row_lengths) << std::endl;
-   std::cout << "Node of row_arrays: " << common::find_memory_node_for_addr(cloned_row_arrays) << std::endl;
-   std::cout << "Node of neighborhood: " << common::find_memory_node_for_addr(neighborhood) << std::endl;
-
-   return new SparseMatrix(
-         matrix_size,
-         this->cardinality,
-         this->row_total_bytes_used,
-         this->col_total_bytes_used,
-         this->max_nbrhood_size,
-         this->symmetric,
-         cloned_row_lengths,
-         cloned_row_arrays,
-         cloned_column_lengths,
-         cloned_column_arrays,
-         this->id_map,
-         this->node_attributes,
-         this->out_edge_attributes,
-         this->in_edge_attributes);
-}
-
-
 
 #endif

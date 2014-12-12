@@ -29,17 +29,18 @@
 //#define ENABLE_PCM
 //#define ENABLE_PRINT_THREAD_TIMES
 #define ENABLE_ATOMIC_UNION
+//#define TEXT_INPUT
+#define ALLOCATOR 10
 
 #define WRITE_VECTOR 0
-#define COMPRESSION 1
-#define PERFORMANCE 0
+#define COMPRESSION 0
+#define PERFORMANCE 1
 #define VECTORIZE 1
 
-#define ALLOCATOR 10
+//CONSTANTS THAT SHOULD NOT CHANGE
 #define SHORTS_PER_REG 8
 #define INTS_PER_REG 4
 #define BYTES_PER_REG 16
-
 
 // As seen in the dimmwitted project...
 

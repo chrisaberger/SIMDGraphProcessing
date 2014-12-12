@@ -1,8 +1,8 @@
 #!/bin/bash
-EMPTY_HEADED_HOME="/afs/cs.stanford.edu/u/caberger/stable_binary"
+EMPTY_HEADED_HOME="/dfs/scratch0/caberger/systems/EmptyHeaded"
 
 echo $1
 for i in `seq 1 ${1}`; do
-  echo "COMMAND: ${EMPTY_HEADED_HOME}/$2 $3 $4 $5"
-  ${EMPTY_HEADED_HOME}/$2 $3 $4 $5
+  echo "COMMAND: ${EMPTY_HEADED_HOME}/stable_binaries/$2 $3 $4 $5"
+  ${EMPTY_HEADED_HOME}/stable_binaries/$2 $3 $4 $5
 done

@@ -6,10 +6,10 @@ curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
 system="emptyheaded"
 
-odir="${output}/${system}_${curtime}_${date}"
+odir="${output}/${system}_${date}_${curtime}"
 mkdir $odir
 echo $odir
-  for dataset in "higgs" "flickr" "socLivejournal" "orkut" "cid-patents" "pokec" "twitter2010" "wikipedia"; do
+  for dataset in "california" "baidu" "higgs" "flickr" "socLivejournal" "orkut" "cid-patents" "pokec" "twitter2010" "wikipedia"; do
     for threads in "1" "24" "48"; do
       for ordering in "u_the_game" "u_degree" "u_bfs" "u_random" "u_rev_degree" "u_strong_run"; do
         cd ${system}

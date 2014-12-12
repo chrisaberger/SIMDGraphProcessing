@@ -136,7 +136,11 @@ int main (int argc, char* argv[]) {
 
   size_t num_nodes = 1;
   //common::startClock();
+#ifdef TEXT_INPUT
+  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files
+#else
   MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
+#endif
   //common::stopClock("Reading File");
 
   if(input_layout.compare("uint") == 0){

@@ -31,8 +31,8 @@
 #define ENABLE_ATOMIC_UNION
 
 #define WRITE_VECTOR 0
-#define COMPRESSION 1
-#define PERFORMANCE 0
+#define COMPRESSION 0
+#define PERFORMANCE 1
 #define VECTORIZE 1
 
 #define SHORTS_PER_REG 8

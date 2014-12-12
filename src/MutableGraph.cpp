@@ -5,8 +5,12 @@ struct OrderNeighborhoodByDegree{
   OrderNeighborhoodByDegree(vector< vector<uint32_t>*  > *g_in){
     g = g_in;
   }
-  bool operator()(uint32_t i, uint32_t j) const { 
-    return (g->at(i)->size() > g->at(j)->size()); 
+  bool operator()(uint32_t i, uint32_t j) const {
+    size_t i_size = g->at(i)->size();
+    size_t j_size = g->at(j)->size();
+    if(i_size == j_size)
+      return i < j;
+    return i_size > j_size;
   }
 };
 
@@ -22,8 +26,8 @@ struct OrderNeighborhoodByRevDegree{
 
 struct OrderByID{
   OrderByID(){}
-  bool operator()(pair<uint32_t,uint32_t> i, pair<uint32_t,uint32_t> j) const { 
-    return i.first < j.first; 
+  bool operator()(pair<uint32_t,uint32_t> i, pair<uint32_t,uint32_t> j) const {
+    return i.first < j.first;
   }
 };
 
@@ -224,6 +228,7 @@ void MutableGraph::reorder_by_degree(){
   out_neighborhoods = new_neighborhoods;
   in_neighborhoods = new_neighborhoods;
 }
+
 void MutableGraph::reorder_by_rev_degree(){
   //Pull out what you are going to reorder.
   vector< vector<uint32_t>*  > *neighborhoods = new vector< vector<uint32_t>* >();
@@ -252,6 +257,19 @@ void MutableGraph::reorder_by_rev_degree(){
   //Reassign what you reordered.
   out_neighborhoods = new_neighborhoods;
   in_neighborhoods = new_neighborhoods;
+}
+
+void MutableGraph::reorder_by_the_game() {
+  reorder_bfs();
+  vector<uint64_t> id_map_after_bfs = *id_map;
+  std::cout << id_map_after_bfs.size() << std::endl;
+  reorder_by_degree();
+  vector<uint64_t> id_map_after_degree = *id_map;
+  this->id_map->clear();
+  std::cout << id_map_after_degree.size() << std::endl;
+  for(size_t i = 0; i < num_nodes; i++) {
+    this->id_map->push_back(id_map_after_degree.at(id_map_after_bfs.at(i)));
+  }
 }
 
 /*

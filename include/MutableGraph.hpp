@@ -22,6 +22,7 @@ struct MutableGraph {
   void reorder_strong_run();
   void reorder_by_rev_degree();
   void reorder_by_degree();
+  void reorder_by_the_game();
 
   void reassign_ids(vector< vector<uint32_t>* > *neighborhoods,vector< vector<uint32_t>* > *new_neighborhoods,uint32_t *new2old_ids,uint32_t *old2new_ids);
   

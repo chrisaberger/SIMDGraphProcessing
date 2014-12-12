@@ -85,7 +85,7 @@ class Set{
     //Constructors
     static Set<T> from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size);
     static Set<T> from_flattened(uint8_t *set_data, size_t cardinality_in);
-    static size_t flatten_from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size);
+    static size_t flatten_from_array(uint8_t *set_data, const uint32_t * const array_data, const size_t data_size);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -163,7 +163,7 @@ inline Set<T> Set<T>::from_flattened(uint8_t *set_data, size_t cardinality_in){
 //THIS IS USED FOR A CSR GRAPH IMPLEMENTATION.
 ///////////////////////////////////////////////////////////////////////////////
 template <class T>
-inline size_t Set<T>::flatten_from_array(uint8_t *set_data, uint32_t *array_data, size_t data_size){
+inline size_t Set<T>::flatten_from_array(uint8_t *set_data, const uint32_t * const array_data, const size_t data_size){
   return T::build_flattened(set_data,array_data,data_size);
 }
 

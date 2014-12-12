@@ -13,7 +13,7 @@ echo $odir
     for threads in "1" "24" "48"; do
       for ordering in "u_degree" "u_bfs" "u_random" "u_rev_degree" "u_strong_run"; do
         cd ${system}
-        for layout in "a32" "a16"; do
+        for layout in "uint" "pshort"; do
           ./run_internal.sh $numruns undirected_triangle_counting /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/${dataset}.${threads}.${layout}.${ordering}.log
         done
         ./run_internal.sh $numruns undirected_triangle_counting /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads hybrid | tee $odir/${dataset}.${threads}.hybrid_perf.${ordering}.log

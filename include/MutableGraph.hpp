@@ -63,6 +63,7 @@ struct MutableGraph {
       delete in_neighborhoods;
     }
   }
+  static MutableGraph* directedFromAttributeList(const string path, const string node_path);
   static MutableGraph* undirectedFromAttributeList(const string path,const string node_path);
   static MutableGraph* syntheticUndirected(const size_t num_nodes, const size_t degree);
   static MutableGraph* directedFromBinary(const string path);

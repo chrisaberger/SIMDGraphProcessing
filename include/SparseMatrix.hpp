@@ -88,7 +88,8 @@ class SparseMatrix{
 
     static SparseMatrix* from_symmetric_attribute_graph(MutableGraph *inputGraph,
       const std::function<bool(uint32_t,uint32_t)> node_selection,
-      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection);
+      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
+      const size_t num_threads);
 
     static SparseMatrix* from_asymmetric_graph(MutableGraph *inputGraph,
       const std::function<bool(uint32_t,uint32_t)> node_selection,
@@ -164,9 +165,15 @@ void SparseMatrix<T,R>::print_data(string filename){
   for(size_t i = 0; i < matrix_size; i++){
     size_t card = row_lengths[i];
     myfile << "External ID: " << id_map[i] << " ROW: " << i << " LEN: " << row_lengths[i] << endl;
+    if(node_attributes != NULL)
+      myfile << "Node Attribute: " << node_attributes[i] << endl;
     Set<T> row = Set<T>::from_flattened(row_arrays[i],card);
-    row.foreach( [&myfile] (uint32_t data){
-      myfile << " DATA: " << data << endl;
+    size_t row_i = 0;
+    row.foreach( [&myfile,&row_i,&out_edge_attributes,i] (uint32_t data){
+      myfile << " DATA: " << data;
+      if(out_edge_attributes != NULL)
+        myfile << " Attribute: " << out_edge_attributes->at(i)->at(row_i++);
+      myfile << endl;
     });
   }
   myfile << endl;
@@ -174,10 +181,16 @@ void SparseMatrix<T,R>::print_data(string filename){
   if(!symmetric){
     for(size_t i = 0; i < matrix_size; i++){
       myfile << "External ID: " << id_map[i] << " COLUMN: " << i << " LEN: " << column_lengths[i] << endl;
+      if(node_attributes != NULL)
+        myfile << "Node Attribute: " << node_attributes[i] << endl;
       size_t card = column_lengths[i];
       Set<T> col = Set<T>::from_flattened(column_arrays[i],card);
-      col.foreach( [&myfile] (uint32_t data){
-        myfile << " DATA: " << data << endl;
+      size_t col_i = 0;
+      col.foreach( [&myfile,&in_edge_attributes,&col_i,i] (uint32_t data){
+        myfile << " DATA: " << data;
+        if(in_edge_attributes != NULL)
+          myfile << " Attribute: " << in_edge_attributes->at(i)->at(col_i++);
+        myfile << endl;
       });
     }
   }
@@ -195,14 +208,13 @@ inline pair<size_t,size_t> pack_attribute_data(const uint32_t i,
   const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection){
 
   size_t new_size = 0;
-  vector<uint32_t> *new_edge_attribute = new vector<uint32_t>();
+  vector<uint32_t> *new_edge_attribute = edge_attributes_in->at(old2newids[i]);
   for(size_t j = 0; j < neighborhood->size(); ++j) {
     if(node_selection(neighborhood->at(j),node_attr->at(neighborhood->at(j))) && edge_selection(i,neighborhood->at(j),edge_attr->at(j))){
       selected_neighborhood[new_size++] = old2newids[neighborhood->at(j)];
       new_edge_attribute->push_back(edge_attr->at(j));
     } 
   }
-  edge_attributes_in->push_back(new_edge_attribute);
   index += Set<T>::flatten_from_array(data+index,selected_neighborhood,new_size);
   return make_pair(index,new_size);
 }
@@ -226,7 +238,8 @@ inline pair<size_t,size_t> pack_data(const uint32_t i,
 template<class T,class R>
 SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_attribute_graph(MutableGraph* inputGraph,
   const std::function<bool(uint32_t,uint32_t)> node_selection,
-  const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection){
+  const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
+  const size_t num_threads){
   
   const size_t matrix_size_in = inputGraph->num_nodes;
   const size_t cardinality_in = inputGraph->num_edges;
@@ -242,55 +255,72 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_attribute_graph(MutableGrap
   size_t new_num_nodes = 0;
 
   //Filter out nodes.
+  vector<vector<uint32_t>*> *edge_attributes_in = new vector<vector<uint32_t>*>();
   for(size_t i = 0; i < matrix_size_in; ++i){
     if(node_selection(i,node_attr->at(i))){
-      old2newids[i] = new_num_nodes;
-      new_num_nodes++;
+      edge_attributes_in->push_back(new std::vector<uint32_t>());
+      old2newids[i] = new_num_nodes++;
     } else{
-      old2newids[i] = -1;
+      old2newids[i] = 0xFFFFFFFF;
     }
   }
 
   uint32_t *node_attributes_in;
-  vector<vector<uint32_t>*> *edge_attributes_in = new vector<vector<uint32_t>*>();
   node_attributes_in= new uint32_t[new_num_nodes];
-  edge_attributes_in->reserve(cardinality_in);
 
   uint64_t *new_imap = new uint64_t[new_num_nodes];  
   size_t new_cardinality = 0;
   size_t total_bytes_used = 0;
 
-  size_t alloc_size = cardinality_in*sizeof(int)*4;//sizeof(size_t)*(cardinality_in/omp_get_num_threads());
-  if(alloc_size < new_num_nodes){
-    alloc_size = new_num_nodes;
-  }
+  size_t alloc_size = (cardinality_in*sizeof(int)*ALLOCATOR)/num_threads;
 
-  #pragma omp parallel default(shared) reduction(+:total_bytes_used) reduction(+:new_cardinality)
-  {
-    uint8_t *row_data_in = new uint8_t[alloc_size];
-    uint32_t *selected_row = new uint32_t[new_num_nodes];
-    size_t index = 0;
-    #pragma omp for schedule(static)
-    for(size_t i = 0; i < matrix_size_in; ++i){
-      if(old2newids[i] != -1){
+  ParallelBuffer<uint8_t> *row_data_buffer = new ParallelBuffer<uint8_t>(num_threads,alloc_size);
+  ParallelBuffer<uint32_t> *selected_data_buffer = new ParallelBuffer<uint32_t>(num_threads,alloc_size);
+  
+  const size_t m = 300;  //Don't ask don't tell.
+  size_t *indices = new size_t[num_threads * m];
+  size_t *cardinalities= new size_t[num_threads * m];
+  
+  double parallel_range = common::startClock();
+  common::par_for_range(num_threads,0,matrix_size_in,128,
+    //////////////////////////////////////////////////////////
+    [selected_data_buffer,row_data_buffer,indices,cardinalities](size_t tid){
+      indices[tid * m] = 0;
+      cardinalities[tid * m] = 0;
+      row_data_buffer->allocate(tid);
+      selected_data_buffer->allocate(tid);
+    },
+    /////////////////////////////////////////////////////////////
+    [node_attributes_in,old2newids,edge_attributes_in,node_attr,new_imap,edge_attr,cardinalities,row_data_buffer,selected_data_buffer,row_arrays_in,indices,row_lengths_in,inputGraph,node_selection,edge_selection]
+    (size_t tid, size_t i) {
+      if(old2newids[i] != 0xFFFFFFFF){
+        uint8_t * const row_data_in = row_data_buffer->data[tid];
+        uint32_t * const selected_data = selected_data_buffer->data[tid];
         node_attributes_in[old2newids[i]] = node_attr->at(i);
         new_imap[old2newids[i]] = inputGraph->id_map->at(i);
-        row_arrays_in[old2newids[i]] = &row_data_in[index];
-
-        pair<size_t,size_t> index_size = pack_attribute_data<T>(i,node_attr,edge_attr,inputGraph->out_neighborhoods,selected_row,
-          old2newids,edge_attributes_in,row_lengths_in,row_arrays_in,row_data_in,
-          index,node_selection,edge_selection);
-        index = index_size.first;
+        row_arrays_in[old2newids[i]] = &row_data_in[indices[tid*m]];
+        const pair<size_t,size_t> index_size = pack_attribute_data<T>(i,
+          node_attr,edge_attr->at(i),inputGraph->out_neighborhoods->at(i),
+          selected_data,old2newids,edge_attributes_in,
+          row_data_in,indices[tid*m],node_selection,edge_selection); 
+        indices[tid * m] = index_size.first;
         row_lengths_in[old2newids[i]] = index_size.second;
-        new_cardinality += row_lengths_in[old2newids[i]];
+        cardinalities[tid * m] += row_lengths_in[old2newids[i]];
       }
+    },
+    /////////////////////////////////////////////////////////////
+    [row_data_buffer,selected_data_buffer,cardinalities,&new_cardinality,&total_bytes_used,indices](size_t tid){
+      selected_data_buffer->unallocate(tid);
+      new_cardinality += cardinalities[tid * m];
+      total_bytes_used += indices[tid * m];
+      row_data_buffer->data[tid] = (uint8_t*) realloc((void *) row_data_buffer->data[tid], indices[tid*m]*sizeof(uint8_t));  
     }
-    delete[] selected_row;
-    total_bytes_used += index;
-    row_data_in = (uint8_t*) realloc((void *) row_data_in, index*sizeof(uint8_t));
-  }
-  delete[] old2newids;
+  );
+  delete[] indices;
+  delete[] cardinalities;
+  common::stopClock("parallel section",parallel_range);
 
+  cout << "Number of nodes: " << new_num_nodes << endl;
   cout << "Number of edges: " << new_cardinality << endl;
   cout << "ROW DATA SIZE (Bytes): " << total_bytes_used << endl;
 

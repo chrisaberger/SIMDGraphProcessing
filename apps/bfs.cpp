@@ -136,9 +136,9 @@ class application{
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
-  if(argc != 4){
+  if(argc < 4){
     cout << "Please see usage below: " << endl;
-    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp>" << endl;
+    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,pshort,uint,hybrid,v,bp> <OPTIONAL: attribute list>" << endl;
     exit(0);
   }
 
@@ -150,7 +150,11 @@ int main (int argc, char* argv[]) {
 
   size_t num_nodes = 1;
   //common::startClock();
+#ifdef ATTRIBUTES
+  MutableGraph *inputGraph = MutableGraph::directedFromAttributeList(argv[1],argv[4]); //filename, # of files
+#else
   MutableGraph *inputGraph = MutableGraph::directedFromBinary(argv[1]); //filename, # of files
+#endif
   //common::stopClock("Reading File");
 
   if(input_layout.compare("uint") == 0){

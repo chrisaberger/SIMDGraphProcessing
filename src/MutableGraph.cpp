@@ -758,15 +758,14 @@ MutableGraph* MutableGraph::directedFromAttributeList(const string path, const s
       extern_ids->insert(make_pair(dst,extern_ids->size()));
       id_map->push_back(dst);
       dst_row = new vector<uint32_t>();
-      vector<uint32_t> *new_row = new vector<uint32_t>();
-      out_neighborhoods->push_back(new_row);
+      out_neighborhoods->push_back(new vector<uint32_t>());
       in_neighborhoods->push_back(dst_row);
       dst_attr = new vector<uint32_t>();
       in_edge_attributes->push_back(dst_attr);
       out_edge_attributes->push_back(new vector<uint32_t>());
     } else{
       dst_row = in_neighborhoods->at(extern_ids->at(dst));
-      dst_attr = in_edge_attributes->at(extern_ids->at(src));
+      dst_attr = in_edge_attributes->at(extern_ids->at(dst));
     }
     src_row->push_back(extern_ids->at(dst));
     src_attr->push_back(year);
@@ -816,25 +815,45 @@ MutableGraph* MutableGraph::directedFromAttributeList(const string path, const s
   fclose(pFile2);
   free(buffer);
   //////////////////////////////////////////////////////////////////////////////
-
   size_t max_nbrhood_size = 0;
   for(size_t i = 0; i < in_neighborhoods->size(); i++){
-    vector<uint32_t> *row = in_neighborhoods->at(i);
-    std::sort(row->begin(),row->end());
-
-    if(row->size() > max_nbrhood_size)
-      max_nbrhood_size = row->size();
-
-    row->erase(unique(row->begin(),row->begin()+row->size()),row->end());
-  }
-  for(size_t i = 0; i < out_neighborhoods->size(); i++){
     vector<uint32_t> *row = out_neighborhoods->at(i);
-    std::sort(row->begin(),row->end());
+    vector<uint32_t> *row_attr = out_edge_attributes->at(i);
 
-    if(row->size() > max_nbrhood_size)
-      max_nbrhood_size = row->size();
+    if(row->size() > 0){
+      vector<pair<uint32_t,uint32_t>> *pair_list = new vector<pair<uint32_t,uint32_t>>();
+      for(size_t j = 0; j < row->size(); j++){
+        pair_list->push_back(make_pair(row->at(j),row_attr->at(j)));
+      }
+      std::sort(pair_list->begin(),pair_list->end(),OrderByID());
+      for(size_t j = 0; j < row->size(); j++){
+        row->at(j) = pair_list->at(j).first;
+        row_attr->at(j) = pair_list->at(j).second;
+      }
+      delete pair_list;
 
-    row->erase(unique(row->begin(),row->begin()+row->size()),row->end());
+      if(row->size() > max_nbrhood_size)
+        max_nbrhood_size = row->size();
+    }
+
+    row = in_neighborhoods->at(i);
+    row_attr = in_edge_attributes->at(i);
+    if(row->size() > 0){
+      vector<pair<uint32_t,uint32_t>> *pair_list = new vector<pair<uint32_t,uint32_t>>();
+      for(size_t j = 0; j < row->size(); j++){
+        pair_list->push_back(make_pair(row->at(j),row_attr->at(j)));
+      }
+      std::sort(pair_list->begin(),pair_list->end(),OrderByID());
+      for(size_t j = 0; j < row->size(); j++){
+        row->at(j) = pair_list->at(j).first;
+        row_attr->at(j) = pair_list->at(j).second;
+      }
+      delete pair_list;
+
+      if(row->size() > max_nbrhood_size)
+        max_nbrhood_size = row->size();
+    }
+    //row->erase(unique(row->begin(),row->begin()+row->size()),row->end());
   }
 
   delete extern_ids;

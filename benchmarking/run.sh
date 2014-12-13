@@ -5,8 +5,8 @@ curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
 numruns="7"
 
-for system in "graphlab" "galois"; do
-  odir="${output}/${system}_${curtime}_${date}"
+for system in "emptyheaded"; do
+  odir="${output}/${system}_${date}_${curtime}"
   mkdir $odir
   echo $odir
    for dataset in "baidu" "california" "higgs" "flickr" "socLivejournal" "orkut" "cid-patents" "pokec" "twitter2010" "wikipedia"; do

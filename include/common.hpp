@@ -29,7 +29,11 @@
 //#define ENABLE_PCM
 //#define ENABLE_PRINT_THREAD_TIMES
 #define ENABLE_ATOMIC_UNION
-//#define TEXT_INPUT
+
+//#define TEXT_INPUT 
+#define ATTRIBUTES
+//#define BINARY
+
 #define ALLOCATOR 10
 
 #define WRITE_VECTOR 0

@@ -44,6 +44,16 @@ class application{
       layout = input_layout;
       t_data_pointers = new thread_data<T,R>*[num_threads];
     }
+    #ifdef ATTRIBUTES
+    inline bool myNodeSelection(uint32_t node, uint32_t attribute){
+      (void)node; (void) attribute;
+      return attribute > 500;
+    }
+    inline bool myEdgeSelection(uint32_t src, uint32_t dst, uint32_t attribute){
+      (void) attribute;
+      return attribute == 2012 && src < dst;
+    }
+    #else
     inline bool myNodeSelection(uint32_t node, uint32_t attribute){
       (void)node; (void) attribute;
       return true;
@@ -52,6 +62,7 @@ class application{
       (void) attribute;
       return nbr < node;
     }
+    #endif
     inline void allocBuffers(){
       for(size_t k= 0; k < num_threads; k++){
         t_data_pointers[k] = new thread_data<T,R>(graph, graph->max_nbrhood_size,k);
@@ -60,7 +71,12 @@ class application{
     inline void produceSubgraph(){
       auto node_selection = std::bind(&application::myNodeSelection, this, _1, _2);
       auto edge_selection = std::bind(&application::myEdgeSelection, this, _1, _2, _3);
+#ifdef ATTRIBUTES
+      cout << "running attribute code" << endl;
+      graph = SparseMatrix<T,R>::from_symmetric_attribute_graph(inputGraph,node_selection,edge_selection,num_threads);
+#else
       graph = SparseMatrix<T,R>::from_symmetric_graph(inputGraph,node_selection,edge_selection,num_threads);
+#endif
     }
 
     inline void queryOver(){
@@ -102,11 +118,12 @@ class application{
     produceSubgraph();
     common::stopClock("Selections",start_time);
 
+
     //common::startClock();
     allocBuffers();
     //common::stopClock("Allocating Buffers");
 
-    //graph->print_data("graph.txt");
+    graph->print_data("graph.txt");
 
     if(pcm_init() < 0)
        return;
@@ -122,9 +139,9 @@ class application{
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
-  if(argc != 4){
+  if(argc < 4){
     cout << "Please see usage below: " << endl;
-    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp>" << endl;
+    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,pshort,uint,hybrid,v,bp> <optional attribute file>" << endl;
     exit(0);
   }
 
@@ -136,13 +153,17 @@ int main (int argc, char* argv[]) {
   std::string input_layout = argv[3];
 
   size_t num_nodes = 1;
-  //common::startClock();
+  double file_reading = common::startClock();
 #ifdef TEXT_INPUT
   MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files
-#else
+#endif
+#ifdef ATTRIBUTES
+  MutableGraph *inputGraph = MutableGraph::undirectedFromAttributeList(argv[1],argv[4]); //filename, # of files
+#endif
+#ifdef BINARY
   MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]); //filename, # of files
 #endif
-  //common::stopClock("Reading File");
+  common::stopClock("Reading File",file_reading);
 
   if(input_layout.compare("uint") == 0){
     application<uinteger,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);

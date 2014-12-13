@@ -29,13 +29,14 @@
 //#define ENABLE_PCM
 //#define ENABLE_PRINT_THREAD_TIMES
 //#define ENABLE_ATOMIC_UNION
-//#define TEXT_INPUT 
-#define ATTRIBUTES
-//#define BINARY
 
+//TODO: Replace with new command line arguments.
+//#define TEXT_INPUT 
+//#define ATTRIBUTES
+#define BINARY
 #define ALLOCATOR 10
 
-#define WRITE_VECTOR 0
+#define WRITE_VECTOR 1
 #define COMPRESSION 0
 #define PERFORMANCE 1
 #define VECTORIZE 1

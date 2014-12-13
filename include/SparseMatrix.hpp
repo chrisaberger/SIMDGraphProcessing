@@ -93,7 +93,13 @@ class SparseMatrix{
 
     static SparseMatrix* from_asymmetric_graph(MutableGraph *inputGraph,
       const std::function<bool(uint32_t,uint32_t)> node_selection,
-      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, const size_t num_threads);
+      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, 
+      const size_t num_threads);
+
+    static SparseMatrix* from_asymmetric_attribute_graph(MutableGraph *inputGraph,
+      const std::function<bool(uint32_t,uint32_t)> node_selection,
+      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, 
+      const size_t num_threads);
 
     uint32_t get_max_row_id();
     uint32_t get_internal_id(uint64_t external_id);
@@ -265,9 +271,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_attribute_graph(MutableGrap
     }
   }
 
-  uint32_t *node_attributes_in;
-  node_attributes_in= new uint32_t[new_num_nodes];
-
+  uint32_t *node_attributes_in = new uint32_t[new_num_nodes];
   uint64_t *new_imap = new uint64_t[new_num_nodes];  
   size_t new_cardinality = 0;
   size_t total_bytes_used = 0;
@@ -403,6 +407,135 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGr
 
 //Directed Graph
 template<class T,class R>
+SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_attribute_graph(MutableGraph* inputGraph,
+  const std::function<bool(uint32_t,uint32_t)> node_selection,
+  const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, const size_t num_threads){
+  
+  const size_t matrix_size_in = inputGraph->num_nodes;
+  const size_t cardinality_in = inputGraph->num_edges;
+  
+  const vector<uint32_t> *node_attr = inputGraph->node_attr;
+  const vector<vector<uint32_t>*> *out_edge_attr = inputGraph->out_edge_attributes;
+  const vector<vector<uint32_t>*> *in_edge_attr = inputGraph->in_edge_attributes;
+
+  ops::prepare_shuffling_dictionary16();
+
+  size_t new_cardinality = 0;
+  size_t row_total_bytes_used = 0;
+  size_t col_total_bytes_used = 0;
+
+  uint32_t *old2newids = new uint32_t[matrix_size_in];
+  size_t new_num_nodes = 0;
+
+  //Filter out nodes.
+  vector<vector<uint32_t>*> *out_edge_attributes_in = new vector<vector<uint32_t>*>();
+  vector<vector<uint32_t>*> *in_edge_attributes_in = new vector<vector<uint32_t>*>();
+  for(size_t i = 0; i < matrix_size_in; ++i){
+    if(node_selection(i,node_attr->at(i))){
+      out_edge_attributes_in->push_back(new std::vector<uint32_t>());
+      in_edge_attributes_in->push_back(new std::vector<uint32_t>());
+      old2newids[i] = new_num_nodes++;
+    } else{
+      old2newids[i] = 0xFFFFFFFF;
+    }
+  }
+
+  cout << "num nodes: " << new_num_nodes << endl;
+
+  uint32_t *node_attributes_in = new uint32_t[new_num_nodes];
+  uint8_t **row_arrays_in = new uint8_t*[new_num_nodes];
+  uint32_t *row_lengths_in = new uint32_t[new_num_nodes];
+  uint8_t **col_arrays_in = new uint8_t*[new_num_nodes];
+  uint32_t *col_lengths_in = new uint32_t[new_num_nodes];
+
+  uint64_t *new_imap = new uint64_t[new_num_nodes];  
+  size_t alloc_size = (cardinality_in*sizeof(uint32_t)*ALLOCATOR)/num_threads;
+
+  ParallelBuffer<uint8_t> *row_data_buffer = new ParallelBuffer<uint8_t>(num_threads,alloc_size);
+  ParallelBuffer<uint8_t> *col_data_buffer = new ParallelBuffer<uint8_t>(num_threads,alloc_size);
+  ParallelBuffer<uint32_t> *selected_data_buffer = new ParallelBuffer<uint32_t>(num_threads,alloc_size);
+  
+  const size_t m = 300;  //Don't ask don't tell.
+  size_t *row_indices = new size_t[num_threads*m];
+  size_t *col_indices = new size_t[num_threads*m];
+  size_t *cardinalities= new size_t[num_threads*m];
+
+  common::par_for_range(num_threads,0,matrix_size_in,100,
+    //////////////////////////////////////////////////////////
+    [&selected_data_buffer,&row_data_buffer,&col_data_buffer,&row_indices,&col_indices,&cardinalities](size_t tid){
+      row_indices[tid*m] = 0;
+      col_indices[tid*m] = 0;
+      cardinalities[tid*m] = 0;
+      row_data_buffer->allocate(tid);
+      col_data_buffer->allocate(tid);
+      selected_data_buffer->allocate(tid);
+    },
+    /////////////////////////////////////////////////////////////
+    [cardinalities,row_data_buffer,col_data_buffer,selected_data_buffer,node_attr,
+      old2newids,new_imap,in_edge_attr,out_edge_attr,in_edge_attributes_in,out_edge_attributes_in,
+      row_arrays_in,col_arrays_in,node_attributes_in,
+      row_indices,col_indices,
+      &row_lengths_in,&col_lengths_in,
+      inputGraph,node_selection,edge_selection]
+    (size_t tid, size_t i) {
+      if(old2newids[i] != 0xFFFFFFFF){
+        new_imap[old2newids[i]] = inputGraph->id_map->at(i);
+
+        //////////////////////////////////////////////////////////////////
+        uint8_t * const row_data_in = row_data_buffer->data[tid];
+        uint32_t * const selected_data = selected_data_buffer->data[tid];
+        node_attributes_in[old2newids[i]] = node_attr->at(i);
+        row_arrays_in[old2newids[i]] = &row_data_in[row_indices[tid*m]];
+        pair<size_t,size_t> index_size = pack_attribute_data<T>(i,
+          node_attr,out_edge_attr->at(i),inputGraph->out_neighborhoods->at(i),
+          selected_data,old2newids,out_edge_attributes_in,
+          row_data_in,row_indices[tid*m],node_selection,edge_selection); 
+        row_indices[tid * m] = index_size.first;
+        row_lengths_in[old2newids[i]] = index_size.second;
+        cardinalities[tid * m] += row_lengths_in[old2newids[i]];
+
+        //////////////////////////////////////////////////////////////////
+        uint8_t * const col_data_in = col_data_buffer->data[tid];
+        col_arrays_in[old2newids[i]] = &col_data_in[col_indices[tid*m]];          
+        index_size = pack_attribute_data<T>(i,
+          node_attr,in_edge_attr->at(i),inputGraph->in_neighborhoods->at(i),
+          selected_data,old2newids,in_edge_attributes_in,
+          col_data_in,col_indices[tid*m],node_selection,edge_selection);
+        col_indices[tid*m] = index_size.first;
+        col_lengths_in[old2newids[i]] = index_size.second;
+        cardinalities[tid*m] += col_lengths_in[old2newids[i]];
+      }
+    },
+    ///////////////////////////////////////////////////////////////////////
+    [&row_data_buffer,&col_data_buffer,&selected_data_buffer,&cardinalities,
+      &new_cardinality,&row_total_bytes_used,&col_total_bytes_used,
+      &row_indices,&col_indices]
+    (size_t tid){
+      selected_data_buffer->unallocate(tid);
+      new_cardinality += cardinalities[tid*m];
+      row_total_bytes_used += row_indices[tid*m];
+      col_total_bytes_used += col_indices[tid*m];
+      row_data_buffer->data[tid] = (uint8_t*) realloc((void *) row_data_buffer->data[tid], row_indices[tid*m]*sizeof(uint8_t));  
+      col_data_buffer->data[tid] = (uint8_t*) realloc((void *) col_data_buffer->data[tid], col_indices[tid*m]*sizeof(uint8_t));  
+    }
+  );
+  delete[] row_indices;
+  delete[] col_indices;
+  delete[] cardinalities;
+
+  cout << "Number of edges: " << new_cardinality << endl;
+  cout << "ROW DATA SIZE (Bytes): " << row_total_bytes_used << endl;
+  cout << "COL DATA SIZE (Bytes): " << col_total_bytes_used << endl;
+
+  return new SparseMatrix(new_num_nodes,new_cardinality,row_total_bytes_used,
+    col_total_bytes_used,inputGraph->max_nbrhood_size,false,
+    row_lengths_in,row_arrays_in,
+    col_lengths_in,col_arrays_in,
+    new_imap,node_attributes_in,out_edge_attributes_in,in_edge_attributes_in);
+}
+
+//Directed Graph
+template<class T,class R>
 SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputGraph,
   const std::function<bool(uint32_t,uint32_t)> node_selection,
   const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, const size_t num_threads){
@@ -495,5 +628,4 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputG
     col_lengths_in,col_arrays_in,
     inputGraph->id_map->data(),NULL,NULL,NULL);
 }
-
 #endif

@@ -8,7 +8,7 @@ source env.sh
 curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
 numruns="7"
-echo $systems
+
 for system in $systems; do
   odir="${output}/${system}_${date}_${curtime}"
   mkdir $odir

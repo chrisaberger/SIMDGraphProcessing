@@ -295,9 +295,9 @@ MutableGraph* MutableGraph::undirectedFromBinary(const string path) {
   infile.open(path, ios::binary | ios::in); 
 
   vector<uint64_t> *id_map = new vector<uint64_t>();
-  vector<uint32_t> *id_attributes = new vector<uint32_t>();
+  vector<uint32_t> *id_attributes = NULL;
   vector< vector<uint32_t>*  > *neighborhoods = new vector< vector<uint32_t>* >();
-  vector< vector<uint32_t>*  > *edge_attributes = new vector< vector<uint32_t>* >();
+  vector< vector<uint32_t>*  > *edge_attributes = NULL;
 
   size_t num_edges = 0;
   size_t num_nodes = 0;
@@ -491,9 +491,9 @@ MutableGraph* MutableGraph::undirectedFromEdgeList(const string path) {
   //store the graph.
   unordered_map<uint64_t,uint32_t> *extern_ids = new unordered_map<uint64_t,uint32_t>();
   vector<uint64_t> *id_map = new vector<uint64_t>();
-  vector<uint32_t> *id_attributes = new vector<uint32_t>();
+  vector<uint32_t> *id_attributes = NULL;
   vector< vector<uint32_t>*  > *neighborhoods = new vector< vector<uint32_t>* >();
-  vector< vector<uint32_t>*  > *edge_attributes = new vector< vector<uint32_t>* >();
+  vector< vector<uint32_t>*  > *edge_attributes = NULL;
 
   cout << path << endl;
   FILE *pFile = fopen(path.c_str(),"r");
@@ -633,8 +633,8 @@ MutableGraph* MutableGraph::directedFromBinary(const string path) {
   vector<uint64_t> *id_map = new vector<uint64_t>();
   vector< vector<uint32_t>*  > *out_neighborhoods = new vector< vector<uint32_t>* >();
   vector< vector<uint32_t>*  > *in_neighborhoods = new vector< vector<uint32_t>* >();
-  vector< vector<uint32_t>*  > *edge_attributes = new vector< vector<uint32_t>* >();
-  vector<uint32_t> *id_attributes = new vector<uint32_t>();
+  vector< vector<uint32_t>*  > *edge_attributes = NULL;
+  vector<uint32_t> *id_attributes = NULL;
 
   size_t num_edges = 0;
   size_t num_nodes = 0;
@@ -868,8 +868,8 @@ MutableGraph* MutableGraph::directedFromEdgeList(const string path) {
   unordered_map<uint64_t,uint32_t> *extern_ids = new unordered_map<uint64_t,uint32_t>();
   vector< vector<uint32_t>*  > *in_neighborhoods = new vector< vector<uint32_t>* >();
   vector< vector<uint32_t>*  > *out_neighborhoods = new vector< vector<uint32_t>* >();
-  vector<uint32_t> *id_attributes = new vector<uint32_t>();
-  vector< vector<uint32_t>*  > *edge_attributes = new vector< vector<uint32_t>* >();
+  vector<uint32_t> *id_attributes = NULL;
+  vector< vector<uint32_t>*  > *edge_attributes = NULL;
 
   FILE *pFile = fopen(path.c_str(),"r");
   if (pFile==NULL) {fputs ("File error",stderr); exit (1);}

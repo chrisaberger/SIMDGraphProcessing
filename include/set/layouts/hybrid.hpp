@@ -8,7 +8,6 @@ RUN THE CORRESPONDING SET MEHTODS.
 
 */
 
-
 #include "uinteger.hpp"
 #include "pshort.hpp"
 #include "bitset.hpp"

@@ -1,59 +1,90 @@
 #ifndef TABLE_H
 #define TABLE_H
 
+template<class T>
 class Table{
   public:
-    size_t num_tuples;
-    size_t num_threads;
+    size_t num_columns;
+    size_t column_size;
+    size_t cardinality;
 
-    size_t *table_size;
-    uint32_t **table_pointers; //num_tuples*num_threads
-    uint32_t *tuple; //num_tuples*num_threads
+    T **data;
+    T *tuple;
 
-
-    size_t *thread_index;
-
-    Table(size_t num_tuples_in, size_t num_threads_in, size_t cardinality){
-      num_tuples = num_tuples_in;
-      num_threads = num_threads_in;
-      table_pointers = new uint32_t*[num_tuples*num_threads];
-      tuple = new uint32_t[num_tuples*num_threads];
-      table_size = new size_t[num_threads];
-
-      for(size_t i = 0; i < num_threads; i++){
-        table_size[i] = 0;
+    size_t *padding;
+    Table(const size_t num_columns_in, const size_t column_size_in){
+      num_columns = num_columns_in;
+      data = new T*[num_columns];
+      tuple = new T[num_columns];
+      cardinality = 0;
+      column_size = column_size_in;
+      for(size_t i = 0; i < num_columns_in; i++){
+        data[i] = new T[column_size]; //(40*cardinality)/num_threads
       }
-      for(size_t i = 0; i < (num_threads*num_tuples); i++){
-        table_pointers[i] = new uint32_t[(40*cardinality)/num_threads];
+      padding = new size_t[PADDING];
+    }
+
+    ~Table(){}
+
+    template<class R>
+    void write_table(Set<R> c, T* id_map){
+      const size_t offset = cardinality;
+      cardinality += c.cardinality;
+      for(size_t i=0;i<(num_columns-1);i++){
+        T *cur_column = data[i]+offset;
+        for(size_t j=0;j<c.cardinality;j++){
+          cur_column[j] = tuple[i];
+        }
+      }
+      T *cur_column = data[num_columns-1]+offset;
+      c.foreach([num_columns,cur_column,data,id_map](uint32_t data){
+        cur_column[num_columns-1] = id_map[data];
+      });
+    }
+
+    void print_data(ofstream &file){
+      for(size_t i=0;i<cardinality;i++){
+        for(size_t j=0;j<num_columns;j++){
+          T *cur_column = data[j];
+          file << cur_column[i] << "\t";
+        }
+        file << endl;
       }
     }
 
-    ~Table(){
-      delete[] tuple;
-      for(size_t i = 0; i < num_threads; i++){
-        delete[] table_pointers[i];
-      }
-    }
-
-    void print_data(string filename, uint64_t *id_map);
 };
 
-void Table::print_data(string filename, uint64_t *id_map){
-  ofstream myfile;
-  myfile.open(filename);
+template<class T>
+class ParallelTable{
+  public:
+    Table<T> **table;
+    size_t num_threads;
+    size_t num_columns;
+    size_t column_size;
 
-  cout << "Writing table to: " << filename << endl;
+    size_t cardinality;
 
-  for(size_t t = 0; t < num_threads; t++){
-    size_t t_size = table_size[t];
-    for(size_t i = 0; i < t_size; i++){
-      for(size_t j = 0; j < num_tuples; j++){
-        uint32_t *column = table_pointers[t*num_tuples+j];
-        myfile << id_map[column[i]] << "\t";
-      }
-      myfile << endl;
+    ParallelTable(size_t num_threads_in, size_t num_columns_in, size_t column_size_in){
+      num_threads = num_threads_in;
+      num_columns = num_columns_in;
+      column_size = column_size_in;
+      table = new Table<T>*[num_threads];
+      cardinality = 0;
     }
-  }
-}
+    ~ParallelTable(){}
+
+    void print_data(string filename){
+      cout << "Printing data to table: " << filename << endl;
+      ofstream myfile;
+      myfile.open(filename);
+      for(size_t i=0; i<num_threads;i++){
+        table[i]->print_data(myfile);
+      }
+    }
+
+    void allocate(size_t tid){
+      table[tid] = new Table<T>(num_columns,column_size);
+    }
+};
 
 #endif

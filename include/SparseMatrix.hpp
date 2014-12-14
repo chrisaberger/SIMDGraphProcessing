@@ -86,6 +86,11 @@ class SparseMatrix{
       const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
       const size_t num_threads);
 
+    static SparseMatrix* from_symmetric_noattribute_graph(MutableGraph *inputGraph,
+      const std::function<bool(uint32_t,uint32_t)> node_selection,
+      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
+      const size_t num_threads);
+
     static SparseMatrix* from_symmetric_attribute_graph(MutableGraph *inputGraph,
       const std::function<bool(uint32_t,uint32_t)> node_selection,
       const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
@@ -240,6 +245,16 @@ inline pair<size_t,size_t> pack_data(const uint32_t i,
   index += Set<T>::flatten_from_array(data+index,selected_neighborhood,new_size);
   return make_pair(index,new_size);
 }
+template<class T,class R>
+SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGraph,
+  const std::function<bool(uint32_t,uint32_t)> node_selection,
+  const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
+  const size_t num_threads){
+  if(inputGraph->node_attr == NULL)
+    return SparseMatrix<T,R>::from_symmetric_noattribute_graph(inputGraph,node_selection,edge_selection,num_threads);
+  else
+    return SparseMatrix<T,R>::from_symmetric_attribute_graph(inputGraph,node_selection,edge_selection,num_threads);
+}
 //Constructors
 template<class T,class R>
 SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_attribute_graph(MutableGraph* inputGraph,
@@ -276,12 +291,12 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_attribute_graph(MutableGrap
   size_t new_cardinality = 0;
   size_t total_bytes_used = 0;
 
-  size_t alloc_size = (cardinality_in*sizeof(int)*ALLOCATOR)/num_threads;
+  const size_t alloc_size = (cardinality_in*sizeof(int)*ALLOCATOR)/num_threads;
 
   ParallelBuffer<uint8_t> *row_data_buffer = new ParallelBuffer<uint8_t>(num_threads,alloc_size);
   ParallelBuffer<uint32_t> *selected_data_buffer = new ParallelBuffer<uint32_t>(num_threads,alloc_size);
   
-  const size_t m = 300;  //Don't ask don't tell.
+  const size_t m = PADDING;  //Don't ask don't tell.
   size_t *indices = new size_t[num_threads * m];
   size_t *cardinalities= new size_t[num_threads * m];
   
@@ -335,7 +350,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_attribute_graph(MutableGrap
 }
 //Constructors
 template<class T,class R>
-SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGraph,
+SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_noattribute_graph(MutableGraph* inputGraph,
   const std::function<bool(uint32_t,uint32_t)> node_selection,
   const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
   const size_t num_threads){
@@ -357,7 +372,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGr
   ParallelBuffer<uint8_t> *row_data_buffer = new ParallelBuffer<uint8_t>(num_threads,alloc_size);
   ParallelBuffer<uint32_t> *selected_data_buffer = new ParallelBuffer<uint32_t>(num_threads,alloc_size);
   
-  const size_t m = 300;  //Don't ask don't tell.
+  const size_t m = PADDING;  //Don't ask don't tell.
   size_t *indices = new size_t[num_threads * m];
   size_t *cardinalities= new size_t[num_threads * m];
   
@@ -388,7 +403,8 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGr
       selected_data_buffer->unallocate(tid);
       new_cardinality += cardinalities[tid * m];
       total_bytes_used += indices[tid * m];
-      row_data_buffer->data[tid] = (uint8_t*) realloc((void *) row_data_buffer->data[tid], indices[tid*m]*sizeof(uint8_t));  
+      cout << indices[tid*m] << endl;
+      row_data_buffer->data[tid] = (uint8_t*) realloc((void *) row_data_buffer->data[tid], indices[tid*m]*sizeof(uint8_t)+1);  
     }
   );
   delete[] indices;
@@ -455,7 +471,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_attribute_graph(MutableGra
   ParallelBuffer<uint8_t> *col_data_buffer = new ParallelBuffer<uint8_t>(num_threads,alloc_size);
   ParallelBuffer<uint32_t> *selected_data_buffer = new ParallelBuffer<uint32_t>(num_threads,alloc_size);
   
-  const size_t m = 300;  //Don't ask don't tell.
+  const size_t m = PADDING;  //Don't ask don't tell.
   size_t *row_indices = new size_t[num_threads*m];
   size_t *col_indices = new size_t[num_threads*m];
   size_t *cardinalities= new size_t[num_threads*m];
@@ -561,7 +577,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputG
 
   ParallelBuffer<uint32_t>selected_data_buffer(num_threads,alloc_size);
   
-  const size_t m = 300;  //Don't ask don't tell.
+  const size_t m = PADDING;  //Don't ask don't tell.
   size_t *row_indices = new size_t[num_threads*m];
   size_t *col_indices = new size_t[num_threads*m];
   size_t *cardinalities= new size_t[num_threads*m];

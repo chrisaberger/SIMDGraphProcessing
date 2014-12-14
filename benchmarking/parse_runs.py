@@ -11,6 +11,7 @@ from emptyheaded.parse_output import getInternalPerformanceInfo
 from average_runs import average_runs
 from graphlab.parse_output import getGraphLabPerformance
 from galois.parse_output import getGaloisPerformance
+from ligra.parse_output import getLigraPerformance
 
 def parseInput():
   parser = OptionParser()
@@ -48,6 +49,10 @@ def main():
         print "data: " + dataset + " t: " + thread + " time: " + str(avg)
       elif system == "galois":
         perf_info = getGaloisPerformance(f);
+        avg = average_runs(perf_info['perf'])
+        print "data: " + dataset + " t: " + thread + " time: " + str(avg)
+      elif system == "ligra":
+        perf_info = getLigraPerformance(f);
         avg = average_runs(perf_info['perf'])
         print "data: " + dataset + " t: " + thread + " time: " + str(avg)
 

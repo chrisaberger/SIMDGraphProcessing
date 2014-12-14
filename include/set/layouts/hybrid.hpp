@@ -36,9 +36,9 @@ inline common::type hybrid::get_type(){
   return common::PSHORT;
 }
 inline common::type hybrid::compute_type(const double density){
-  if( density > (double) 1/32 ){
+  if(density > 1.0 / 32.0) {
     return common::BITSET;
-  } else if(((1.0 / density) * (1.0 / 65536.0)) > 12){
+  } else if(density > 1.0 / 128.0){
     return common::PSHORT;
   } else {
     return common::UINTEGER;
@@ -223,27 +223,25 @@ inline void hybrid::par_foreach(
   switch(t){
     case common::UINTEGER :
       uinteger::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::UINTEGER);
-    break;
+      break;
     case common::PSHORT :
-      std::cout << "Parallel foreach for PSHORT is not implemented" << std::endl;
-      exit(EXIT_FAILURE);
-      // pshort::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::PSHORT);
-    break;
+      pshort::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::PSHORT);
+      break;
     case common::BITSET :
       bitset::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::BITSET);
-    break;
+      break;
     case common::VARIANT :
       std::cout << "Parallel foreach for VARIANT is not implemented" << std::endl;
       exit(EXIT_FAILURE);
       // variant::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::BITSET);
-    break;
+      break;
     case common::BITPACKED :
       std::cout << "Parallel foreach for BITPACKED is not implemented" << std::endl;
       exit(EXIT_FAILURE);
       // bitpacked::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::BITSET);
-    break;
+      break;
     default:
-    break;
+      break;
   }
 }
 #endif

@@ -215,32 +215,32 @@ namespace common{
      }
   }
   static void par_for_range(const size_t num_threads, const size_t from, const size_t to, const size_t block_size,
-    std::function<void(size_t)> setup, 
+    std::function<void(size_t)> setup,
     std::function<void(size_t, size_t)> body,
     std::function<void(size_t)> tear_down) {
 
     #ifdef ENABLE_PRINT_THREAD_TIMES
     double setup1 = common::startClock();
     #endif
-    
+
     for(size_t i = 0; i < num_threads; i++){
       setup(i);
     }
-    
+
     #ifdef ENABLE_PRINT_THREAD_TIMES
     common::stopClock("PARALLEL SETUP",setup1);
     #endif
-    
+
     par_for_range(num_threads,from,to,block_size,body);
-    
+
     #ifdef ENABLE_PRINT_THREAD_TIMES
     double td = common::startClock();
     #endif
-    
+
     for(size_t i = 0; i < num_threads; i++){
       tear_down(i);
     }
-    
+
     #ifdef ENABLE_PRINT_THREAD_TIMES
     common::stopClock("PARALLEL TEAR DOWN",td);
     #endif

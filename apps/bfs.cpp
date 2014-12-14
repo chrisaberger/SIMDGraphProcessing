@@ -81,9 +81,9 @@ class application{
         );
       } else {
         frontier.par_foreach(num_threads,
-          [this, &visited] (size_t tid, uint32_t f){
+          [this, &visited] (size_t tid, uint32_t n){
              (void) tid;
-             Set<T> outnbrs = this->graph->get_row(f);
+             Set<T> outnbrs = this->graph->get_row(n);
              ops::set_union(visited,outnbrs);
         });
       }
@@ -94,13 +94,13 @@ class application{
 
       /*
       double diff_time = common::startClock();
-      frontier = ops::set_difference(next_frontier,visited,old_visited);  
+      frontier = ops::set_difference(next_frontier,visited,old_visited);
       common::stopClock("difference",diff_time);
       */
 
       //CODE IF WE WANT TO REPACKAGE
       double diff_time = common::startClock();
-      next_frontier = ops::set_difference(next_frontier,visited,old_visited);  
+      next_frontier = ops::set_difference(next_frontier,visited,old_visited);
       common::stopClock("difference",diff_time);
 
       double repack_time = common::startClock();

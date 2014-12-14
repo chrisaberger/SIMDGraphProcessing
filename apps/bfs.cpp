@@ -36,7 +36,7 @@ class application{
       return true;
     }
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
-      (void) attribute;
+      (void) node; (void) nbr; (void) attribute;
       return true;
     }
     #endif
@@ -123,7 +123,7 @@ class application{
       frontier = ops::repackage(next_frontier,f_data);
       common::stopClock("repack",repack_time);
 
-      finished = frontier.cardinalty == 0; //path_length >= 4;
+      finished = frontier.cardinality == 0; //path_length >= 4;
       path_length++;
       common::stopClock("Iteration",start_time);
     }
@@ -135,7 +135,7 @@ class application{
     produceSubgraph();
     common::stopClock("Selections",selection_time);
     
-    graph->print_data("graph.txt");
+    //graph->print_data("graph.txt");
     
     uint32_t start_node = graph->get_max_row_id();
     //uint32_t start_node = graph->get_internal_id(14293652286639);

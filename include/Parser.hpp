@@ -10,7 +10,7 @@ class Parser{
     int num_threads;
     bool attributes;
     int n;
-    size_t start_node;
+    long start_node;
     MutableGraph *input_graph;
     string layout;
 
@@ -51,7 +51,7 @@ namespace input_parser{
     char* layout_type = NULL;
     int num_threads = 0;
     int n = -1;
-    size_t start_node = 0;
+    long start_node = -1;
     bool help = false;
 
     int c;
@@ -123,8 +123,13 @@ namespace input_parser{
     if(num_threads == 0 || graph_path == NULL || input_type == NULL || help || layout_type == NULL){
       printUsage(app);
     }
-    if(n == -1 && (app.compare("n_clique") || app.compare("n_cycle"))){
-      n = 4; //default is 4
+    
+    if(n == -1){
+      if(app.compare("n_clique") == 0 || app.compare("n_cycle") == 0){
+        n = 4; //default is 4
+      }else if(app.compare("n_path") == 0){
+        n = 0xeffffff;
+      }
     }
 
     MutableGraph *inputGraph;

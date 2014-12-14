@@ -55,7 +55,12 @@ def main():
         perf_info = getLigraPerformance(f);
         avg = average_runs(perf_info['perf'])
         print "data: " + dataset + " t: " + thread + " time: " + str(avg)
-
+      elif system == "emptyheaded":
+        perf_info = getInternalPerformanceInfo(f);
+        for p in perf_info['perfs']:
+            query = p['query']
+            avg = average_runs(p['perf'])
+            print "query: " + p['query'] + " data: " + dataset + " t: " + thread + " time: " + str(avg)
 
 if __name__ == "__main__":
     main()

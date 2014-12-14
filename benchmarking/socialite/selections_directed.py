@@ -2,14 +2,12 @@ import time
 import sys
 import os
 
-num_runs = 10
-
 @returns(int)
 def getYear(d):
     return int(d.split('-')[0])
 
-start = time.time()
-
+num_runs = int(sys.argv[2])
+start_node = str(sys.argv[3])
 path = sys.argv[1]
 attributes_file = os.path.join(path, "attributes.txt")
 edgelist_file = os.path.join(path, "edgelist", "data.txt")
@@ -32,13 +30,14 @@ for k in range(0, num_runs):
      clear filtered_edge.
      clear filtered_node.`
 
+    start = time.time()
     `filtered_node(n) :- node(n, p), p > 500.
      filtered_edge(frm, to) :- edge(frm, to, year), year == 2012, filtered_node(frm), filtered_node(to).`
 
     `path(b, $min(d)) :- filtered_edge(14293652286639L, b), d = 1;
                       :- path(a, d1), d1 < 4, filtered_edge(a, b), d = d1 + 1.
      total(0, $sum(1)) :- path(x, 4).`
+    print "4-path time: " + str(time.time() - start)
 
-print "4-path time: " + str((time.time() - start) / num_runs)
 for i, s in `total(i, s)`:
     print "4-path: " + str(s)

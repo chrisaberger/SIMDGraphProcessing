@@ -1,9 +1,13 @@
 #!/bin/bash
 
-if [ -f $1/attributes.txt ]; then
-   ${SOCIALITE_HOME}/bin/socialite -t$2 selections_directed.py $1
-   ${SOCIALITE_HOME}/bin/socialite -t$2 selections_undirected.py $1
+snode=`cat ${2}/largest_degree_external_id.txt`
+
+if [ -f $2/attributes.txt ]; then
+  echo "Socalite selections"
+  ${SOCIALITE_HOME}/bin/socialite -t$3 selections_directed.py $2 $1 $snode
+  ${SOCIALITE_HOME}/bin/socialite -t$3 selections_undirected.py $2 $1
 else
-   ${SOCIALITE_HOME}/bin/socialite -t$2 all_apps_directed.py $1
-   ${SOCIALITE_HOME}/bin/socialite -t$2 all_apps_undirected.py $1
+  echo "Vanilla Socalite"
+  ${SOCIALITE_HOME}/bin/socialite -t$3 all_apps_directed.py $2 $1 $snode
+  ${SOCIALITE_HOME}/bin/socialite -t$3 all_apps_undirected.py $2 $1
 fi

@@ -2,9 +2,7 @@ import time
 import sys
 import os
 
-num_runs = 10
-
-start = time.time()
+num_runs = int(sys.argv[2])
 
 filename = os.path.join(sys.argv[1], "glab_undirected", "data.txt")
 
@@ -20,34 +18,37 @@ print "Preprocessing data"
 `total(int x:0..0, int s).`
 
 print "Triangle counting"
-start = time.time()
 for k in range(0, num_runs):
     print "Run " + str(k)
-    `clear total.
-     total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(x, z).`
+    `clear total.`
 
-print "Triangle time: " + str((time.time() - start) / num_runs)
+    start = time.time()
+    `total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(x, z).`
+    print "Triangle time: " + str(time.time() - start)
+
 for i, s in `total(i, s)`:
     print "Triangles: " + str(s)
 
 print "4-clique counting"
-start = time.time()
 for k in range(0, num_runs):
     print "Run " + str(k)
-    `clear total.
-     total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), edge(x, z), edge(y, w).`
+    `clear total.`
 
-print "4-clique time: " + str((time.time() - start) / num_runs)
+    start = time.time()
+    `total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), edge(x, z), edge(y, w).`
+    print "4-clique time: " + str(time.time() - start)
+
 for i, s in `total(i, s)`:
     print "4-cliques: " + str(s)
 
 print "4-cycle counting"
-start = time.time()
 for k in range(0, num_runs):
     print "Run " + str(k)
-    `clear total.
-     total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w).`
+    `clear total.`
 
-print "4-cycles time: " + str((time.time() - start) / num_runs)
+    start = time.time()
+    `total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w).`
+    print "4-cycles time: " + str(time.time() - start)
+
 for i, s in `total(i, s)`:
     print "4-cycles: " + str(s)

@@ -2,6 +2,7 @@
 #include "SparseMatrix.hpp"
 #include "MutableGraph.hpp"
 #include "pcm_helper.hpp"
+#include "Parser.hpp"
 
 using namespace pcm_helper;
 
@@ -10,18 +11,20 @@ class application{
   public:
     SparseMatrix<T,R>* graph;
     MutableGraph *inputGraph;
-    size_t num_numa_nodes;
     size_t num_threads;
     string layout;
+    size_t depth;
+    long start_node;
 
-    application(size_t num_numa_nodes_in, MutableGraph *inputGraph_in, size_t num_threads_in, string input_layout) {
-      num_numa_nodes = num_numa_nodes_in;
-      inputGraph = inputGraph_in; 
-      num_threads = num_threads_in;
-      layout = input_layout;
+    application(Parser input_data) {
+      inputGraph = input_data.input_graph; 
+      num_threads = input_data.num_threads;
+      layout = input_data.layout;
+      depth = input_data.n;
+      start_node = input_data.start_node;
     }
 
-    #ifdef ATTRIBUTES
+#ifdef ATTRIBUTES
     inline bool myNodeSelection(uint32_t node, uint32_t attribute){
       (void)node; (void) attribute;
       return attribute > 500;
@@ -30,7 +33,7 @@ class application{
       (void) attribute; (void) src; (void) dst;
       return attribute == 2012;
     }
-    #else
+#else
     inline bool myNodeSelection(uint32_t node, uint32_t attribute){
       (void)node; (void) attribute;
       return true;
@@ -39,16 +42,13 @@ class application{
       (void) node; (void) nbr; (void) attribute;
       return true;
     }
-    #endif
+#endif
 
     inline void produceSubgraph(){
       auto node_selection = std::bind(&application::myNodeSelection, this, _1, _2);
       auto edge_selection = std::bind(&application::myEdgeSelection, this, _1, _2, _3);
-#ifdef ATTRIBUTES
-      graph = SparseMatrix<T,R>::from_asymmetric_attribute_graph(inputGraph,node_selection,edge_selection,num_threads);
-#else
+
       graph = SparseMatrix<T,R>::from_asymmetric_graph(inputGraph,node_selection,edge_selection,num_threads);
-#endif
     }
 
   inline void queryOver(uint32_t start_node){
@@ -123,7 +123,7 @@ class application{
       frontier = ops::repackage(next_frontier,f_data);
       //common::stopClock("repack",repack_time);
 
-      finished = frontier.cardinality == 0; //path_length >= 4;
+      finished = frontier.cardinality == 0 || path_length >= depth;
       path_length++;
       //common::stopClock("Iteration",start_time);
     }
@@ -136,15 +136,18 @@ class application{
     common::stopClock("Selections",selection_time);
     
     //graph->print_data("graph.txt");
-    
-    uint32_t start_node = graph->get_max_row_id();
-    //uint32_t start_node = graph->get_internal_id(14293652286639);
+    uint32_t internal_start;
+    if(start_node == -1)
+      internal_start = graph->get_max_row_id();
+    else
+      internal_start = graph->get_internal_id(start_node);
+    cout << "Start node - External: " << graph->id_map[internal_start] << " External: " << internal_start << endl;
 
     if(pcm_init() < 0)
       return;
 
     double bfs_time = common::startClock();
-    queryOver(start_node);
+    queryOver(internal_start);
     common::stopClock("BFS",bfs_time);
 
     pcm_cleanup();
@@ -153,54 +156,29 @@ class application{
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
-  if(argc < 4){
-    cout << "Please see usage below: " << endl;
-    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,pshort,uint,hybrid,v,bp> <OPTIONAL: attribute list>" << endl;
-    exit(0);
-  }
+  Parser input_data = input_parser::parse(argc,argv,"n_path");
 
-  size_t num_threads = atoi(argv[2]);
-  cout << endl << "Number of threads: " << num_threads << endl;
-  omp_set_num_threads(num_threads);
-  common::init_threads(num_threads);
-
-  std::string input_layout = argv[3];
-
-  size_t num_nodes = 1;
-  //common::startClock();
-#ifdef ATTRIBUTES
-  MutableGraph *inputGraph = MutableGraph::directedFromAttributeList(argv[1],argv[4]); //filename, # of files
-#else
-  MutableGraph *inputGraph = MutableGraph::directedFromBinary(argv[1]); //filename, # of files
-#endif
-  //common::stopClock("Reading File");
-
-  if(input_layout.compare("uint") == 0){
-    application<uinteger,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
+  if(input_data.layout.compare("uint") == 0){
+    application<uinteger,uinteger> myapp(input_data);
     myapp.run();
-  } else if(input_layout.compare("bs") == 0){
-    application<bitset,bitset> myapp(num_nodes,inputGraph,num_threads,input_layout);
+  } else if(input_data.layout.compare("bs") == 0){
+    application<bitset,bitset> myapp(input_data);
     myapp.run();  
-  } else if(input_layout.compare("pshort") == 0){
-    application<pshort,pshort> myapp(num_nodes,inputGraph,num_threads,input_layout);
+  } else if(input_data.layout.compare("pshort") == 0){
+    application<pshort,pshort> myapp(input_data);
     myapp.run();  
-  } else if(input_layout.compare("hybrid") == 0){
-    application<hybrid,hybrid> myapp(num_nodes,inputGraph,num_threads,input_layout);
+  } else if(input_data.layout.compare("hybrid") == 0){
+    application<hybrid,hybrid> myapp(input_data);
     myapp.run();  
-  } 
-  #if COMPRESSION == 1
-  else if(input_layout.compare("v") == 0){
-    application<variant,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
+  } else if(input_data.layout.compare("v") == 0){
+    application<variant,uinteger> myapp(input_data);
     myapp.run();  
-  } else if(input_layout.compare("bp") == 0){
-    application<bitpacked,uinteger> myapp(num_nodes,inputGraph,num_threads,input_layout);
+  } else if(input_data.layout.compare("bp") == 0){
+    application<bitpacked,uinteger> myapp(input_data);
     myapp.run();
-  } 
-  #endif
-  else{
+  } else{
     cout << "No valid layout entered." << endl;
     exit(0);
   }
-
   return 0;
 }

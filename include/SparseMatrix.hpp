@@ -418,7 +418,6 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_noattribute_graph(MutableGr
       selected_data_buffer->unallocate(tid);
       new_cardinality += cardinalities[tid * m];
       total_bytes_used += indices[tid * m];
-      cout << indices[tid*m] << endl;
       row_data_buffer->data[tid] = (uint8_t*) realloc((void *) row_data_buffer->data[tid], indices[tid*m]*sizeof(uint8_t)+1);  
     }
   );

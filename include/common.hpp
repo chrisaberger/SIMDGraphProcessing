@@ -27,18 +27,16 @@
 #include <set>
 
 //#define ENABLE_PCM
-#define ENABLE_PRINT_THREAD_TIMES
+//#define ENABLE_PRINT_THREAD_TIMES
 #define ENABLE_ATOMIC_UNION
 
 //TODO: Replace with new command line arguments.
-//#define TEXT_INPUT 
-//#define ATTRIBUTES
-#define BINARY
 #define ALLOCATOR 10
 
 //Needed for parallelization, prevents false sharing of cache lines
 #define PADDING 300 
 
+//#define ATTRIBUTES
 #define WRITE_VECTOR 1
 #define WRITE_TABLE 1
 

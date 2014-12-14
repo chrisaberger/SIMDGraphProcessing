@@ -74,7 +74,6 @@ class application{
 
     const size_t matrix_size = graph->matrix_size;
     const size_t estimated_table_size = ((graph->cardinality*40)/num_threads);
-    cout << estimated_table_size << endl;
     ParallelTable<uint64_t>* output = new ParallelTable<uint64_t>(num_threads,query_depth,estimated_table_size);
     ParallelTable<uint32_t>* decode_buffers = new ParallelTable<uint32_t>(num_threads,query_depth,graph->max_nbrhood_size);
     Set<R> **set_buffers = new Set<R>*[PADDING*query_depth*num_threads];
@@ -83,7 +82,7 @@ class application{
       ///////////////////////////////////////////////////////////
       [this,query_depth,set_buffers,decode_buffers,output,graph](size_t tid){
         for(size_t j = 0; j < query_depth; j++){
-          set_buffers[PADDING*tid*query_depth+j] = new Set<T>(graph->max_nbrhood_size*sizeof(uint32_t)); 
+          set_buffers[PADDING*tid*query_depth+j] = new Set<R>(graph->max_nbrhood_size*sizeof(uint32_t)); 
         }
         decode_buffers->allocate(tid);
         output->allocate(tid);
@@ -111,7 +110,7 @@ class application{
     );
     num_cliques = output->cardinality;
     
-    output->print_data("table.txt");
+    //output->print_data("table.txt");
 
     server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();
     pcm_print_uncore_power_state(before_uncstate, after_uncstate);

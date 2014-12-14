@@ -123,7 +123,7 @@ class application{
     allocBuffers();
     //common::stopClock("Allocating Buffers");
 
-    graph->print_data("graph.txt");
+    //graph->print_data("graph.txt");
 
     if(pcm_init() < 0)
        return;

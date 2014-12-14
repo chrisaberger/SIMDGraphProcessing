@@ -5,7 +5,7 @@ curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
 numruns="7"
 
-for system in "emptyheaded"; do
+for system in "galois"; do
   odir="${output}/${system}_${date}_${curtime}"
   mkdir $odir
   echo $odir

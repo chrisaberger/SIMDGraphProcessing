@@ -1,18 +1,41 @@
-int main () { 
-  return 0;
-}
 // class templates
-/*
 #include "SparseMatrix.hpp"
-#include "MutableGraph.hpp"
+#include "pcm_helper.hpp"
 #include "Table.hpp"
+#include "Parser.hpp"
 
-namespace application{
-  SparseMatrix *graph;
-  long num_triangles = 0;
-  Table *output;
+using namespace pcm_helper;
+
+template<class T, class R>
+class application{
+  public:
+
+  SparseMatrix<T,R>* graph;
+  long num_cliques;
+  MutableGraph *inputGraph;
+  size_t num_numa_nodes;
   size_t num_threads;
+  string layout;
+  size_t query_depth;
 
+  application(Parser input_data){
+    num_cliques = 0;
+    num_numa_nodes = 0;
+    inputGraph = input_data.input_graph; 
+    num_threads = input_data.num_threads;
+    layout = input_data.layout;
+    query_depth = input_data.n;
+  }
+  #ifdef ATTRIBUTES
+  inline bool myNodeSelection(uint32_t node, uint32_t attribute){
+    (void)node; (void) attribute;
+    return attribute > 500;
+  }
+  inline bool myEdgeSelection(uint32_t src, uint32_t dst, uint32_t attribute){
+    (void) attribute;
+    return attribute == 2012 && src < dst;
+  }
+  #else
   inline bool myNodeSelection(uint32_t node, uint32_t attribute){
     (void)node; (void) attribute;
     return true;
@@ -21,194 +44,133 @@ namespace application{
     (void) attribute;
     return nbr < node;
   }
+  #endif
+  inline void produceSubgraph(){
+    auto node_selection = std::bind(&application::myNodeSelection, this, _1, _2);
+    auto edge_selection = std::bind(&application::myEdgeSelection, this, _1, _2, _3);
+    graph = SparseMatrix<T,R>::from_symmetric_graph(inputGraph,node_selection,edge_selection,num_threads);
+  }
+  inline size_t apply_function(size_t node, size_t depth, Set<R> **set_buffers, Table<uint32_t>* decode_buffers, Table<uint64_t> *output){
+    Set<R> A(*set_buffers[depth-1]);
+    Set<R> B = graph->get_decoded_row(node,decode_buffers->data[depth]);
+    Set<R> C = ops::set_intersect(Set<R>(set_buffers[depth]),A,B);    
+    set_buffers[depth] = &C;
 
-  struct thread_data{
-    size_t depth;
-    size_t query_depth;
-    size_t thread_id;
-
-    uint8_t **buffers;
-    size_t *buffer_cardinalities;
-    uint32_t *decoded_src;
-    thread_data(size_t buffer_lengths, size_t depth_in, const size_t query_depth_in, const size_t thread_id_in){
-      buffers = new uint8_t*[query_depth_in-2];
-      buffer_cardinalities = new size_t[query_depth_in-2];
-      for(size_t i = 0; i < query_depth_in-2; i++){
-        buffers[i] = new uint8_t[buffer_lengths*sizeof(int)];
-      }
-      query_depth = query_depth_in;
-      depth = depth_in;
-      thread_id = thread_id_in;
-      decoded_src = new uint32_t[buffer_lengths];
+    size_t count = 0;
+    if(++depth == query_depth){
+      #if WRITE_TABLE == 1
+      output->write_table(C,graph->id_map);
+      #endif
+      return C.cardinality;
+    } else{
+      C.foreach([this,&count,depth,set_buffers,output,query_depth,decode_buffers] (uint32_t i){
+        output->tuple[depth-1] = graph->id_map[i]; 
+        count += this->apply_function(i,depth,set_buffers,decode_buffers,output);
+      });
     }
-    ~thread_data() { 
-      delete[] buffers;
-      delete[] decoded_src;
-      delete[] buffer_cardinalities;
-    }
-
-    inline long edgeApply(uint32_t src, uint32_t dst){
-      const size_t index = (depth-1) + query_depth*thread_id;
-      const size_t buffer_index = depth-3;
-      long count = 0;
-      if(depth == 3){
-        count = graph->row_intersect(buffers[buffer_index],src,dst,decoded_src);
-        buffer_cardinalities[buffer_index] = count;
-        output->tuple[query_depth*thread_id] = src;
-        output->tuple[query_depth*thread_id+1] = dst;
-      } else{
-        //intersect buffer2 with dst neighborhood
-        count = graph->buffer_intersect(buffers[buffer_index],dst,buffers[buffer_index-1],buffer_cardinalities[buffer_index-1]);
-        buffer_cardinalities[buffer_index] = count;
-        output->tuple[index-1] = dst;
-      }
-      //cout << "tid: " << thread_id <<" count: " << count << " src: " << src << " dst: " << dst << " depth: " << depth << " query_depth: " << query_depth << endl;
-      if(depth == query_depth){
-        size_t cur_size = output->table_size[thread_id];
-        uint32_t *output_table = (output->table_pointers[index])+cur_size;
-        uint_array::decode(output_table,buffers[buffer_index],count,graph->t);
-        for(long i = 0; i < count; i++){
-          for(size_t j = 0; j < output->num_tuples-1; j++){ //the last row is taken care of in decode
-            uint32_t *tmp_row = output->table_pointers[query_depth*thread_id+j];
-            tmp_row[cur_size+i] = output->tuple[query_depth*thread_id+j];
-          }
-        }
-        output->table_size[thread_id] += count;   
-      } else if(count > 0){
-        auto edge_function = std::bind(&thread_data::edgeApply,this,_1,_2);
-        depth++;
-        count = uint_array::sum<long>(edge_function,dst,buffers[buffer_index],count,common::HYBRID_PERF,(uint32_t*)buffers[buffer_index]);
-        depth--;
-      }
-      return count;
-    }
-  };
-  thread_data **t_data_pointers;
-
-  inline void allocBuffers(const size_t query_depth){
-    const size_t cardinality = graph->cardinality;
-    
-    output = new Table(query_depth,num_threads,cardinality);
-
-    t_data_pointers = new thread_data*[num_threads];
-    for(size_t k= 0; k < num_threads; k++){
-      t_data_pointers[k] = new thread_data(graph->max_nbrhood_size,3,query_depth,k);
-    }
+    return count;
   }
   inline void queryOver(){
-    auto row_function = std::bind(&SparseMatrix::sum_over_columns_in_row<long>, graph, _1, _2, _3);
+    system_counter_state_t before_sstate = pcm_get_counter_state();
+    server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
     const size_t matrix_size = graph->matrix_size;
+    const size_t estimated_table_size = ((graph->cardinality*40)/num_threads);
+    cout << estimated_table_size << endl;
+    ParallelTable<uint64_t>* output = new ParallelTable<uint64_t>(num_threads,query_depth,estimated_table_size);
+    ParallelTable<uint32_t>* decode_buffers = new ParallelTable<uint32_t>(num_threads,query_depth,graph->max_nbrhood_size);
+    Set<R> **set_buffers = new Set<R>*[PADDING*query_depth*num_threads];
+
+    common::par_for_range(num_threads,0,matrix_size,100,
+      ///////////////////////////////////////////////////////////
+      [this,query_depth,set_buffers,decode_buffers,output,graph](size_t tid){
+        for(size_t j = 0; j < query_depth; j++){
+          set_buffers[PADDING*tid*query_depth+j] = new Set<T>(graph->max_nbrhood_size*sizeof(uint32_t)); 
+        }
+        decode_buffers->allocate(tid);
+        output->allocate(tid);
+      },
+      //////////////////////////////////////////////////////////
+      [this,output,query_depth,set_buffers,decode_buffers](size_t tid, size_t i) {
+        Table<uint32_t> *thread_decode_buffers = decode_buffers->table[tid];
+        Table<uint64_t> *thread_output = output->table[tid];
+        Set<R> **thread_set_buffers = &set_buffers[PADDING*tid*query_depth];
+
+        Set<R> A = this->graph->get_decoded_row(i,thread_decode_buffers->data[query_depth*tid]);
+        thread_output->tuple[0] = graph->id_map[i];  
+        thread_set_buffers[1] = &A;
+
+        A.foreach([this,tid,query_depth,thread_decode_buffers,thread_set_buffers,thread_output] (uint32_t j){
+          thread_output->tuple[1] = graph->id_map[j];  
+          thread_output->cardinality += this->apply_function(j,2,thread_set_buffers,thread_decode_buffers,thread_output);
+        });
+      },
+      [this,output](size_t tid){
+      /////////////////////////////////////////////////////////
+        Table<uint64_t> *thread_output = output->table[tid];
+        output->cardinality += thread_output->cardinality;
+      }
+    );
+    num_cliques = output->cardinality;
     
-    thread* threads = new thread[num_threads];
-    std::atomic<long> reducer;
-    reducer = 0;
-    const size_t block_size = 50; //matrix_size / num_threads;
-    std::atomic<size_t> next_work;
-    next_work = 0;
+    output->print_data("table.txt");
 
-    if(num_threads > 1){
-      for(size_t k = 0; k < num_threads; k++){
-        auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[k],_1,_2);
-        threads[k] = thread([k, &matrix_size, &next_work, &reducer, &t_data_pointers, edge_function, &row_function](void) -> void {
-          long t_local_reducer = 0;
-          while(true) {
-            size_t work_start = next_work.fetch_add(block_size, std::memory_order_relaxed);
-            if(work_start > matrix_size)
-              break;
-
-            size_t work_end = min(work_start + block_size, matrix_size);
-            for(size_t j = work_start; j < work_end; j++) {
-              t_local_reducer += (row_function)(j,t_data_pointers[k]->decoded_src,edge_function);
-            }
-          }
-          reducer += t_local_reducer;
-       });
-      }
-      //cleanup
-      for(size_t k = 0; k < num_threads; k++) {
-        threads[k].join();
-        //t_data_pointers[k]->thread_data::~thread_data();
-      }   
-    } else{
-      auto edge_function = std::bind(&thread_data::edgeApply,t_data_pointers[0],_1,_2);
-      long t_local_reducer = 0;
-      for(size_t i = 0; i  < matrix_size;  i++){
-        t_local_reducer += (row_function)(i,t_data_pointers[0]->decoded_src,edge_function);
-      }
-      reducer = t_local_reducer;
-    }
-    num_triangles = reducer;
+    server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();
+    pcm_print_uncore_power_state(before_uncstate, after_uncstate);
+    system_counter_state_t after_sstate = pcm_get_counter_state();
+    pcm_print_counter_stats(before_sstate, after_sstate);
   }
-}
+  inline void run(){
+    double start_time = common::startClock();
+    produceSubgraph();
+    common::stopClock("Selections",start_time);
 
-int main (int argc, char* argv[]) { 
-  if(argc != 5){
-    cout << "Please see usage below: " << endl;
-    cout << "\t./main <adjacency list file/folder> <# of threads> <layout type=bs,a16,a32,hybrid,v,bp> <depth>" << endl;
-    exit(0);
+    if(pcm_init() < 0)
+       return;
+
+    //graph->print_data("graph.txt");
+
+    start_time = common::startClock();
+    queryOver();
+    common::stopClock("N-CLIQUE",start_time);
+
+    cout << "Count: " << num_cliques << endl << endl;
+    pcm_cleanup();
   }
+};
 
-  cout << endl << "Number of threads: " << atoi(argv[2]) << endl;
-  omp_set_num_threads(atoi(argv[2]));        
-  application::num_threads = atoi(argv[2]);
+//////////////////////////////////////////////////////////////////////////////////////////
+//Main setup code
+//////////////////////////////////////////////////////////////////////////////////////////
+//Ideally the user shouldn't have to concern themselves with what happens down here.
+int main (int argc, char* argv[]){ 
+  Parser input_data = input_parser::parse(argc,argv,"n_clique");
 
-  std::string input_layout = argv[3];
-
-  common::type layout;
-  if(input_layout.compare("a32") == 0){
-    layout = common::UINTEGER;
-  } else if(input_layout.compare("bs") == 0){
-    layout = common::BITSET;
-  } else if(input_layout.compare("a16") == 0){
-    layout = common::PSHORT;
-  } else if(input_layout.compare("hybrid") == 0){
-    layout = common::HYBRID_PERF;
-  }
+  if(input_data.layout.compare("uint") == 0){
+    application<uinteger,uinteger> myapp(input_data);
+    myapp.run();
+  } else if(input_data.layout.compare("bs") == 0){
+    application<bitset,bitset> myapp(input_data);
+    myapp.run();  
+  } else if(input_data.layout.compare("pshort") == 0){
+    application<pshort,pshort> myapp(input_data);
+    myapp.run();  
+  } else if(input_data.layout.compare("hybrid") == 0){
+    application<hybrid,hybrid> myapp(input_data);
+    myapp.run();  
+  } 
   #if COMPRESSION == 1
-  else if(input_layout.compare("v") == 0){
-    layout = common::VARIANT;
-  } else if(input_layout.compare("bp") == 0){
-    layout = common::BITPACKED;
+  else if(input_data.layout.compare("v") == 0){
+    application<variant,uinteger> myapp(input_data);
+    myapp.run();  
+  } else if(input_data.layout.compare("bp") == 0){
+    application<bitpacked,uinteger> myapp(input_data);
+    myapp.run();
   } 
   #endif
   else{
     cout << "No valid layout entered." << endl;
     exit(0);
   }
-
-  auto node_selection = std::bind(&application::myNodeSelection, _1, _2);
-  auto edge_selection = std::bind(&application::myEdgeSelection, _1, _2, _3);
-
-  common::startClock();
-  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]); //filename, # of files
-  common::stopClock("Reading File");
-  
-  common::startClock();
-  //inputGraph->reorder_bfs();
-  inputGraph->reorder_by_degree();
-  common::stopClock("Reordering");
-  
-  cout << endl;
-
-  common::startClock();
-  application::graph = SparseMatrix::from_symmetric(inputGraph,node_selection,edge_selection,layout);
-  common::stopClock("selections");
-  
-  inputGraph->MutableGraph::~MutableGraph(); 
-  
-  common::startClock();
-  application::allocBuffers(atoi(argv[4]));
-  common::stopClock("buffer allocation");  
-
-  common::startClock();
-  application::queryOver();
-  common::stopClock(input_layout);  
-
-  //application::graph->SparseMatrix::~SparseMatrix();
-  cout << "Count: " << application::num_triangles << endl << endl;
-
-  application::output->print_data("table.txt",application::graph->id_map);
   return 0;
 }
-*/

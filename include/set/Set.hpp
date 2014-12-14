@@ -73,6 +73,14 @@ class Set{
       density = in.density;
       type = in.type;
     }
+    template <class U> 
+    Set<T>(Set<U> *in){
+      data = in->data;
+      cardinality = in->cardinality;
+      number_of_bytes = in->number_of_bytes;
+      density = in->density;
+      type = in->type;
+    }
 
     //basic traversal
     void foreach(const std::function <void (uint32_t)>& f);

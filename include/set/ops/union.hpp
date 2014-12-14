@@ -16,24 +16,22 @@ namespace ops{
     //8 ints
     //4 longs
     size_t i = 0;
-    
-    #if VECTORIZE == 1
-    while((i+15) < small_length){
-      __m128i a1 = _mm_loadu_si128((const __m128i*)&A[i]);
-      __m128i a2 = _mm_loadu_si128((const __m128i*)&B[i]);
-      __m128i r = _mm_or_si128(a1, a2);
-      
-      uint64_t l = _mm_extract_epi64(r,0);
-      __sync_fetch_and_or((uint64_t*)&A[i],l);
-      l = _mm_extract_epi64(r,1);
-      __sync_fetch_and_or((uint64_t*)&A[i+8],l);
 
-      i += 16;
+    #if VECTORIZE == 1
+    for(; (i + 15) < small_length; i += 16) {
+      __m128i a1 = _mm_lddqu_si128((const __m128i*)&A[i]);
+      const __m128i a2 = _mm_lddqu_si128((const __m128i*)&B[i]);
+      a1 = _mm_or_si128(a1, a2);
+
+      const uint64_t l = _mm_extract_epi64(a1,0);
+      const uint64_t l2 = _mm_extract_epi64(a1,1);
+        __sync_fetch_and_or((uint64_t*)&A[i],l);
+        __sync_fetch_and_or((uint64_t*)&A[i+8],l2);
     }
     #endif
 
     for(; i < small_length; i++){
-      uint8_t result = small[i] | large[i];
+      const uint8_t result = small[i] | large[i];
       __sync_fetch_and_or(&A[i],result);
     }
   }

@@ -13,14 +13,12 @@ class application{
   SparseMatrix<T,R>* graph;
   long num_cliques;
   MutableGraph *inputGraph;
-  size_t num_numa_nodes;
   size_t num_threads;
   string layout;
   size_t query_depth;
 
   application(Parser input_data){
     num_cliques = 0;
-    num_numa_nodes = 0;
     inputGraph = input_data.input_graph; 
     num_threads = input_data.num_threads;
     layout = input_data.layout;

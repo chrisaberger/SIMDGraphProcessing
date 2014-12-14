@@ -10,7 +10,7 @@ class Parser{
     int num_threads;
     bool attributes;
     int n;
-    size_t start_node;
+    long start_node;
     MutableGraph *input_graph;
     string layout;
 
@@ -51,7 +51,7 @@ namespace input_parser{
     char* layout_type = NULL;
     int num_threads = 0;
     int n = -1;
-    size_t start_node = 0;
+    long start_node = 0;
     bool help = false;
 
     int c;

@@ -101,6 +101,11 @@ class SparseMatrix{
       const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, 
       const size_t num_threads);
 
+    static SparseMatrix* from_asymmetric_noattribute_graph(MutableGraph *inputGraph,
+      const std::function<bool(uint32_t,uint32_t)> node_selection,
+      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, 
+      const size_t num_threads);
+
     static SparseMatrix* from_asymmetric_attribute_graph(MutableGraph *inputGraph,
       const std::function<bool(uint32_t,uint32_t)> node_selection,
       const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, 
@@ -255,6 +260,16 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGr
   else
     return SparseMatrix<T,R>::from_symmetric_attribute_graph(inputGraph,node_selection,edge_selection,num_threads);
 }
+//Directed Graph
+template<class T,class R>
+SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputGraph,
+  const std::function<bool(uint32_t,uint32_t)> node_selection,
+  const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, const size_t num_threads){
+  if(inputGraph->node_attr == NULL)
+    return SparseMatrix<T,R>::from_asymmetric_noattribute_graph(inputGraph,node_selection,edge_selection,num_threads);
+  else
+    return SparseMatrix<T,R>::from_asymmetric_attribute_graph(inputGraph,node_selection,edge_selection,num_threads);
+}
 //Constructors
 template<class T,class R>
 SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_attribute_graph(MutableGraph* inputGraph,
@@ -296,7 +311,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_attribute_graph(MutableGrap
   ParallelBuffer<uint8_t> *row_data_buffer = new ParallelBuffer<uint8_t>(num_threads,alloc_size);
   ParallelBuffer<uint32_t> *selected_data_buffer = new ParallelBuffer<uint32_t>(num_threads,alloc_size);
   
-  const size_t m = PADDING;  //Don't ask don't tell.
+  const size_t m = PADDING; 
   size_t *indices = new size_t[num_threads * m];
   size_t *cardinalities= new size_t[num_threads * m];
   
@@ -552,7 +567,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_attribute_graph(MutableGra
 
 //Directed Graph
 template<class T,class R>
-SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputGraph,
+SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_noattribute_graph(MutableGraph* inputGraph,
   const std::function<bool(uint32_t,uint32_t)> node_selection,
   const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, const size_t num_threads){
   

@@ -71,14 +71,14 @@ class application{
     bool finished = false;
     size_t path_length = 0;
     while(!finished){
-      cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << frontier.density << endl;
-      double start_time = common::startClock();
-      
-      double copy_time = common::startClock();
-      old_visited.copy_from(visited);
-      common::stopClock("copy time",copy_time);
+      //cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << frontier.density << endl;
+      //double start_time = common::startClock();
 
-      double union_time = common::startClock();
+      //double copy_time = common::startClock();
+      old_visited.copy_from(visited);
+      //common::stopClock("copy time",copy_time);
+
+      //double union_time = common::startClock();
       if(frontier.type == common::BITSET){
         common::par_for_range(num_threads, 0, graph->matrix_size, 4096,
           [this, &visited, &frontier](size_t tid, size_t i) {
@@ -103,7 +103,7 @@ class application{
              ops::set_union(visited,outnbrs);
         });
       }
-      common::stopClock("union time",union_time);
+      //common::stopClock("union time",union_time);
 
 
       //IF YOU WANT FUSED REPACKAGING 
@@ -115,17 +115,17 @@ class application{
       */
 
       //CODE IF WE WANT TO REPACKAGE
-      double diff_time = common::startClock();
+      //double diff_time = common::startClock();
       next_frontier = ops::set_difference(next_frontier,visited,old_visited);
-      common::stopClock("difference",diff_time);
+      //common::stopClock("difference",diff_time);
 
-      double repack_time = common::startClock();
+      //double repack_time = common::startClock();
       frontier = ops::repackage(next_frontier,f_data);
-      common::stopClock("repack",repack_time);
+      //common::stopClock("repack",repack_time);
 
       finished = frontier.cardinality == 0; //path_length >= 4;
       path_length++;
-      common::stopClock("Iteration",start_time);
+      //common::stopClock("Iteration",start_time);
     }
     cout << "path length: " << (path_length-1) << endl;
   }

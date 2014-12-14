@@ -161,7 +161,7 @@ namespace common{
   static void par_for_range(const size_t num_threads, const size_t from, const size_t to, const size_t block_size, std::function<void(size_t, size_t)> body) {
      const size_t range_len = to - from;
      const size_t real_num_threads = min(range_len / block_size + 1, num_threads);
-     std::cout << "Range length: " << range_len << " Threads: " << real_num_threads << std::endl;
+     // std::cout << "Range length: " << range_len << " Threads: " << real_num_threads << std::endl;
 
      if(real_num_threads == 1) {
         for(size_t i = from; i < to; i++) {

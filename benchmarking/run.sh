@@ -1,16 +1,20 @@
 #!/bin/bash
 
-output="/dfs/scratch0/caberger/output"
+# Change the current directory to the directory of the script
+cd "$(dirname "$0")"
+
+source env.sh
+
 curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
 numruns="7"
-
-for system in "emptyheaded"; do
+echo $systems
+for system in $systems; do
   odir="${output}/${system}_${date}_${curtime}"
   mkdir $odir
   echo $odir
-   for dataset in "baidu" "california" "higgs" "flickr" "socLivejournal" "orkut" "cid-patents" "pokec" "twitter2010" "wikipedia"; do
-      for threads in "1" "24" "48"; do
+   for dataset in $datasets; do
+      for threads in $num_threads; do
          cd ${system}
          echo "Benchmarking ${system} on ${dataset} with ${threads} threads"
          ./run.sh $numruns /dfs/scratch0/caberger/datasets/${dataset} $threads | tee $odir/${system}.${dataset}.${threads}.log

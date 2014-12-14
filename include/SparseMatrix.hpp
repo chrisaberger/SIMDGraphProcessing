@@ -175,10 +175,10 @@ void SparseMatrix<T,R>::print_data(string filename){
       myfile << "Node Attribute: " << node_attributes[i] << endl;
     Set<T> row = Set<T>::from_flattened(row_arrays[i],card);
     size_t row_i = 0;
-    row.foreach( [&myfile,&row_i,&out_edge_attributes,i] (uint32_t data){
+    row.foreach( [this, &myfile,&row_i,i] (uint32_t data){
       myfile << " DATA: " << data;
-      if(out_edge_attributes != NULL)
-        myfile << " Attribute: " << out_edge_attributes->at(i)->at(row_i++);
+      if(this->out_edge_attributes != NULL)
+        myfile << " Attribute: " << this->out_edge_attributes->at(i)->at(row_i++);
       myfile << endl;
     });
   }
@@ -192,10 +192,10 @@ void SparseMatrix<T,R>::print_data(string filename){
       size_t card = column_lengths[i];
       Set<T> col = Set<T>::from_flattened(column_arrays[i],card);
       size_t col_i = 0;
-      col.foreach( [&myfile,&in_edge_attributes,&col_i,i] (uint32_t data){
+      col.foreach( [this,&myfile,&col_i,i] (uint32_t data){
         myfile << " DATA: " << data;
-        if(in_edge_attributes != NULL)
-          myfile << " Attribute: " << in_edge_attributes->at(i)->at(col_i++);
+        if(this->in_edge_attributes != NULL)
+          myfile << " Attribute: " << this->in_edge_attributes->at(i)->at(col_i++);
         myfile << endl;
       });
     }

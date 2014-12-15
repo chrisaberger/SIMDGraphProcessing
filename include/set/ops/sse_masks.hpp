@@ -1,8 +1,8 @@
 #ifndef _SSE_MASKS_H_
 #define _SSE_MASKS_H_
 
-#define BITS_PER_WORD 8
-#define ADDRESS_BITS_PER_WORD 3
+#define BITS_PER_WORD 64
+#define ADDRESS_BITS_PER_WORD 6
 
 namespace bitset_ops{
   //compute word of data

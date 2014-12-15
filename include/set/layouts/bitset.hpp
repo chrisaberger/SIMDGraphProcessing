@@ -13,7 +13,6 @@ THIS CLASS IMPLEMENTS THE FUNCTIONS ASSOCIATED WITH THE BITSET LAYOUT.
 class bitset{
   public:
     static size_t word_index(const uint32_t bit_index);
-    static int get_bit(const uint32_t value, const uint32_t position);
     static bool is_set(const uint32_t index, const uint8_t *in_array);
     static void set(const uint32_t index, uint8_t *in_array);
 
@@ -43,10 +42,6 @@ class bitset{
 //compute word of data
 inline size_t bitset::word_index(const uint32_t bit_index){
   return bit_index >> ADDRESS_BITS_PER_WORD;
-}
-//compute index bit
-inline int bitset::get_bit(const uint32_t value, const uint32_t position) {
-  return ( ( value & (1 << position) ) >> position);
 }
 //check if a bit is set
 inline bool bitset::is_set(const uint32_t index, const uint8_t * const in_array){

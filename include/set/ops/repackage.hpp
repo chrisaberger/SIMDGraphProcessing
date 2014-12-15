@@ -47,7 +47,7 @@ namespace ops{
     size_t word = 0;
     size_t cleared_word_index = 0;
     cur.foreach( [&count,&word,&cleared_word_index,&new_data] (uint32_t old_data){
-      word = bitset_ops::word_index(old_data);
+      word = bitset::word_index(old_data);
       //clear bits up to word
       while(cleared_word_index < word){
         new_data[cleared_word_index++] = 0;

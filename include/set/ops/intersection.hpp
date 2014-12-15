@@ -270,7 +270,7 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
       size_t inner_end = i+size;
       while(i < inner_end){
         uint32_t cur = prefix | A[i];
-        if(bitset_ops::word_index(cur) < s_b && bitset_ops::is_set(cur,B)){
+        if(bitset::word_index(cur) < s_b && bitset::is_set(cur,B)){
           #if WRITE_VECTOR == 1
           C[counter++] = A[i];
           #endif
@@ -315,7 +315,7 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       uint32_t cur = A[i];
-      if(bitset_ops::word_index(cur) < s_b && bitset_ops::is_set(cur,B)){
+      if(bitset::word_index(cur) < s_b && bitset::is_set(cur,B)){
         #if WRITE_VECTOR == 1
         C[count] = cur;
         #endif

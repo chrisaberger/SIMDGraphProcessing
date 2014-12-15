@@ -38,7 +38,7 @@ namespace ops{
   inline void set_union(Set<bitset> A_in,Set<pshort> B_in){
     uint8_t *A = A_in.data;
     B_in.foreach( [&A] (uint32_t cur){
-      const size_t word_index = bitset_ops::word_index(cur);
+      const size_t word_index = bitset::word_index(cur);
       __sync_fetch_and_or(&A[word_index],(1 << (cur % BITS_PER_WORD)));
     });
   }
@@ -48,7 +48,7 @@ namespace ops{
   inline void set_union(Set<bitset> A_in,Set<uinteger> B_in){
     uint8_t * const A = A_in.data;
     B_in.foreach( [&A] (uint32_t cur){
-      const size_t word_index = bitset_ops::word_index(cur);
+      const size_t word_index = bitset::word_index(cur);
 
 #ifdef ENABLE_ATOMIC_UNION
       __sync_fetch_and_or(&A[word_index], (1 << (cur % BITS_PER_WORD)));
@@ -63,7 +63,7 @@ namespace ops{
   inline void set_union(Set<bitset> A_in,Set<variant> B_in){
     uint8_t *A = A_in.data;
     B_in.foreach( [&A] (uint32_t cur){
-      const size_t word_index = bitset_ops::word_index(cur);
+      const size_t word_index = bitset::word_index(cur);
       __sync_fetch_and_or(&A[word_index],(1 << (cur % BITS_PER_WORD)));
     });
   }
@@ -73,7 +73,7 @@ namespace ops{
   inline void set_union(Set<bitset> A_in,Set<bitpacked> B_in){
     uint8_t *A = A_in.data;
     B_in.foreach( [&A] (uint32_t cur){
-      const size_t word_index = bitset_ops::word_index(cur);
+      const size_t word_index = bitset::word_index(cur);
       __sync_fetch_and_or(&A[word_index],(1 << (cur % BITS_PER_WORD)));
     });
   }

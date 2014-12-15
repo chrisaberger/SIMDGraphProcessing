@@ -131,34 +131,17 @@ inline void bitset::foreach_until(const std::function <bool (uint32_t)>& f,
 
 //Iterates over set applying a lambda.
 inline void bitset::foreach(const std::function <void (uint32_t)>& f,
-  const uint8_t * const A,
+  const uint8_t *A,
   const size_t cardinality,
   const size_t number_of_bytes,
   const common::type type){
   (void) cardinality; (void) type;
-  size_t number_of_words = number_of_bytes / 8;
-  size_t remaining_bytes = number_of_bytes % 8;
 
-  const uint64_t* const A64 = (uint64_t*) A;
-  for(size_t i = 0; i < number_of_words; i++){
-    const uint64_t cur_word = A64[i];
-    if(cur_word != 0) {
-      for(size_t j = 0; j < 64; j++){
-        if((cur_word >> j) % 2){
-          f(64*i + j);
-        }
-      }
-    }
-  }
-
-  const uint8_t* const A8 = (uint8_t*)(A64 + number_of_words);
-  for(size_t i = 0; i < remaining_bytes; i++){
-    const uint8_t cur_word = A8[i];
-    if(cur_word != 0) {
-      for(size_t j = 0; j < 8; j++){
-        if((cur_word >> j) % 2){
-          f(BITS_PER_WORD*i + j);
-        }
+  for(size_t i = 0; i < number_of_bytes; i++){
+    uint8_t cur_word = A[i];
+    for(size_t j = 0; j < BITS_PER_WORD; j++){
+      if((cur_word >> j) % 2){
+        f(BITS_PER_WORD*i + j);
       }
     }
   }

@@ -427,6 +427,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_noattribute_graph(MutableGr
 
   cout << "Number of edges: " << new_cardinality << endl;
   cout << "ROW DATA SIZE (Bytes): " << total_bytes_used << endl;
+  cout << "Bits per edge: " << (8.0*(double)total_bytes_used)/new_cardinality << endl;
 
   return new SparseMatrix(matrix_size_in,new_cardinality,total_bytes_used,
     0,inputGraph->max_nbrhood_size,true,

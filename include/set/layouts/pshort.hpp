@@ -67,10 +67,10 @@ inline size_t pshort::build(uint8_t *r_in, const uint32_t *A, const size_t s_a){
 //can be infered from the type. This gives us back a true CSR representation.
 inline size_t pshort::build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length){
   if(length > 0){
-    size_t *size_ptr = (size_t*) r_in;
-    size_t num_bytes = build(r_in+sizeof(size_t),data,length);
-    size_ptr[0] = num_bytes;
-    return num_bytes+sizeof(size_t);
+    uint32_t *size_ptr = (uint32_t*) r_in;
+    size_t num_bytes = build(r_in+sizeof(uint32_t),data,length);
+    size_ptr[0] = (uint32_t)num_bytes;
+    return num_bytes+sizeof(uint32_t);
   } else{
     return 0;
   }
@@ -78,8 +78,8 @@ inline size_t pshort::build_flattened(uint8_t *r_in, const uint32_t *data, const
 
 inline tuple<size_t,size_t,common::type> pshort::get_flattened_data(const uint8_t *set_data, const size_t cardinality){
   if(cardinality > 0){
-    const size_t *size_ptr = (size_t*) set_data;
-    return make_tuple(sizeof(size_t),size_ptr[0],common::PSHORT);
+    const uint32_t *size_ptr = (uint32_t*) set_data;
+    return make_tuple(sizeof(uint32_t),(size_t)size_ptr[0],common::PSHORT);
   } else{
     return make_tuple(0,0,common::PSHORT);
   }

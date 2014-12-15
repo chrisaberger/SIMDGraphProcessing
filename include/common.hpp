@@ -33,7 +33,7 @@
 #define ENABLE_ATOMIC_UNION
 
 //TODO: Replace with new command line arguments.
-#define ALLOCATOR 1000
+#define ALLOCATOR 50
 
 //Needed for parallelization, prevents false sharing of cache lines
 #define PADDING 300 

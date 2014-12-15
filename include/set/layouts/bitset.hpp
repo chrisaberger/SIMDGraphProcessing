@@ -46,7 +46,8 @@ inline size_t bitset::word_index(const uint32_t bit_index){
 //check if a bit is set
 inline bool bitset::is_set(const uint32_t index, const uint8_t * const in_array){
   //return (in_array[word_index(index)] & ((1 << (index%BITS_PER_WORD)));
-  return *((uint64_t*)in_array + (index >> ADDRESS_BITS_PER_WORD)) & ((uint64_t)1 << (index & 0x3F));
+  return ((uint64_t*)in_array)[word_index(index)] & ((uint64_t) 1 << (index%BITS_PER_WORD));
+//((uint64_t)1 << (index & 0x3F));
 }
 //check if a bit is set
 inline void bitset::set(const uint32_t index, uint8_t * const in_array){

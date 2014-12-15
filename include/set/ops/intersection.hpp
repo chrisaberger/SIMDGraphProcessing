@@ -248,12 +248,12 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
     uint16_t * const C = (uint16_t*)C_in.data;
     const uint16_t * const A = (uint16_t*)A_in.data;
     const uint8_t * const B = B_in.data;
-    const size_t s_a = A_in.number_of_bytes/sizeof(uint16_t);
-    const size_t s_b = B_in.number_of_bytes;
+    const size_t s_a = A_in.number_of_bytes / sizeof(uint16_t);
+    const size_t s_b = B_in.number_of_bytes / sizeof(uint64_t);
 
     #if WRITE_VECTOR == 0
-    (void) C;   
-    #endif 
+    (void) C;
+    #endif
 
     uint16_t *last_ptr = &C[0];
     size_t count = 0;
@@ -306,10 +306,10 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
     const uint32_t * const A = (uint32_t*)A_in.data;
     const uint8_t * const B = B_in.data;
     const size_t s_a = A_in.cardinality;
-    const size_t s_b = B_in.number_of_bytes;
+    const size_t s_b = B_in.number_of_bytes / sizeof(uint64_t);
 
     #if WRITE_VECTOR == 0
-    (void) C;   
+    (void) C;
     #endif
 
     size_t count = 0;

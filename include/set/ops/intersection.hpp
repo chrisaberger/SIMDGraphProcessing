@@ -248,12 +248,12 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
     uint16_t * const C = (uint16_t*)C_in.data;
     const uint16_t * const A = (uint16_t*)A_in.data;
     const uint8_t * const B = B_in.data;
-    const size_t s_a = A_in.number_of_bytes/sizeof(uint16_t);
-    const size_t s_b = B_in.number_of_bytes;
+    const size_t s_a = A_in.number_of_bytes / sizeof(uint16_t);
+    const size_t s_b = B_in.number_of_bytes / sizeof(uint64_t);
 
     #if WRITE_VECTOR == 0
-    (void) C;   
-    #endif 
+    (void) C;
+    #endif
 
     uint16_t *last_ptr = &C[0];
     size_t count = 0;
@@ -270,7 +270,7 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
       size_t inner_end = i+size;
       while(i < inner_end){
         uint32_t cur = prefix | A[i];
-        if(bitset_ops::word_index(cur) < s_b && bitset_ops::is_set(cur,B)){
+        if(bitset::word_index(cur) < s_b && bitset::is_set(cur,B)){
           #if WRITE_VECTOR == 1
           C[counter++] = A[i];
           #endif
@@ -290,7 +290,8 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
     }
 
     double density = 0.0;
-    if(count > 0){
+    // XXX: Correct density computation
+    if(false) { //count > 1){
       uint32_t first = ((uint32_t)C[0] << 16) | C[2];
       size_t last = ((uint32_t)last_ptr[0] << 16) | last_ptr[last_ptr[1]-1];
       density = (double)count/(last-first);
@@ -306,23 +307,24 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
     const uint32_t * const A = (uint32_t*)A_in.data;
     const uint8_t * const B = B_in.data;
     const size_t s_a = A_in.cardinality;
-    const size_t s_b = B_in.number_of_bytes;
+    const size_t s_b = B_in.number_of_bytes / sizeof(uint64_t);
 
     #if WRITE_VECTOR == 0
-    (void) C;   
+    (void) C;
     #endif
 
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       uint32_t cur = A[i];
-      if(bitset_ops::word_index(cur) < s_b && bitset_ops::is_set(cur,B)){
+      if(bitset::word_index(cur) < s_b && bitset::is_set(cur,B)){
         #if WRITE_VECTOR == 1
         C[count] = cur;
         #endif
         count++;
       }
     }
-    const double density = ((count > 0) ? ((double)count/(C[count]-C[0])) : 0.0);
+    // XXX: Correct density computation
+    const double density = ((count > 1) ? ((double)count/(C[count - 1]-C[0])) : 0.0);
     return Set<uinteger>(C_in.data,count,count*sizeof(uint32_t),density,common::UINTEGER);
   }
   inline Set<uinteger> set_intersect(const Set<uinteger> &C_in,const Set<bitset> &A_in,const Set<uinteger> &B_in){

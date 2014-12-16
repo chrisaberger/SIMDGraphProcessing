@@ -1,24 +1,6 @@
 #ifndef _SSE_MASKS_H_
 #define _SSE_MASKS_H_
 
-#define BITS_PER_WORD 8
-#define ADDRESS_BITS_PER_WORD 3
-
-namespace bitset_ops{
-  //compute word of data
-  inline size_t word_index(const uint32_t bit_index){
-    return bit_index >> ADDRESS_BITS_PER_WORD;
-  }
-  //compute index bit
-  inline int get_bit(const uint32_t value, const uint32_t position) {
-    return ( ( value & (1 << position) ) >> position);
-  }
-  //check if a bit is set
-  inline bool is_set(uint32_t index, const uint8_t *in_array){
-    return (in_array[word_index(index)] & (1 << (index%BITS_PER_WORD)));
-  }
-}
-
 namespace ops{
   inline void print_sse_register(__m128i reg){
     cout << "reg[0]: " << _mm_extract_epi32(reg,0) << endl;

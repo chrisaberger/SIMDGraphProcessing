@@ -99,8 +99,8 @@ namespace common{
           fprintf(stderr, "setrlimit returned result = %d\n", result);
         }
       }
-    } 
-  }  
+    }
+  }
 
   static void _mm256_print_ps(__m256 x) {
     float *data = new float[8];

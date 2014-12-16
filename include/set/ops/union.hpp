@@ -36,24 +36,24 @@ namespace ops{
     }
   }
   inline void set_union(Set<bitset> A_in,Set<pshort> B_in){
-    uint8_t *A = A_in.data;
+    uint64_t* A = (uint64_t*)(A_in.data);
     B_in.foreach( [&A] (uint32_t cur){
-      const size_t word_index = bitset_ops::word_index(cur);
-      __sync_fetch_and_or(&A[word_index],(1 << (cur % BITS_PER_WORD)));
+      const size_t word_index = bitset::word_index(cur);
+      __sync_fetch_and_or(&A[word_index],((uint64_t) 1 << (cur % BITS_PER_WORD)));
     });
   }
   inline void set_union(Set<pshort> A_in, Set<bitset> B_in){
     set_union(B_in,A_in);
   }
   inline void set_union(Set<bitset> A_in,Set<uinteger> B_in){
-    uint8_t * const A = A_in.data;
+    uint64_t* A = (uint64_t*)(A_in.data);
     B_in.foreach( [&A] (uint32_t cur){
-      const size_t word_index = bitset_ops::word_index(cur);
+      const size_t word_index = bitset::word_index(cur);
 
 #ifdef ENABLE_ATOMIC_UNION
-      __sync_fetch_and_or(&A[word_index], (1 << (cur % BITS_PER_WORD)));
+      __sync_fetch_and_or(&A[word_index], ((uint64_t) 1 << (cur % BITS_PER_WORD)));
 #else
-      A[word_index] |= (1 << (cur % BITS_PER_WORD));
+      A[word_index] |= ((uint64_t) 1 << (cur % BITS_PER_WORD));
 #endif
     });
   }
@@ -61,20 +61,20 @@ namespace ops{
     set_union(B_in,A_in);
   }
   inline void set_union(Set<bitset> A_in,Set<variant> B_in){
-    uint8_t *A = A_in.data;
+    uint64_t* A = (uint64_t*)(A_in.data);
     B_in.foreach( [&A] (uint32_t cur){
-      const size_t word_index = bitset_ops::word_index(cur);
-      __sync_fetch_and_or(&A[word_index],(1 << (cur % BITS_PER_WORD)));
+      const size_t word_index = bitset::word_index(cur);
+      __sync_fetch_and_or(&A[word_index],((uint64_t) 1 << (cur % BITS_PER_WORD)));
     });
   }
   inline void set_union(Set<variant> A_in,Set<bitset> B_in){
     set_union(B_in,A_in);
   }
   inline void set_union(Set<bitset> A_in,Set<bitpacked> B_in){
-    uint8_t *A = A_in.data;
+    uint64_t* A = (uint64_t*)(A_in.data);
     B_in.foreach( [&A] (uint32_t cur){
-      const size_t word_index = bitset_ops::word_index(cur);
-      __sync_fetch_and_or(&A[word_index],(1 << (cur % BITS_PER_WORD)));
+      const size_t word_index = bitset::word_index(cur);
+      __sync_fetch_and_or(&A[word_index],((uint64_t) 1 << (cur % BITS_PER_WORD)));
     });
   }
   inline void set_union(Set<bitpacked> A_in,Set<bitset> B_in){

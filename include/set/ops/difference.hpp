@@ -41,7 +41,7 @@ namespace ops{
     for(; i < small_length; i++){
       uint8_t result = A[i] & ~(B[i]);
 
-      C[i] = result;      
+      C[i] = result;
       count += _mm_popcnt_u32(result);
     }
 

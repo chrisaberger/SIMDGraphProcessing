@@ -68,10 +68,9 @@ class application{
     Set<bitset> old_visited((graph->matrix_size/sizeof(uint32_t))+1);
 
     //Set<T> outnbrs = graph->get_row(132365);
-    bool finished = false;
     size_t path_length = 0;
-    while(!finished){
-      //cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << frontier.density << endl;
+    while(true){
+      cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << frontier.density << endl;
       //double start_time = common::startClock();
 
       //double copy_time = common::startClock();
@@ -119,15 +118,17 @@ class application{
       next_frontier = ops::set_difference(next_frontier,visited,old_visited);
       //common::stopClock("difference",diff_time);
 
+      path_length++;
+      if(next_frontier.cardinality == 0 || path_length >= depth)
+        break;
+      //common::stopClock("Iteration",start_time);
+
       //double repack_time = common::startClock();
       frontier = ops::repackage(next_frontier,f_data);
       //common::stopClock("repack",repack_time);
 
-      finished = frontier.cardinality == 0 || path_length >= depth;
-      path_length++;
-      //common::stopClock("Iteration",start_time);
     }
-    cout << "path length: " << (path_length-1) << endl;
+    cout << "path length: " << (path_length-1)  << " Frontier length: " << frontier.cardinality << endl;
   }
   
   inline void run(){

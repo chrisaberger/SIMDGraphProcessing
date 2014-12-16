@@ -483,7 +483,7 @@ MutableGraph* MutableGraph::undirectedFromAttributeList(const string path, const
     num_edges += row->size();
   }
 
-  return new MutableGraph(neighborhoods->size(),num_edges,max_nbrhood_size,true,id_map,id_attributes,neighborhoods,neighborhoods,edge_attributes,edge_attributes); 
+  return new MutableGraph(id_map->size(),num_edges,max_nbrhood_size,true,id_map,id_attributes,neighborhoods,neighborhoods,edge_attributes,edge_attributes); 
 } 
 MutableGraph* MutableGraph::undirectedFromEdgeList(const string path) {
   ////////////////////////////////////////////////////////////////////////////////////

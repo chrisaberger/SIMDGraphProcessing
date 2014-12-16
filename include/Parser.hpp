@@ -137,7 +137,11 @@ namespace input_parser{
       if(attribute_path != NULL){
         inputGraph = MutableGraph::directedFromAttributeList(graph_path,attribute_path);
       } else{
-        inputGraph = MutableGraph::directedFromBinary(graph_path);
+        if(string(input_type).compare("text") == 0){
+          inputGraph = MutableGraph::directedFromEdgeList(graph_path);
+        } else{
+          inputGraph = MutableGraph::directedFromBinary(graph_path);
+        }
       }
     } else{
       if(attribute_path != NULL){

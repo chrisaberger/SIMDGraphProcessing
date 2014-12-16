@@ -33,12 +33,13 @@
 #define ENABLE_ATOMIC_UNION
 
 //TODO: Replace with new command line arguments.
-#define ALLOCATOR 10
+#define ALLOCATOR 2
+#define REALLOC_THRESHOLD 0.9
 
 //Needed for parallelization, prevents false sharing of cache lines
 #define PADDING 300 
 
-//#define ATTRIBUTES
+#define ATTRIBUTES
 #define WRITE_VECTOR 1
 #define WRITE_TABLE 1
 

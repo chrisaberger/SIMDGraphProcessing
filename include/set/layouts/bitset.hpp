@@ -143,9 +143,11 @@ inline void bitset::foreach(const std::function <void (uint32_t)>& f,
   const uint64_t* A64 = (uint64_t*) A;
   for(size_t i = 0; i < number_of_bytes / sizeof(uint64_t); i++){
     uint64_t cur_word = A64[i];
-    for(size_t j = 0; j < BITS_PER_WORD; j++){
-      if((cur_word >> j) % 2) {
-        f(BITS_PER_WORD * i + j);
+    if(cur_word != 0) {
+      for(size_t j = 0; j < BITS_PER_WORD; j++){
+        if((cur_word >> j) % 2) {
+          f(BITS_PER_WORD * i + j);
+        }
       }
     }
   }

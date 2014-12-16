@@ -32,17 +32,19 @@ def parseInput():
 def main():
   options = parseInput();
 
-  datasets = ["california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec","twitter2010","wikipedia"]
+  #datasets = ["california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec","twitter2010","wikipedia"]
+  datasets = ["baidu", "twitter2010", "wikipedia"]
+
   threads = ["1","24","48"]
 
   print options.folder
-  matchObj = re.match(r'/dfs/scratch0/caberger/output/(\w*)_.*', options.folder, re.M|re.I)
+  matchObj = re.match(r'/dfs/scratch0/\w*/output/(\w*)_.*', options.folder, re.M|re.I)
   system = matchObj.group(1)
   print system
 
   for dataset in datasets:
     for thread in threads:
-      f = open(options.folder + "/" + system + "." + dataset + "." + thread + ".log")
+      f = open(os.path.join(options.folder, system + "." + dataset + "." + thread + ".log"))
       if system == "graphlab":
         perf_info = getGraphLabPerformance(f);
         avg = average_runs(perf_info['perf'])

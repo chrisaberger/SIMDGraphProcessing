@@ -60,12 +60,12 @@ class application{
     Set<hybrid> frontier = Set<uinteger>::from_array(f_data,start_array,1);
 
     //Set<uinteger> next_frontier(graph->matrix_size*sizeof(uint32_t));
-    Set<bitset> next_frontier((graph->matrix_size/sizeof(uint32_t))+1);
+    Set<bitset> next_frontier(graph->matrix_size + graph->matrix_size % sizeof(uint64_t));
 
-    Set<bitset> visited((graph->matrix_size/sizeof(uint32_t))+1);
+    Set<bitset> visited(graph->matrix_size + graph->matrix_size % sizeof(uint64_t));
     bitset::set(start_node,visited.data);
 
-    Set<bitset> old_visited((graph->matrix_size/sizeof(uint32_t))+1);
+    Set<bitset> old_visited(graph->matrix_size + graph->matrix_size % sizeof(uint64_t));
 
     //Set<T> outnbrs = graph->get_row(132365);
     bool finished = false;

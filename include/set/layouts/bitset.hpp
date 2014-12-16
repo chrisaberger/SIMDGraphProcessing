@@ -121,7 +121,7 @@ inline void bitset::foreach_until(const std::function <bool (uint32_t)>& f,
   (void) cardinality; (void) type;
 
   const uint64_t* A64 = (uint64_t*) A;
-  for(size_t i = 0; i < number_of_bytes / BYTES_PER_WORD; i++){
+  for(size_t i = 0; i < number_of_bytes / sizeof(uint64_t); i++){
     uint64_t cur_word = A64[i];
     for(size_t j = 0; j < BITS_PER_WORD; j++){
       if((cur_word >> j) % 2){
@@ -141,7 +141,7 @@ inline void bitset::foreach(const std::function <void (uint32_t)>& f,
   (void) cardinality; (void) type;
 
   const uint64_t* A64 = (uint64_t*) A;
-  for(size_t i = 0; i < number_of_bytes / BYTES_PER_WORD; i++){
+  for(size_t i = 0; i < number_of_bytes / sizeof(uint64_t); i++){
     uint64_t cur_word = A64[i];
     for(size_t j = 0; j < BITS_PER_WORD; j++){
       if((cur_word >> j) % 2) {

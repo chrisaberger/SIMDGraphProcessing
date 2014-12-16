@@ -50,11 +50,11 @@ inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
     double sparsity = (double) length/max_value;
     if( sparsity > (double) 1/32 ){
       return common::BITSET;
-    } /*else if((length/((max_value >> 16) - (data[0] >> 16) + 1)) > 8){
+    } else if((length/((max_value >> 16) - (data[0] >> 16) + 1)) > 8){
       return common::PSHORT;
-    }*/ else {
+    } else {
       return common::UINTEGER;
-    } 
+    }
   } else{
     return common::UINTEGER;
   }

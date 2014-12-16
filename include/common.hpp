@@ -39,7 +39,7 @@
 //Needed for parallelization, prevents false sharing of cache lines
 #define PADDING 300 
 
-#define ATTRIBUTES
+//#define ATTRIBUTES
 #define WRITE_VECTOR 1
 #define WRITE_TABLE 1
 

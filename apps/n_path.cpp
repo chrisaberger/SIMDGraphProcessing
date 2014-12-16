@@ -59,13 +59,15 @@ class application{
     //Set<uinteger> frontier = Set<uinteger>::from_array(f_data,start_array,1);
     Set<hybrid> frontier = Set<uinteger>::from_array(f_data,start_array,1);
 
-    //Set<uinteger> next_frontier(graph->matrix_size*sizeof(uint32_t));
-    Set<bitset> next_frontier(graph->matrix_size + graph->matrix_size % sizeof(uint64_t));
+    const size_t bs_size = (graph->matrix_size + 64 - graph->matrix_size % 64) / 8;
 
-    Set<bitset> visited(graph->matrix_size + graph->matrix_size % sizeof(uint64_t));
+    //Set<uinteger> next_frontier(graph->matrix_size*sizeof(uint32_t));
+    Set<bitset> next_frontier(bs_size);
+
+    Set<bitset> visited(bs_size);
     bitset::set(start_node,visited.data);
 
-    Set<bitset> old_visited(graph->matrix_size + graph->matrix_size % sizeof(uint64_t));
+    Set<bitset> old_visited(bs_size);
 
     //Set<T> outnbrs = graph->get_row(132365);
     bool finished = false;

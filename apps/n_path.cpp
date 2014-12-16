@@ -59,7 +59,7 @@ class application{
     //Set<uinteger> frontier = Set<uinteger>::from_array(f_data,start_array,1);
     Set<hybrid> frontier = Set<uinteger>::from_array(f_data,start_array,1);
 
-    const size_t bs_size = (graph->matrix_size + 64 - graph->matrix_size % 64) / 8;
+    const size_t bs_size = (graph->matrix_size + 64) / 8;
 
     //Set<uinteger> next_frontier(graph->matrix_size*sizeof(uint32_t));
     Set<bitset> next_frontier(bs_size);
@@ -130,6 +130,7 @@ class application{
       //common::stopClock("Iteration",start_time);
     }
     cout << "path length: " << (path_length-1) << endl;
+    cout << "frontier size: " << frontier.cardinality << endl;
   }
   
   inline void run(){

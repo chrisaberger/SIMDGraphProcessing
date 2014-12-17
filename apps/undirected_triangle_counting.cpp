@@ -77,7 +77,7 @@ class application{
 
            A.foreach([this, &A, &C, &dst_buffer, &t_num_triangles] (uint32_t j){
              Set<R> B = this->graph->get_decoded_row(j,dst_buffer);
-             t_num_triangles += ops::set_intersect(C,A,B).cardinality;
+             t_num_triangles += ops::set_intersect(&C,&A,&B)->cardinality;
            });
 
            t_count[tid*PADDING] += t_num_triangles;

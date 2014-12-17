@@ -5,7 +5,7 @@
 #include "Parser.hpp"
 
 using namespace pcm_helper;
-
+/*
 template<class T, class R>
 class application{
   public:
@@ -136,13 +136,14 @@ class application{
   }
 };
 
+*/
 //////////////////////////////////////////////////////////////////////////////////////////
 //Main setup code
 //////////////////////////////////////////////////////////////////////////////////////////
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]){ 
   Parser input_data = input_parser::parse(argc,argv,"n_cycle");
-
+  /*
   if(input_data.layout.compare("uint") == 0){
     application<uinteger,uinteger> myapp(input_data);
     myapp.run();
@@ -169,5 +170,6 @@ int main (int argc, char* argv[]){
     cout << "No valid layout entered." << endl;
     exit(0);
   }
+  */
   return 0;
 }

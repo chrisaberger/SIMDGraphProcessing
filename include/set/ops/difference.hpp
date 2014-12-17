@@ -2,12 +2,12 @@
 #define _DIFFERENCE_H_
 
 namespace ops{
-  inline Set<bitset> set_difference(const Set<bitset> &C_in, const Set<bitset> &A_in, const Set<bitset> &B_in){
-    uint8_t * const C = C_in.data;
-    const uint8_t * const A = A_in.data;
-    const uint8_t * const B = B_in.data;
-    const size_t s_a = A_in.number_of_bytes;
-    const size_t s_b = B_in.number_of_bytes;
+  inline Set<bitset>* set_difference(Set<bitset> *C_in, const Set<bitset> *A_in, const Set<bitset> *B_in){
+    uint8_t * const C = C_in->data;
+    const uint8_t * const A = A_in->data;
+    const uint8_t * const B = B_in->data;
+    const size_t s_a = A_in->number_of_bytes;
+    const size_t s_b = B_in->number_of_bytes;
 
     #if WRITE_VECTOR == 0
     (void) C;
@@ -53,14 +53,20 @@ namespace ops{
     #endif 
     
     const double density = (count > 0) ? (double)count/(8*small_length) : 0.0;
-    return Set<bitset>(C_in.data,count,small_length,density,common::BITSET);
+
+    C_in->cardinality = count;
+    C_in->number_of_bytes = small_length;
+    C_in->density = density;
+    C_in->type = common::BITSET;
+
+    return C_in;
   }
-  inline Set<uinteger> set_difference(const Set<uinteger> &C_in, const Set<bitset> &A_in, const Set<bitset> &B_in){
-    uint32_t * const C = (uint32_t*) C_in.data;
-    const uint8_t * const A = A_in.data;
-    const uint8_t * const B = B_in.data;
-    const size_t s_a = A_in.number_of_bytes;
-    const size_t s_b = B_in.number_of_bytes;
+  inline Set<uinteger>* set_difference(Set<uinteger> *C_in, const Set<bitset> *A_in, const Set<bitset> *B_in){
+    uint32_t * const C = (uint32_t*) C_in->data;
+    const uint8_t * const A = A_in->data;
+    const uint8_t * const B = B_in->data;
+    const size_t s_a = A_in->number_of_bytes;
+    const size_t s_b = B_in->number_of_bytes;
 
     #if WRITE_VECTOR == 0
     (void) C;
@@ -117,7 +123,13 @@ namespace ops{
 
     // XXX: The density is broken
     const double density = 0.0;//((count > 1) ? ((double)count/(C[count - 1]-C[0])) : 0.0);
-    return Set<uinteger>(C_in.data,count,small_length,density,common::UINTEGER);
+
+    C_in->cardinality = count;
+    C_in->number_of_bytes = small_length;
+    C_in->density = density;
+    C_in->type = common::UINTEGER;
+
+    return C_in;
   }
 }
 

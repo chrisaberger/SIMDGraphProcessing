@@ -49,16 +49,16 @@ class application{
     graph = SparseMatrix<T,R>::from_symmetric_graph(inputGraph,node_selection,edge_selection,num_threads);
   }
   inline size_t apply_function(size_t node, size_t depth, Set<R> **set_buffers, Table<uint32_t>* decode_buffers, Table<uint64_t> *output){
-    Set<R> A(*set_buffers[depth-1]);
+    Set<R> *A = set_buffers[depth-1];
     Set<R> B = graph->get_decoded_row(node,decode_buffers->data[depth]);
 
-    Set<R> *C = new Set<R>(ops::set_intersect(Set<R>(set_buffers[depth]),A,B));    
-    set_buffers[depth] = C;
+    Set<R> *C = ops::set_intersect(set_buffers[depth],A,&B); 
+    set_buffers[depth] = C;    
 
     size_t count = 0;
     if(++depth == query_depth){
       #if WRITE_TABLE == 1
-      output->write_table(C,graph->id_map);
+      output->write_table(*C,graph->id_map);
       #endif
       return C->cardinality;
     } else{
@@ -94,11 +94,11 @@ class application{
         Table<uint64_t> *thread_output = output->table[tid];
         Set<R> **thread_set_buffers = &set_buffers[PADDING*tid*query_depth];
 
-        Set<R> *A = new Set<R>(this->graph->get_decoded_row(i,thread_decode_buffers->data[query_depth*tid]));
+        Set<R> A = this->graph->get_decoded_row(i,thread_decode_buffers->data[query_depth*tid]);
         thread_output->tuple[0] = graph->id_map[i];  
-        thread_set_buffers[1] = A;
+        thread_set_buffers[1] = &A;
 
-        A->foreach([this,tid,query_depth,thread_decode_buffers,thread_set_buffers,thread_output] (uint32_t j){
+        A.foreach([this,tid,query_depth,thread_decode_buffers,thread_set_buffers,thread_output] (uint32_t j){
           thread_output->tuple[1] = graph->id_map[j];  
           thread_output->cardinality += this->apply_function(j,2,thread_set_buffers,thread_decode_buffers,thread_output);
         });
@@ -126,7 +126,7 @@ class application{
     if(pcm_init() < 0)
        return;
 
-    graph->print_data("graph.txt");
+    //graph->print_data("graph.txt");
 
     start_time = common::startClock();
     queryOver();

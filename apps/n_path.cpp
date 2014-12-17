@@ -101,7 +101,7 @@ class application{
           [this, &visited] (size_t tid, uint32_t n){
              (void) tid;
              Set<T> outnbrs = this->graph->get_row(n);
-             ops::set_union(visited,outnbrs);
+             ops::set_union(&visited,&outnbrs);
         });
       }
       //common::stopClock("union time",union_time);
@@ -117,7 +117,7 @@ class application{
 
       //CODE IF WE WANT TO REPACKAGE
       //double diff_time = common::startClock();
-      next_frontier = ops::set_difference(next_frontier,visited,old_visited);
+      next_frontier = *ops::set_difference(&next_frontier,&visited,&old_visited);
       //common::stopClock("difference",diff_time);
 
       path_length++;
@@ -126,7 +126,7 @@ class application{
       //common::stopClock("Iteration",start_time);
 
       //double repack_time = common::startClock();
-      frontier = ops::repackage(next_frontier,f_data);
+      frontier = ops::repackage(&next_frontier,f_data);
       //common::stopClock("repack",repack_time);
 
     }

@@ -443,6 +443,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_noattribute_graph(MutableGr
   delete[] cardinalities;
   common::stopClock("parallel section",parallel_range);
 
+  cout << "Number of nodes: " << matrix_size_in << endl;
   cout << "Number of edges: " << new_cardinality << endl;
   cout << "ROW DATA SIZE (Bytes): " << total_bytes_used << endl;
   common::bits_per_edge = (8.0*(double)total_bytes_used)/new_cardinality;

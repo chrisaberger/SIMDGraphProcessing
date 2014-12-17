@@ -154,7 +154,6 @@ namespace ops{
     size_t count = 0;
     bool notFinished = i_a < s_a && i_b < s_b;
 
-    uint16_t *last_ptr = &C[0];
     while(notFinished) {
       //size_t limLower = limLowerHolder;
       if(A[i_a] < B[i_b]) {
@@ -167,7 +166,6 @@ namespace ops{
         uint16_t partition_size = 0;
         //If we are not in the range of the limit we don't need to worry about it.
         #if WRITE_VECTOR == 1
-        last_ptr = &C[counter];
         C[counter++] = A[i_a]; // write partition prefix
         #endif
         partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2],&B[i_b + 2],A[i_a + 1], B[i_b + 1]);
@@ -183,12 +181,7 @@ namespace ops{
       }
     }
 
-    double density = 0.0;
-    if(count > 0){
-      uint32_t first = ((uint32_t)C[0] << 16) | C[2];
-      size_t last = ((uint32_t)last_ptr[0] << 16) | last_ptr[last_ptr[1]-1];
-      density = (double)count/(last-first);
-    }
+    const double density = 0.0;
 
     return Set<pshort>(C_in.data,count,counter*sizeof(short),density,common::PSHORT);
   }
@@ -242,7 +235,7 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
       
       count += _mm_popcnt_u32(result);
     }
-    const double density = (count > 0) ? (double)count/(8*small_length) : 0.0;
+    const double density = 0.0;//(count > 0) ? (double)count/(8*small_length) : 0.0;
     return Set<bitset>(C_in.data,count,small_length,density,common::BITSET);
   }
   inline Set<pshort> set_intersect(const Set<pshort> &C_in, const Set<pshort> &A_in, const Set<bitset> &B_in){
@@ -256,7 +249,6 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
     (void) C;
     #endif
 
-    uint16_t *last_ptr = &C[0];
     size_t count = 0;
     size_t counter = 0;
     for(size_t i = 0; i < s_a; i++){
@@ -284,19 +276,13 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
       if(old_counter == (counter-2)){
         counter = old_counter;
       } else{
-        last_ptr = &C[old_counter];
         C[old_counter] = (prefix >> 16);
         C[old_counter+1] = old_count-count;
       }
     }
 
-    double density = 0.0;
     // XXX: Correct density computation
-    if(false) { //count > 1){
-      uint32_t first = ((uint32_t)C[0] << 16) | C[2];
-      size_t last = ((uint32_t)last_ptr[0] << 16) | last_ptr[last_ptr[1]-1];
-      density = (double)count/(last-first);
-    }
+    const double density = 0.0;
 
     return Set<pshort>(C_in.data,count,counter*sizeof(uint16_t),density,common::PSHORT);
   }

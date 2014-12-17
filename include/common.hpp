@@ -43,8 +43,8 @@
 #define WRITE_VECTOR 1
 #define WRITE_TABLE 1
 
-#define COMPRESSION 0
-#define PERFORMANCE 1
+#define COMPRESSION 1
+#define PERFORMANCE 0
 #define VECTORIZE 1
 
 //CONSTANTS THAT SHOULD NOT CHANGE
@@ -130,6 +130,14 @@ namespace common{
     return _mm_cvtss_f32(x32);
   }
 
+  static size_t num_bs = 0;
+  static size_t num_pshort = 0;
+  static size_t num_uint = 0;
+  static size_t num_bp = 0;
+  static size_t num_v = 0;
+  static double bits_per_edge = 0;
+  static double bits_per_edge_nometa = 0;
+
   enum type: uint8_t {
     BITSET = 0,
     PSHORT = 1,
@@ -137,6 +145,19 @@ namespace common{
     BITPACKED = 3,
     VARIANT = 4
   };
+
+  static void dump_stats(){
+    cout << endl;
+    cout << "Num Bitset: " << num_bs << endl;
+    cout << "Num PShort: " << num_pshort
+     << endl;
+    cout << "Num Uint: " << num_uint << endl;
+    cout << "Num BP: " << num_bp << endl;
+    cout << "Num V: " << num_v << endl;
+    cout << "Bits per edge (meta): " << bits_per_edge << endl;
+    cout << "Bits per edge (no meta): " << bits_per_edge_nometa << endl;
+
+  }
 
   static void* allocate_local(size_t num, size_t size, int node) {
      size_t total_size = num * size;

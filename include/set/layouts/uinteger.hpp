@@ -31,6 +31,7 @@ inline size_t uinteger::build(uint8_t *r_in, const uint32_t *data, const size_t 
 //Nothing is different about build flattened here. The number of bytes
 //can be infered from the type. This gives us back a true CSR representation.
 inline size_t uinteger::build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length){
+  common::num_uint++;
   return build(r_in,data,length);
 }
 

@@ -148,6 +148,7 @@ inline size_t bitpacked::build(uint8_t *r_in, const uint32_t *A, const size_t s_
 //can be infered from the type. This gives us back a true CSR representation.
 inline size_t bitpacked::build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length){
   if(length > 0){
+    common::num_bp++;
     uint32_t *size_ptr = (uint32_t*) r_in;
     size_t num_bytes = build(r_in+sizeof(uint32_t),data,length);
     size_ptr[0] = (uint32_t)num_bytes;

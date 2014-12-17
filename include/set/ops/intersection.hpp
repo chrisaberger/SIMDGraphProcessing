@@ -82,7 +82,8 @@ namespace ops{
     (void) C;
     #endif
 
-    const double density = ((count > 0) ? ((double)count/(C[count]-C[0])) : 0.0);
+    //XXX: Fix
+    const double density = 0.0;//((count > 0) ? ((double)count/(C[count]-C[0])) : 0.0);
     return Set<uinteger>(C_in.data,count,count*sizeof(uint32_t),density,common::UINTEGER);
   }
   inline size_t simd_intersect_vector16(uint16_t *C, const uint16_t *A, const uint16_t *B, const size_t s_a, const size_t s_b) {
@@ -324,7 +325,7 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
       }
     }
     // XXX: Correct density computation
-    const double density = ((count > 1) ? ((double)count/(C[count - 1]-C[0])) : 0.0);
+    const double density = 0.0;//((count > 1) ? ((double)count/(C[count - 1]-C[0])) : 0.0);
     return Set<uinteger>(C_in.data,count,count*sizeof(uint32_t),density,common::UINTEGER);
   }
   inline Set<uinteger> set_intersect(const Set<uinteger> &C_in,const Set<bitset> &A_in,const Set<uinteger> &B_in){
@@ -432,7 +433,8 @@ inline Set<bitset> set_intersect(const Set<bitset> &C_in, const Set<bitset> &A_i
         not_finished = a_i < s_a && b_i < s_b;
       }
     }
-    const double density = ((count > 0) ? ((double)count/(C[count]-C[0])) : 0.0);
+    // XXX: Density computation is broken
+    const double density = 0.0;//((count > 0) ? ((double)count/(C[count]-C[0])) : 0.0);
     return Set<uinteger>(C_in.data,count,count*sizeof(uint32_t),density,common::UINTEGER);
   }
   inline Set<uinteger> set_intersect(const Set<uinteger> &C_in,const Set<pshort> &A_in,const Set<uinteger> &B_in){

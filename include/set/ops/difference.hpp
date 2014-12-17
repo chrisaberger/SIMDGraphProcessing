@@ -116,7 +116,7 @@ namespace ops{
     #endif 
 
     // XXX: The density is broken
-    const double density = ((count > 1) ? ((double)count/(C[count - 1]-C[0])) : 0.0);
+    const double density = 0.0;//((count > 1) ? ((double)count/(C[count - 1]-C[0])) : 0.0);
     return Set<uinteger>(C_in.data,count,small_length,density,common::UINTEGER);
   }
 }

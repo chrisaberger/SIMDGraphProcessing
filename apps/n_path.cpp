@@ -59,7 +59,7 @@ class application{
     //Set<uinteger> frontier = Set<uinteger>::from_array(f_data,start_array,1);
     Set<hybrid> frontier = Set<uinteger>::from_array(f_data,start_array,1);
 
-    const size_t bs_size = (graph->matrix_size + 64) / 8;
+    const size_t bs_size = ((graph->matrix_size + 64) / 64) * 8;
 
     //Set<uinteger> next_frontier(graph->matrix_size*sizeof(uint32_t));
     Set<bitset> next_frontier(bs_size);
@@ -69,19 +69,31 @@ class application{
 
     Set<bitset> old_visited(bs_size);
 
+    //This code can be used for G - V
+    Set<bitset> G(bs_size);
+    std::cout << bs_size << " " << (bs_size & (size_t) 0xFFFFFFF8) << std::endl;
+    memset(G.data, 0xFF, bs_size & (size_t) 0xFFFFFFF8);
+    ((uint64_t*) G.data)[bs_size / sizeof(uint64_t) - 1] = (uint64_t) 0xFFFFFFFF >> (64 - graph->matrix_size % 64);
+    G.cardinality = graph->matrix_size;
+    Set<bitset> notV(bs_size);
+
     //Set<T> outnbrs = graph->get_row(132365);
     size_t path_length = 0;
     while(true){
-      //cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << frontier.density << endl;
-      //double start_time = common::startClock();
+      cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << frontier.density << endl;
+      double start_time = common::startClock();
 
-      //double copy_time = common::startClock();
+      double copy_time = common::startClock();
       old_visited.copy_from(visited);
-      //common::stopClock("copy time",copy_time);
+      common::stopClock("copy time",copy_time);
 
-      //double union_time = common::startClock();
+      double union_time = common::startClock();
       if(frontier.type == common::BITSET){
-        common::par_for_range(num_threads, 0, graph->matrix_size, 4096,
+       /* 
+        For G - V */
+        notV = ops::set_difference(notV, G, visited);
+        notV.par_foreach(num_threads, // */
+        //common::par_for_range(num_threads, 0, graph->matrix_size, 4096,
           [this, &visited, &frontier](size_t tid, size_t i) {
              (void) tid;
             if(!bitset::is_set(i,visited.data)) {
@@ -104,7 +116,7 @@ class application{
              ops::set_union(visited,outnbrs);
         });
       }
-      //common::stopClock("union time",union_time);
+      common::stopClock("union time",union_time);
 
 
       //IF YOU WANT FUSED REPACKAGING 
@@ -116,23 +128,23 @@ class application{
       */
 
       //CODE IF WE WANT TO REPACKAGE
-      //double diff_time = common::startClock();
+      double diff_time = common::startClock();
       next_frontier = ops::set_difference(next_frontier,visited,old_visited);
-      //common::stopClock("difference",diff_time);
+      common::stopClock("difference",diff_time);
 
       path_length++;
       if(next_frontier.cardinality == 0 || path_length >= depth)
         break;
-      //common::stopClock("Iteration",start_time);
 
-      //double repack_time = common::startClock();
+      double repack_time = common::startClock();
       frontier = ops::repackage(next_frontier,f_data);
-      //common::stopClock("repack",repack_time);
-
+      common::stopClock("repack",repack_time);
+      common::stopClock("Iteration",start_time);
     }
 
     cout << "path length: " << (path_length-1) << endl;
     cout << "frontier size: " << frontier.cardinality << endl;
+    cout << "next frontier size: " << next_frontier.cardinality << endl;
   }
 
   inline void run(){

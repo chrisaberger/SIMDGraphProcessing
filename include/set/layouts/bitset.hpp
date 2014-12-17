@@ -161,12 +161,19 @@ inline void bitset::par_foreach(
       const size_t cardinality,
       const size_t number_of_bytes,
       const common::type t) {
-   (void) number_of_bytes; (void) t;
+   (void) number_of_bytes; (void) t; (void) cardinality;
 
    const uint64_t* A64 = (uint64_t*) A;
-   common::par_for_range(num_threads, 0, cardinality, (number_of_bytes/(num_threads*2))+1,
-         [&f, &A64](size_t tid, size_t i) {
-            if((A64[i / BITS_PER_WORD] >> (i % BITS_PER_WORD)) == 0)
-               f(tid, i);
+   common::par_for_range(num_threads, 0, number_of_bytes / sizeof(uint64_t), 512,
+         [&f, &A64, cardinality](size_t tid, size_t i) {
+            const uint64_t cur_word = A64[i];
+            if(cur_word != 0) {
+              for(size_t j = 0; j < BITS_PER_WORD; j++){
+                const uint32_t curr_nb = BITS_PER_WORD * i + j;
+                if((cur_word >> j) % 2) {
+                  f(tid, curr_nb);
+                }
+              }
+            }
          });
 }

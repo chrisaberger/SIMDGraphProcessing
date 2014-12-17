@@ -32,8 +32,10 @@ def parseInput():
 def main():
   options = parseInput();
 
-  #datasets = ["california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec","twitter2010","wikipedia"]
-  datasets = ["baidu", "twitter2010", "wikipedia"]
+  bfs_details = True
+
+  #datasets = ["baidu","california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec","twitter2010","wikipedia"]
+  datasets = ["twitter2010", "wikipedia"]
 
   threads = ["1","24","48"]
 
@@ -58,11 +60,16 @@ def main():
         avg = average_runs(perf_info['perf'])
         print "data: " + dataset + " t: " + thread + " time: " + str(avg)
       elif system == "emptyheaded":
-        perf_info = getInternalPerformanceInfo(f);
+        perf_info = getInternalPerformanceInfo(f, get_bfs_details=bfs_details);
         for p in perf_info['perfs']:
             query = p['query']
             avg = average_runs(p['perf'])
             print "query: " + p['query'] + " data: " + dataset + " t: " + thread + " time: " + str(avg)
+
+        if bfs_details:
+            for k, v in perf_info['bfs_details'].iteritems():
+                avg = average_runs(v)
+                print k + " " + str(avg)
 
 if __name__ == "__main__":
     main()

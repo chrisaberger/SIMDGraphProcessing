@@ -35,7 +35,7 @@ inline common::type hybrid::get_type(){
   return common::PSHORT;
 }
 inline common::type hybrid::compute_type(const double density){
-  if(density > 1.0 / 64.0) {
+  if(density > 1.0 / 32.0) {
     return common::BITSET;
   } else if(density > 1.0 / 256.0){
     return common::PSHORT;
@@ -58,6 +58,7 @@ inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
   } else{
     return common::UINTEGER;
   }
+  //return common::UINTEGER;
 }
 #endif
 #if COMPRESSION == 1

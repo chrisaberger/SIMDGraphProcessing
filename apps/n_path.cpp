@@ -120,10 +120,10 @@ class application{
       next_frontier = *ops::set_difference(&next_frontier,&visited,&old_visited);
       //common::stopClock("difference",diff_time);
 
-      path_length++;
       if(next_frontier.cardinality == 0 || path_length >= depth)
         break;
       //common::stopClock("Iteration",start_time);
+      path_length++;
 
       //double repack_time = common::startClock();
       frontier = ops::repackage(&next_frontier,f_data);
@@ -131,7 +131,7 @@ class application{
 
     }
 
-    cout << "path length: " << (path_length-1) << endl;
+    cout << "path length: " << path_length << endl;
     cout << "frontier size: " << frontier.cardinality << endl;
   }
 

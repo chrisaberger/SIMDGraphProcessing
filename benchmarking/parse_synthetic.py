@@ -7,7 +7,7 @@ import time
 import re
 
 #special parsers
-from emptyheaded.parse_output import getInternalPerformanceInfo 
+from emptyheaded.parse_output import getIInternalPerformanceInfo 
 from average_runs import average_runs
 
 def parseInput():
@@ -30,10 +30,10 @@ def main():
   options = parseInput();
 
   runs = {"200000": 
-    ["1000000","2000000","3000000","4000000","6000000","8000000","16000000","32000000","64000000","128000000","256000000","512000000","1250000000"]}
+    ["1000000","2000000","3000000","4000000","6000000","8000000","16000000","32000000","64000000","128000000","256000000"]} #,"512000000","1250000000"]}
 
-  layouts = ["a32","a16","hybrid_perf","hybrid_comp","bp","v"] #"hybrid_comp",
-  threads = ["1","24","48"]
+  layouts = ["uint","pshort","hybrid_perf","hybrid_comp","bp","v"]
+  threads = ["1"]
 
   for vertex in runs:
     perf_file = open(vertex+"_perf.csv", 'w')
@@ -54,7 +54,7 @@ def main():
         comp_file.write(thread + "," + layout + ",")
         for edge in runs[vertex]:
           f = open(options.folder + "/v" + vertex + ".e" + edge + "." + layout + "." + thread + ".log")
-          perf_info = getInternalPerformanceInfo(f,True);
+          perf_info = getIInternalPerformanceInfo(f,True)
           avg = average_runs(perf_info['perf'])
           perf_file.write(str(avg) + ",")
           comp_file.write(str(perf_info['bytes']) + ",")

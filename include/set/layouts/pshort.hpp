@@ -37,36 +37,41 @@ inline common::type pshort::get_type(){
 }
 //Copies data from input array of ints to our set data r_in
 inline size_t pshort::build(uint8_t *r_in, const uint32_t *A, const size_t s_a){
-  uint16_t *R = (uint16_t*) r_in;
+  if(s_a > 0){
+    uint16_t *R = (uint16_t*) r_in;
 
-  uint16_t high = 0;
-  size_t partition_length = 0;
-  size_t partition_size_position = 1;
-  size_t counter = 0;
-  for(size_t p = 0; p < s_a; p++) {
-    uint16_t chigh = (A[p] & 0xFFFF0000) >> 16; // upper dword
-    uint16_t clow = A[p] & 0x0FFFF;   // lower dword
-    if(chigh == high && p != 0) { // add element to the current partition
-      partition_length++;
-      R[counter++] = clow;
-    }else{ // start new partition
-      R[counter++] = chigh; // partition prefix
-      R[counter++] = 0;     // reserve place for partition size
-      R[counter++] = clow;  // write the first element
-      R[partition_size_position] = partition_length;
+    uint16_t high = 0;
+    size_t partition_length = 0;
+    size_t partition_size_position = 1;
+    size_t counter = 0;
+    for(size_t p = 0; p < s_a; p++) {
+      uint16_t chigh = (A[p] & 0xFFFF0000) >> 16; // upper dword
+      uint16_t clow = A[p] & 0x0FFFF;   // lower dword
+      if(chigh == high && p != 0) { // add element to the current partition
+        partition_length++;
+        R[counter++] = clow;
+      }else{ // start new partition
+        R[counter++] = chigh; // partition prefix
+        R[counter++] = 0;     // reserve place for partition size
+        R[counter++] = clow;  // write the first element
+        R[partition_size_position] = partition_length;
 
-      partition_length = 1; // reset counters
-      partition_size_position = counter - 2;
-      high = chigh;
+        partition_length = 1; // reset counters
+        partition_size_position = counter - 2;
+        high = chigh;
+      }
     }
+    R[partition_size_position] = partition_length;
+    return counter*sizeof(uint16_t);
+  } else {
+    return 0;
   }
-  R[partition_size_position] = partition_length;
-  return counter*sizeof(uint16_t);
 }
 //Nothing is different about build flattened here. The number of bytes
 //can be infered from the type. This gives us back a true CSR representation.
 inline size_t pshort::build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length){
   if(length > 0){
+    common::num_pshort++;
     uint32_t *size_ptr = (uint32_t*) r_in;
     size_t num_bytes = build(r_in+sizeof(uint32_t),data,length);
     size_ptr[0] = (uint32_t)num_bytes;
@@ -126,8 +131,9 @@ inline void pshort::foreach(
   size_t count = 0;
   size_t i = 0;
   while(count < cardinality) {
-    uint32_t prefix = (A[i] << 16);
-    unsigned short size = A[i+1];
+    const uint32_t prefix = (A[i] << 16);
+    const unsigned short size = A[i+1];
+
     i += 2;
 
     size_t inner_end = i+size;

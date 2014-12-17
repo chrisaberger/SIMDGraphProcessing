@@ -49,19 +49,20 @@ class application{
     graph = SparseMatrix<T,R>::from_symmetric_graph(inputGraph,node_selection,edge_selection,num_threads);
   }
   inline size_t apply_function(size_t node, size_t depth, Set<R> **set_buffers, Table<uint32_t>* decode_buffers, Table<uint64_t> *output){
-    Set<R> A(*set_buffers[depth-1]);
+    Set<R> *A = set_buffers[depth-1];
     Set<R> B = graph->get_decoded_row(node,decode_buffers->data[depth]);
-    Set<R> C = ops::set_intersect(Set<R>(set_buffers[depth]),A,B);    
-    set_buffers[depth] = &C;
+
+    Set<R> *C = ops::set_intersect(set_buffers[depth],A,&B); 
+    set_buffers[depth] = C;    
 
     size_t count = 0;
     if(++depth == query_depth){
       #if WRITE_TABLE == 1
-      output->write_table(C,graph->id_map);
+      output->write_table(*C,graph->id_map);
       #endif
-      return C.cardinality;
+      return C->cardinality;
     } else{
-      C.foreach([this,&count,depth,set_buffers,output,query_depth,decode_buffers] (uint32_t i){
+      C->foreach([this,&count,depth,set_buffers,output,query_depth,decode_buffers] (uint32_t i){
         output->tuple[depth-1] = graph->id_map[i]; 
         count += this->apply_function(i,depth,set_buffers,decode_buffers,output);
       });
@@ -75,14 +76,14 @@ class application{
     const size_t matrix_size = graph->matrix_size;
     const size_t estimated_table_size = ((graph->cardinality*40)/num_threads);
     ParallelTable<uint64_t>* output = new ParallelTable<uint64_t>(num_threads,query_depth,estimated_table_size);
-    ParallelTable<uint32_t>* decode_buffers = new ParallelTable<uint32_t>(num_threads,query_depth,graph->max_nbrhood_size);
+    ParallelTable<uint32_t>* decode_buffers = new ParallelTable<uint32_t>(num_threads,query_depth,graph->max_nbrhood_size*sizeof(uint32_t));
     Set<R> **set_buffers = new Set<R>*[PADDING*query_depth*num_threads];
 
     common::par_for_range(num_threads,0,matrix_size,100,
       ///////////////////////////////////////////////////////////
       [this,query_depth,set_buffers,decode_buffers,output,graph](size_t tid){
         for(size_t j = 0; j < query_depth; j++){
-          set_buffers[PADDING*tid*query_depth+j] = new Set<R>(graph->max_nbrhood_size*sizeof(uint32_t)); 
+          set_buffers[PADDING*tid*query_depth+j] = new Set<R>(graph->matrix_size*8*8); //OVERALLOCATING FOR BITSET
         }
         decode_buffers->allocate(tid);
         output->allocate(tid);

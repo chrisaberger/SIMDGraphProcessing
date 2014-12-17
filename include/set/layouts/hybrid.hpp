@@ -67,14 +67,14 @@ inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
     uint32_t max_value = data[length-1];
     double sparsity = (double) length/max_value;
     if( sparsity > (double) 1/32 ){
-      return common::BITSET;
+      return common::PSHORT;
     } else if(length > 100){
       return common::BITPACKED;
     } else {
       return common::VARIANT;
     } 
   } else{
-    return common::VARIANT;
+    return common::PSHORT;
   }
 }
 #endif

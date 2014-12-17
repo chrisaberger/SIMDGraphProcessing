@@ -80,18 +80,18 @@ class application{
     //Set<T> outnbrs = graph->get_row(132365);
     size_t path_length = 0;
     while(true){
-      cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << frontier.density << endl;
-      double start_time = common::startClock();
+      //cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << frontier.density << endl;
+      //double start_time = common::startClock();
 
-      double copy_time = common::startClock();
+      //double copy_time = common::startClock();
       old_visited.copy_from(visited);
-      common::stopClock("copy time",copy_time);
+      //common::stopClock("copy time",copy_time);
 
-      double union_time = common::startClock();
+      //double union_time = common::startClock();
       if(frontier.type == common::BITSET){
        /* 
         For G - V */
-        notV = ops::set_difference(notV, G, visited);
+        ops::set_difference(&notV, &G, &visited);
         notV.par_foreach(num_threads, // */
         //common::par_for_range(num_threads, 0, graph->matrix_size, 4096,
           [this, &visited, &frontier](size_t tid, size_t i) {
@@ -113,10 +113,10 @@ class application{
           [this, &visited] (size_t tid, uint32_t n){
              (void) tid;
              Set<T> outnbrs = this->graph->get_row(n);
-             ops::set_union(visited,outnbrs);
+             ops::set_union(&visited,&outnbrs);
         });
       }
-      common::stopClock("union time",union_time);
+      //common::stopClock("union time",union_time);
 
 
       //IF YOU WANT FUSED REPACKAGING 
@@ -128,21 +128,21 @@ class application{
       */
 
       //CODE IF WE WANT TO REPACKAGE
-      double diff_time = common::startClock();
-      next_frontier = ops::set_difference(next_frontier,visited,old_visited);
-      common::stopClock("difference",diff_time);
+      //double diff_time = common::startClock();
+      next_frontier = *ops::set_difference(&next_frontier,&visited,&old_visited);
+      //common::stopClock("difference",diff_time);
 
-      path_length++;
       if(next_frontier.cardinality == 0 || path_length >= depth)
         break;
+      //common::stopClock("Iteration",start_time);
+      path_length++;
 
-      double repack_time = common::startClock();
-      frontier = ops::repackage(next_frontier,f_data);
-      common::stopClock("repack",repack_time);
-      common::stopClock("Iteration",start_time);
+      //double repack_time = common::startClock();
+      frontier = ops::repackage(&next_frontier,f_data);
+      //common::stopClock("repack",repack_time);
     }
 
-    cout << "path length: " << (path_length-1) << endl;
+    cout << "path length: " << path_length << endl;
     cout << "frontier size: " << frontier.cardinality << endl;
     cout << "next frontier size: " << next_frontier.cardinality << endl;
   }

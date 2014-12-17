@@ -94,17 +94,17 @@ def main():
   print_to_comp_file = True;
   for thread in threads:
     if print_to_comp_file:
-      for dataset in datasets:
-        comp_file.write(dataset+ ",")
-        for ordering in orderings:
-            for layout in layouts:          
+      for ordering in orderings:
+        for layout in layouts:
+          comp_file.write(ordering + "," + layout+ ",")
+          for dataset in datasets:
               f = open(options.folder +"/" + dataset + "." + thread + "." + layout + "." + ordering +".log", 'r')
-              perf_info = getInternalPerformanceInfo(f,print_to_comp_file);
-              bits_per_edge = (float(perf_info['bytes'])*8.0)/float(perf_info['edges'])
+              perf_info = getIInternalPerformanceInfo(f,print_to_comp_file);
+              bits_per_edge = perf_info['bpe']
               comp_file.write(str(bits_per_edge) + ",")
-            #end for layout
-        #end for ordering 
-        comp_file.write("\n")
+            #end for dataset
+        #end for layout 
+          comp_file.write("\n")
       #end for dataset
     print_to_comp_file = False
 

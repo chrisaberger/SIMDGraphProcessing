@@ -11,7 +11,7 @@ system="emptyheaded"
 odir="${output}/${system}_${date}_${curtime}"
 mkdir $odir
 echo $odir
-for dataset in "socLivejournal" "orkut" "cid-patents" "twitter2010"; do
+for dataset in "higgs" "socLivejournal" "orkut" "cid-patents" "twitter2010"; do
   for threads in "1" "24" "48"; do
     cd ${system}
     for layout in "uint" "pshort" "bp" "v"; do

@@ -45,12 +45,13 @@ inline size_t pshort::build(uint8_t *r_in, const uint32_t *A, const size_t s_a){
     size_t partition_size_position = 1;
     size_t counter = 0;
     for(size_t p = 0; p < s_a; p++) {
-      uint16_t chigh = (A[p] & 0xFFFF0000) >> 16; // upper dword
-      uint16_t clow = A[p] & 0x0FFFF;   // lower dword
+      uint16_t chigh = A[p] >> 16; // upper dword
+      uint16_t clow = A[p] & 0xFFFF;   // lower dword
       if(chigh == high && p != 0) { // add element to the current partition
         partition_length++;
         R[counter++] = clow;
       }else{ // start new partition
+        assert(partition_length <= 0xFFFF);
         R[counter++] = chigh; // partition prefix
         R[counter++] = 0;     // reserve place for partition size
         R[counter++] = clow;  // write the first element
@@ -131,8 +132,8 @@ inline void pshort::foreach(
   size_t count = 0;
   size_t i = 0;
   while(count < cardinality) {
-    const uint32_t prefix = (A[i] << 16);
-    const unsigned short size = A[i+1];
+    const uint32_t prefix = ((uint32_t) A[i] << 16);
+    const size_t size = A[i+1];
 
     i += 2;
 
@@ -149,7 +150,7 @@ class PShortDecoder {
   private:
     uint16_t* curr_prefix_start;
     size_t curr_prefix_index_start;
-    uint16_t curr_prefix_len;
+    size_t curr_prefix_len;
 
   public:
     PShortDecoder() {

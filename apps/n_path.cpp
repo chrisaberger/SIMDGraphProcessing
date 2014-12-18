@@ -80,7 +80,7 @@ class application{
     //Set<T> outnbrs = graph->get_row(132365);
     size_t path_length = 0;
     while(true){
-      //cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << frontier.density << endl;
+      cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << frontier.density << endl;
       //double start_time = common::startClock();
 
       //double copy_time = common::startClock();
@@ -109,9 +109,10 @@ class application{
           }
         );
       } else {
-        frontier.par_foreach(num_threads,
-          [this, &visited] (size_t tid, uint32_t n){
-             (void) tid;
+        //frontier.par_foreach(num_threads,
+        frontier.foreach(//num_threads,
+          [this, &visited] (/*size_t tid,*/ uint32_t n){
+             /*(void) tid;*/
              Set<T> outnbrs = this->graph->get_row(n);
              ops::set_union(&visited,&outnbrs);
         });

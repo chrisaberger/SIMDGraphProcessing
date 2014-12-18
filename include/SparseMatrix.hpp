@@ -686,13 +686,14 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_noattribute_graph(MutableG
       col_indices[tid * m] += (index_size.first-col_tid_alloc_size[tid*m]);
       col_tid_alloc_size[tid*m] = index_size.first;
       col_lengths_in[i] = index_size.second;
+      cardinalities[tid*m] += col_lengths_in[i];
+
       //realloc to larger size if within 95% of original allocation
       if(col_tid_alloc_size[tid*m] > (REALLOC_THRESHOLD*alloc_size)){
         col_data_buffer->data[tid] = (uint8_t*) realloc((void *) col_data_buffer->data[tid], col_tid_alloc_size[tid*m]*sizeof(uint8_t));  
         col_tid_alloc_size[tid*m] = 0;
         col_data_buffer->data[tid] = new uint8_t[alloc_size];  
       }
-      cardinalities[tid*m] += col_lengths_in[i];
     },
     /////////////////////////////////////////////////////////////
     [&row_data_buffer,&col_data_buffer,&selected_data_buffer,&cardinalities,

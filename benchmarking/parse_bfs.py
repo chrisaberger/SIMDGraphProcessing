@@ -30,7 +30,7 @@ def parseInput():
 def main():
   options = parseInput();
 
-  datasets = ["orkut", "socLivejournal", "cid-patents", "twitter2010" ]
+  datasets = ["higgs", "orkut", "socLivejournal", "cid-patents", "twitter2010"]
   layouts = ["uint", "pshort", "hybrid_perf", "hybrid_comp", "bp", "v" ]
   threads = ["1","24","48"]
 

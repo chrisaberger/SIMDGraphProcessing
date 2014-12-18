@@ -680,6 +680,8 @@ MutableGraph* MutableGraph::directedFromBinary(const string path) {
   }
   infile.close();
 
+  std::cout << "Number of edges in file: " << num_edges << std::endl;
+
   return new MutableGraph(out_neighborhoods->size(),num_edges,max_nbrhood_size,true,id_map,id_attributes,out_neighborhoods,in_neighborhoods,edge_attributes,edge_attributes); 
 } 
 /*

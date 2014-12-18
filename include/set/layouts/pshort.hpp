@@ -54,9 +54,10 @@ inline size_t pshort::build(uint8_t *r_in, const uint32_t *A, const size_t s_a){
         R[counter++] = chigh; // partition prefix
         R[counter++] = 0;     // reserve place for partition size
         R[counter++] = clow;  // write the first element
+
         R[partition_size_position] = partition_length;
 
-        partition_length = 1; // reset counters
+        partition_length = 0; // reset counters
         partition_size_position = counter - 2;
         high = chigh;
       }
@@ -103,11 +104,11 @@ inline void pshort::foreach_until(const std::function <bool (uint32_t)>& f,
   size_t i = 0;
   while(count < cardinality){
     uint32_t prefix = (A[i] << 16);
-    unsigned short size = A[i+1];
+    uint16_t size = A[i+1];
     i += 2;
 
     size_t inner_end = i+size;
-    while(i < inner_end){
+    while(i <= inner_end){
       uint32_t tmp = prefix | A[i];
       if(f(tmp))
         goto DONE;
@@ -137,7 +138,7 @@ inline void pshort::foreach(
     i += 2;
 
     size_t inner_end = i+size;
-    for(; i < inner_end; i++) {
+    for(; i <= inner_end; i++) {
       uint32_t tmp = prefix | A[i];
       f(tmp);
       ++count;
@@ -165,7 +166,7 @@ class PShortDecoder {
     }
 
     uint32_t at(size_t i) {
-      while(this->curr_prefix_index_start + this->curr_prefix_len <= i) {
+      while(this->curr_prefix_index_start + this->curr_prefix_len < i) {
         this->curr_prefix_start += this->curr_prefix_len + 2;
         this->curr_prefix_index_start += this->curr_prefix_len;
         this->curr_prefix_len = this->curr_prefix_start[1];

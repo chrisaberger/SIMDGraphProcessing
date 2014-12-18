@@ -160,13 +160,15 @@ namespace ops{
     size_t count = 0;
     bool notFinished = i_a < s_a && i_b < s_b;
 
+
+    //We add 3, 2 for the prefix and the size and 1 because the size is stored -1
     while(notFinished) {
       //size_t limLower = limLowerHolder;
       if(A[i_a] < B[i_b]) {
-        i_a += A[i_a + 1] + 2;
+        i_a += A[i_a + 1] + 3;
         notFinished = i_a < s_a;
       } else if(B[i_b] < A[i_a]) {
-        i_b += B[i_b + 1] + 2;
+        i_b += B[i_b + 1] + 3;
         notFinished = i_b < s_b;
       } else {
         uint16_t partition_size = 0;
@@ -174,12 +176,12 @@ namespace ops{
         #if WRITE_VECTOR == 1
         C[counter++] = A[i_a]; // write partition prefix
         #endif
-        partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2],&B[i_b + 2],A[i_a + 1], B[i_b + 1]);
+        partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2],&B[i_b + 2],((size_t)A[i_a+1])+1,((size_t)B[i_b+1])+1);
         #if WRITE_VECTOR == 1
         C[counter++] = partition_size; // write partition size
         #endif
-        i_a += A[i_a + 1] + 2;
-        i_b += B[i_b + 1] + 2;      
+        i_a += A[i_a+1] + 3;
+        i_b += B[i_b+1] + 3;      
 
         count += partition_size;
         counter += partition_size;
@@ -270,7 +272,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     size_t counter = 0;
     for(size_t i = 0; i < s_a; i++){
       uint32_t prefix = (A[i] << 16);
-      uint16_t size = A[i+1];
+      uint16_t size = A[i+1]+1;
       i += 2;
 
       size_t old_count = count;
@@ -363,7 +365,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     bool not_finished = a_i < s_a && b_i < s_b;
     while(not_finished){
       uint32_t prefix = (B[b_i] << 16);
-      uint16_t b_inner_size = B[b_i+1];
+      uint16_t b_inner_size = B[b_i+1]+1;
       uint32_t cur_match = A[a_i];
       size_t inner_end = b_i+b_inner_size+2;
       //cout << endl;

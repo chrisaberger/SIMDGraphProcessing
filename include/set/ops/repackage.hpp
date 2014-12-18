@@ -32,7 +32,7 @@ namespace ops{
         R[counter++] = clow;  // write the first element
         R[partition_size_position] = partition_length;
 
-        partition_length = 1; // reset counters
+        partition_length = 0; // reset counters
         partition_size_position = counter - 2;
         high = chigh;
       }

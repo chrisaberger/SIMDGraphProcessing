@@ -115,7 +115,7 @@ def main():
     for ordering in orderings:
       perf_file.write("t" +thread + "," + ordering + ",")
       for dataset in datasets:
-        for layout in layouts:          
+        for layout in layouts:
           f = open(options.folder +"/" + dataset + "." + thread + "." + layout + "." + ordering +".log", 'r')
           perf_info = getInternalPerformanceInfo(f,print_to_comp_file);
           avg = average_runs(perf_info['perf'])

@@ -24,6 +24,7 @@ namespace pcm_helper {
    PCM* pcm_m = NULL;
 
    int32_t pcm_init() {
+      std::cout<< "PCM Init..." << std::endl;
       pcm_m = PCM::getInstance();
       pcm_m->disableJKTWorkaround();
       int32_t ret_val = 0;

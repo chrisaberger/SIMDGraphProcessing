@@ -1,7 +1,7 @@
 UNAME := $(shell uname)
 
 # Uncomment the following line to compile without PCM support
-#INTEL_PCM_HOME=/afs/cs.stanford.edu/u/noetzli/IntelPerformanceCounterMonitorV2.7
+# INTEL_PCM_HOME=/afs/cs.stanford.edu/u/noetzli/IntelPerformanceCounterMonitorV2.7
 
 ifeq ($(UNAME), Linux)
 	LIBS=-lnuma

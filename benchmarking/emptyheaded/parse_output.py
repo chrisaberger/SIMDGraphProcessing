@@ -3,6 +3,8 @@ import re
 def getInternalPerformanceInfo(f, get_compression=False, get_bfs_details=False):
   triangle_perf = []
   bfs_perf = []
+  l2_misses = []
+  l3_misses = []
   bfs_details_timers = ["copy time", "union time", "difference", "repack"]
   bfs_details_perf = dict()
   bfs_details_perf_curr_run = dict()
@@ -26,6 +28,14 @@ def getInternalPerformanceInfo(f, get_compression=False, get_bfs_details=False):
               else:
                   bfs_details_perf[k] = [v]
 
+    matchObj = re.match(r'Cycles lost due to L2.*: (.*)', line, re.M|re.I)
+    if matchObj:
+        l2_misses.append(matchObj.group(1))
+
+    matchObj = re.match(r'Cycles lost due to L3.*: (.*)', line, re.M|re.I)
+    if matchObj:
+        l3_misses.append(matchObj.group(1))
+
     if get_compression:
       matchObj = re.match(r'.*Bytes.*: (\d+)', line, re.M|re.I)
       if matchObj:
@@ -45,7 +55,11 @@ def getInternalPerformanceInfo(f, get_compression=False, get_bfs_details=False):
                 else:
                     bfs_details_perf_curr_run[bfs_details_timer] = v
 
-  return {'perfs': [{'query': 'triangle_counting', 'perf': triangle_perf}, {'query': 'bfs', 'perf': bfs_perf}], 'bytes':num_bytes, 'edges':num_edges, 'bfs_details':bfs_details_perf}
+  return {'perfs': [{'query': 'triangle_counting', 'perf': triangle_perf}, {'query': 'bfs', 'perf': bfs_perf}],
+          'bytes':num_bytes, 'edges':num_edges,
+          'bfs_details':bfs_details_perf,
+          'l2_misses': l2_misses,
+          'l3_misses': l3_misses }
 
 def getIInternalPerformanceInfo(f,get_compression=False):        
   perf = []

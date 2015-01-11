@@ -10,12 +10,13 @@ odir="${output}/intersection_benchmark_${date}_${curtime}"
 mkdir $odir
 
 n="100000"
-lens="2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768"
+densities="0.00001 0.00002 0.00004 0.00008 0.00016 0.00032 0.00128 0.00256 0.00512 0.01024 0.02048 0.04096 0.08192"
+gap_lens="2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536 131072"
 
 for i in `seq 0 ${numruns}`; do
-  for run_len in ${lens}; do
-    for gap_len in ${lens}; do
-      ${EMPTY_HEADED_HOME}/intersection_benchmark ${n} ${run_len} ${gap_len} | tee ${odir}/${run_len}_${gap_len}_${i}.log
+  for density in ${densities}; do
+    for gap_len in ${gap_lens}; do
+      ${EMPTY_HEADED_HOME}/intersection_benchmark ${n} ${density} ${gap_len} | tee ${odir}/${density}_${gap_len}_${i}.log
     done
   done
 done

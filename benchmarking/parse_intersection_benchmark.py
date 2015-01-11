@@ -42,30 +42,34 @@ def main():
   for filename in os.listdir(options.folder):
     matchObj = re.match(r'(.*)_(.*)_(.*).log', filename, re.M | re.I)
     if matchObj:
-      run_len = int(matchObj.group(1))
+      density = float(matchObj.group(1))
       gap_len = int(matchObj.group(2))
 
       abs_filename = os.path.join(options.folder, filename)
       times = parse_file(open(abs_filename))
 
-      if (run_len, gap_len) in results:
-        [ts.append(t) for ts, t in zip(results[run_len, gap_len], times)]
+      if (density, gap_len) in results:
+        [ts.append(t) for ts, t in zip(results[density, gap_len], times)]
       else:
-        results[run_len, gap_len] = [[t] for t in times]
+        results[density, gap_len] = [[t] for t in times]
 
-  run_lens_set = set()
+  densities_set = set()
   gap_lens_set = set()
   for k, times in results.iteritems():
     results[k] = [average_runs(t) for t in times]
-    run_lens_set.add(k[0])
+    densities_set.add(k[0])
     gap_lens_set.add(k[1])
 
-  run_lens = sorted(list(run_lens_set))
+  densities = sorted(list(densities_set))
   gap_lens = sorted(list(gap_lens_set))
-  for run_len in run_lens:
+  for density in densities:
     line = []
     for gap_len in gap_lens:
-      line.append(np.argmin(results[run_len, gap_len]))
+      result = results[density, gap_len]
+      if result == []:
+        line.append("x")
+      else:
+        line.append(np.argmin(result))
     print " ".join([str(x) for x in line])
 
 if __name__ == "__main__":

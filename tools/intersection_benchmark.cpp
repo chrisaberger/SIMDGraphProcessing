@@ -1,20 +1,39 @@
 #include "SparseMatrix.hpp"
 #include "common.hpp"
 
-#define BUF_SIZE 1024L * 1024L * 32L
+#define BUF_SIZE 1024L * 1024L * 256L
 
-template<class T> void intersect(uint64_t n, uint32_t* a, uint32_t* b) {
+template<class T, class R> Set<R> decode_array(size_t n, uint8_t* set_data, uint32_t *buffer) {
+  Set<T> set = Set<T>::from_flattened(set_data, n);
+  if(set.type == common::VARIANT || set.type == common::BITPACKED){
+    return set.decode(buffer);
+  }
+
+  return Set<R>(set);
+}
+
+template<class T, class R> void intersect(uint64_t n, uint32_t* a, uint32_t* b) {
+  uint32_t* buffer1 = new uint32_t[n];
+  uint32_t* buffer2 = new uint32_t[n];
 
   uint8_t* set_a_buffer = new uint8_t[BUF_SIZE];
   uint8_t* set_b_buffer = new uint8_t[BUF_SIZE];
   uint8_t* set_c_buffer = new uint8_t[BUF_SIZE];
-  Set<T> set_a = Set<T>::from_array(set_a_buffer, a, n);
-  Set<T> set_b = Set<T>::from_array(set_b_buffer, b, n);
-  Set<T> set_c(set_c_buffer);
+
+  Set<R> set_c(set_c_buffer);
+
+  size_t set_a_size = Set<T>::flatten_from_array(set_a_buffer, a, n);
+  size_t set_b_size = Set<T>::flatten_from_array(set_b_buffer, b, n);
+
+  std::cout << "Size: " << set_a_size << std::endl;
 
   std::cout << "Start intersect" << std::endl;
   auto start_time = common::startClock();
-  ops::set_intersect(&set_c, &set_a, &set_b);
+
+  Set<R> set_a_dec = decode_array<T, R>(n, set_a_buffer, buffer1);
+  Set<R> set_b_dec = decode_array<T, R>(n, set_b_buffer, buffer2);
+
+  ops::set_intersect(&set_c, &set_a_dec, &set_b_dec);
   common::stopClock("intersect", start_time);
   std::cout << "End intersect. |C| = " << set_c.cardinality << std::endl;
 }
@@ -37,9 +56,15 @@ int main(int argc, char* argv[]) {
   srand(time(NULL));
 
   uint64_t n = c_str_to_uint64_t(argv[1]);
-  uint64_t run_len = c_str_to_uint64_t(argv[2]);
+  double density = std::stod(argv[2]);
   uint64_t gap_len = c_str_to_uint64_t(argv[3]);
+  uint64_t run_len = (uint64_t)(density * gap_len / (1.0 - density));
   std::cout << "Elems: " << n << ", Run len: " << run_len << ", Gap len: " << gap_len << std::endl;
+
+  if(run_len == 0) {
+    std::cout << "Run len has to be at least 1" << std::endl;
+    return -1;
+  }
 
   const uint64_t max_offset = 6;
   const uint64_t max_gap_offset = min(gap_len - 1, max_offset);
@@ -65,8 +90,10 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  intersect<uinteger>(n, a, b);
-  intersect<pshort>(n, a, b);
-  intersect<bitset>(n, a, b);
+  intersect<uinteger, uinteger>(n, a, b);
+  intersect<pshort, pshort>(n, a, b);
+  intersect<bitset, bitset>(n, a, b);
+  intersect<variant, uinteger>(n, a, b);
+  intersect<bitpacked, uinteger>(n, a, b);
   return 0;
 }

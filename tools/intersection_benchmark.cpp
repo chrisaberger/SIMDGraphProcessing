@@ -22,19 +22,21 @@ template<class T, class R> void intersect(uint64_t n, uint32_t* a, uint32_t* b) 
 
   Set<R> set_c(set_c_buffer);
 
+  std::cout << "Start encoding" << std::endl;
+  auto start_time_encoding = common::startClock();
   size_t set_a_size = Set<T>::flatten_from_array(set_a_buffer, a, n);
   size_t set_b_size = Set<T>::flatten_from_array(set_b_buffer, b, n);
-
+  common::stopClock("encoding", start_time_encoding);
   std::cout << "Size: " << set_a_size << std::endl;
 
   std::cout << "Start intersect" << std::endl;
-  auto start_time = common::startClock();
+  auto start_time_intersect = common::startClock();
 
   Set<R> set_a_dec = decode_array<T, R>(n, set_a_buffer, buffer1);
   Set<R> set_b_dec = decode_array<T, R>(n, set_b_buffer, buffer2);
 
   ops::set_intersect(&set_c, &set_a_dec, &set_b_dec);
-  common::stopClock("intersect", start_time);
+  common::stopClock("intersect", start_time_intersect);
   std::cout << "End intersect. |C| = " << set_c.cardinality << std::endl;
 }
 

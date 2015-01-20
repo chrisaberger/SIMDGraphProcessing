@@ -522,6 +522,103 @@ namespace ops{
     const size_t s_a = A_in->cardinality;
     const size_t s_b = B_in->cardinality;
 
+    const size_t st_a = (s_a / SHORTS_PER_REG) * SHORTS_PER_REG;
+    const size_t st_b = (s_b / SHORTS_PER_REG) * SHORTS_PER_REG;
+
+    size_t count = 0;
+    size_t i_a = 0, i_b = 0;
+
+    while(i_a < st_a && i_b < st_b){
+      //Pull in 4 uint 32's
+      const __m128i v_a_1_32 = _mm_loadu_si128((__m128i*)&A[i_a]);
+      const __m128i v_a_2_32 = _mm_loadu_si128((__m128i*)&A[i_a+(SHORTS_PER_REG/2)]);
+
+      //shuffle to get lower 16 bits only in one register
+      const __m128i v_a_l1 = _mm_shuffle_epi8(v_a_1_32,_mm_set_epi8(uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x0D),uint8_t(0x0C),uint8_t(0x09),uint8_t(0x08),uint8_t(0x05),uint8_t(0x04),uint8_t(0x01),uint8_t(0x0)));
+      const __m128i v_a_l2 = _mm_shuffle_epi8(v_a_2_32,_mm_set_epi8(uint8_t(0x0D),uint8_t(0x0C),uint8_t(0x09),uint8_t(0x08),uint8_t(0x05),uint8_t(0x04),uint8_t(0x01),uint8_t(0x0),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80)));
+      const __m128i v_a_l = _mm_or_si128(v_a_l1,v_a_l2);
+
+      const __m128i v_b_1_32 = _mm_loadu_si128((__m128i*)&B[i_b]);
+      const __m128i v_b_2_32 = _mm_loadu_si128((__m128i*)&B[i_b+(SHORTS_PER_REG/2)]);
+
+      const __m128i v_b_l1 = _mm_shuffle_epi8(v_b_1_32,_mm_set_epi8(uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x0D),uint8_t(0x0C),uint8_t(0x09),uint8_t(0x08),uint8_t(0x05),uint8_t(0x04),uint8_t(0x01),uint8_t(0x0)));
+      const __m128i v_b_l2 = _mm_shuffle_epi8(v_b_2_32,_mm_set_epi8(uint8_t(0x0D),uint8_t(0x0C),uint8_t(0x09),uint8_t(0x08),uint8_t(0x05),uint8_t(0x04),uint8_t(0x01),uint8_t(0x0),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80)));
+      const __m128i v_b_l = _mm_or_si128(v_b_l1,v_b_l2);
+      
+     // __m128i res_v = _mm_cmpistrm(v_b, v_a,
+     //         _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
+      const __m128i res_vl = _mm_cmpestrm(v_a_l, SHORTS_PER_REG, v_b_l, SHORTS_PER_REG,
+              _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
+      const uint32_t result_l = _mm_extract_epi32(res_vl, 0);
+
+      if(result_l != 0){
+        //shuffle to get upper 16 bits only in one register
+        const __m128i v_a_u1 = _mm_shuffle_epi8(v_a_1_32,_mm_set_epi8(uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x0F),uint8_t(0x0E),uint8_t(0x0B),uint8_t(0x0A),uint8_t(0x07),uint8_t(0x06),uint8_t(0x03),uint8_t(0x2)));
+        const __m128i v_a_u2 = _mm_shuffle_epi8(v_a_2_32,_mm_set_epi8(uint8_t(0x0F),uint8_t(0x0E),uint8_t(0x0B),uint8_t(0x0A),uint8_t(0x07),uint8_t(0x06),uint8_t(0x03),uint8_t(0x2),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80)));
+        const __m128i v_a_u = _mm_or_si128(v_a_u1,v_a_u2);
+
+        const __m128i v_b_1_32 = _mm_loadu_si128((__m128i*)&B[i_b]);
+        const __m128i v_b_2_32 = _mm_loadu_si128((__m128i*)&B[i_b+(SHORTS_PER_REG/2)]);
+
+        const __m128i v_b_u1 = _mm_shuffle_epi8(v_b_1_32,_mm_set_epi8(uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x0F),uint8_t(0x0E),uint8_t(0x0B),uint8_t(0x0A),uint8_t(0x07),uint8_t(0x06),uint8_t(0x03),uint8_t(0x2)));
+        const __m128i v_b_u2 = _mm_shuffle_epi8(v_b_2_32,_mm_set_epi8(uint8_t(0x0F),uint8_t(0x0E),uint8_t(0x0B),uint8_t(0x0A),uint8_t(0x07),uint8_t(0x06),uint8_t(0x03),uint8_t(0x2),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80)));
+        const __m128i v_b_u = _mm_or_si128(v_b_u1,v_b_u2);
+
+        const __m128i res_vu = _mm_cmpestrm(v_a_u, SHORTS_PER_REG, v_b_u, SHORTS_PER_REG,
+                _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
+        const uint32_t result_u = _mm_extract_epi32(res_vu, 0);
+
+        const uint32_t w_bitmask = result_u & result_l;
+        #if WRITE_VECTOR == 1
+          //You could probably use a shuffle for this instead.
+        __m128i p = _mm_shuffle_epi8(v_a_1_32, shuffle_mask32[w_bitmask & 0x0F]);
+        _mm_storeu_si128((__m128i*)&C[count], p);
+        count += _mm_popcnt_u32(w_bitmask & 0x0F);
+
+        p = _mm_shuffle_epi8(v_a, shuffle_mask32[(w_bitmask & 0xF0) >> 4]);
+        _mm_storeu_si128((__m128i*)&C[count], p);
+        count += _mm_popcnt_u32(w_bitmask & 0x0F);
+       #else
+        (void) C;
+        count += _mm_popcnt_u32(w_bitmask);
+        #endif
+
+      } 
+      if(A[i_a+7] > B[i_b+7]){
+        goto advanceB;
+      } else if (A[i_a+7] < B[i_b+7]){
+        goto advanceA;
+      } else{
+        goto advanceAB;
+      }
+      advanceB:
+        i_a += 8;
+      advanceA:
+        i_b += 8;
+      advanceAB:
+        i_a += 8;
+        i_b += 8;
+    }
+
+    //XXX: Fix
+    const double density = 0.0;//((count > 0) ? ((double)count/(C[count]-C[0])) : 0.0);
+    
+    C_in->cardinality = count;
+    C_in->number_of_bytes = count*sizeof(uint32_t);
+    C_in->density = density;
+    C_in->type= common::UINTEGER;
+
+    return C_in;  
+  } 
+
+  /*
+  inline Set<uinteger>* set_intersect(Set<uinteger> *C_in, const Set<uinteger> *A_in, const Set<uinteger> *B_in){
+    uint32_t * const C = (uint32_t*) C_in->data; 
+    const uint32_t * const A = (uint32_t*) A_in->data;
+    const uint32_t * const B = (uint32_t*) B_in->data;
+    const size_t s_a = A_in->cardinality;
+    const size_t s_b = B_in->cardinality;
+
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
 
@@ -605,6 +702,7 @@ namespace ops{
 
     return C_in;  
   }
+  */
   inline size_t simd_intersect_vector16(uint16_t *C, const uint16_t *A, const uint16_t *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
     (void)C;
@@ -614,15 +712,15 @@ namespace ops{
     size_t i_a = 0, i_b = 0;
 
     #if VECTORIZE == 1
-    size_t st_a = (s_a / SHORTS_PER_REG) * SHORTS_PER_REG;
-    size_t st_b = (s_b / SHORTS_PER_REG) * SHORTS_PER_REG;
+    const size_t st_a = (s_a / SHORTS_PER_REG) * SHORTS_PER_REG;
+    const size_t st_b = (s_b / SHORTS_PER_REG) * SHORTS_PER_REG;
 
     while(i_a < st_a && i_b < st_b) {
-      __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
-      __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);    
+      const __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
+      const __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);    
 
-      uint16_t a_max = _mm_extract_epi16(v_a, SHORTS_PER_REG-1);
-      uint16_t b_max = _mm_extract_epi16(v_b, SHORTS_PER_REG-1);
+      const uint16_t a_max = _mm_extract_epi16(v_a, SHORTS_PER_REG-1);
+      const uint16_t b_max = _mm_extract_epi16(v_b, SHORTS_PER_REG-1);
       
      // __m128i res_v = _mm_cmpistrm(v_b, v_a,
      //         _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
@@ -631,7 +729,7 @@ namespace ops{
       uint32_t r = _mm_extract_epi32(res_v, 0);
 
       #if WRITE_VECTOR == 1
-      __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask16[r]);
+      const __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask16[r]);
       _mm_storeu_si128((__m128i*)&C[count], p);
      #endif
 

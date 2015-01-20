@@ -111,6 +111,7 @@ namespace ops{
     _mm_set_epi8(max,max,max,max,max,max,max,max,max,max,max,max,max,max,max,max), //15
   }; 
   static __m128i shuffle_mask16[256]; // precomputed dictionary
+
   static inline int getBitSD(uint32_t value, uint32_t position) {
     return ( ( value & (1 << position) ) >> position);
   }

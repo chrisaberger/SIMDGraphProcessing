@@ -59,35 +59,38 @@ inline common::type bitset::get_type(){
 }
 //Copies data from input array of ints to our set data r_in
 inline size_t bitset::build(uint8_t *R, const uint32_t *A, const size_t s_a){
-  uint64_t* R64 = (uint64_t*) R;
+  uint32_t* offset = (uint32_t*) R; 
+  uint64_t* R64 = (uint64_t*)(R+sizeof(uint32_t));
   size_t word = 0;
   size_t i = 0;
   size_t cleared_word_index = 0;
-  //std::cout << "HELLO " << s_a << " " << BITS_PER_WORD << " " << std::endl;
-  while(i < s_a){
-    uint32_t cur = A[i];
-    //std::cout << cur << std::endl;
-    word = word_index(cur);
-    while(cleared_word_index < word){
-      R64[cleared_word_index++] = 0;
-      cleared_word_index++;
-    }
-    cleared_word_index = word+1;
 
-    uint64_t set_value = (uint64_t) 1 << (cur % BITS_PER_WORD);
-    bool same_word = true;
-    ++i;
-    while(i<s_a && same_word){
-      if(word_index(A[i])==word){
-        cur = A[i];
-        set_value |= ((uint64_t) 1 << (cur%BITS_PER_WORD));
-        ++i;
-      } else same_word = false;
+  if(s_a > 0){
+    offset[0] = A[0];
+    while(i < s_a){
+      uint32_t cur = A[i];
+      //std::cout << cur << std::endl;
+      word = word_index(cur);
+      while(cleared_word_index < word){
+        R64[cleared_word_index++] = 0;
+        cleared_word_index++;
+      }
+      cleared_word_index = word+1;
+
+      uint64_t set_value = (uint64_t) 1 << (cur % BITS_PER_WORD);
+      bool same_word = true;
+      ++i;
+      while(i<s_a && same_word){
+        if(word_index(A[i])==word){
+          cur = A[i];
+          set_value |= ((uint64_t) 1 << (cur%BITS_PER_WORD));
+          ++i;
+        } else same_word = false;
+      }
+      R64[word] = set_value;
+      word++;
     }
-    R64[word] = set_value;
-    word++;
   }
-  //std::cout << "BYE" << word * BYTES_PER_WORD << std::endl;
   return word * BYTES_PER_WORD;
 }
 //Nothing is different about build flattened here. The number of bytes
@@ -121,12 +124,14 @@ inline void bitset::foreach_until(const std::function <bool (uint32_t)>& f,
   const common::type type){
   (void) cardinality; (void) type;
 
-  const uint64_t* A64 = (uint64_t*) A;
+  const uint32_t *offset_pointer = (uint32_t*) A;
+  const uint32_t offset = offset_pointer[0];
+  const uint64_t* A64 = (uint64_t*)(A+sizeof(uint32_t));
   for(size_t i = 0; i < number_of_bytes / sizeof(uint64_t); i++){
-    uint64_t cur_word = A64[i];
+    uint64_t cur_word = A64[i+offset];
     for(size_t j = 0; j < BITS_PER_WORD; j++){
       if((cur_word >> j) % 2){
-        if(f(BITS_PER_WORD*i + j))
+        if(f(BITS_PER_WORD*(i+offset) + j))
           break;
       }
     }
@@ -141,13 +146,15 @@ inline void bitset::foreach(const std::function <void (uint32_t)>& f,
   const common::type type){
   (void) cardinality; (void) type;
 
-  const uint64_t* A64 = (uint64_t*) A;
+  const uint32_t *offset_pointer = (uint32_t*) A;
+  const uint32_t offset = offset_pointer[0];
+  const uint64_t* A64 = (uint64_t*)(A+sizeof(uint32_t));
   for(size_t i = 0; i < number_of_bytes / sizeof(uint64_t); i++){
-    uint64_t cur_word = A64[i];
+    uint64_t cur_word = A64[i+offset];
     if(cur_word != 0) {
       for(size_t j = 0; j < BITS_PER_WORD; j++){
         if((cur_word >> j) % 2) {
-          f(BITS_PER_WORD * i + j);
+          f(BITS_PER_WORD *(i+offset) + j);
         }
       }
     }
@@ -164,13 +171,15 @@ inline void bitset::par_foreach(
       const common::type t) {
    (void) number_of_bytes; (void) t; (void) cardinality;
 
-   const uint64_t* A64 = (uint64_t*) A;
-   common::par_for_range(num_threads, 0, number_of_bytes / sizeof(uint64_t), 512,
-         [&f, &A64, cardinality](size_t tid, size_t i) {
-            const uint64_t cur_word = A64[i];
+  const uint32_t *offset_pointer = (uint32_t*) A;
+  const uint32_t offset = offset_pointer[0];
+  const uint64_t* A64 = (uint64_t*)(A+sizeof(uint32_t));
+  common::par_for_range(num_threads, 0, number_of_bytes / sizeof(uint64_t), 512,
+         [&f, &A64, cardinality,offset](size_t tid, size_t i) {
+            const uint64_t cur_word = A64[i+offset];
             if(cur_word != 0) {
               for(size_t j = 0; j < BITS_PER_WORD; j++){
-                const uint32_t curr_nb = BITS_PER_WORD * i + j;
+                const uint32_t curr_nb = BITS_PER_WORD*(i+offset) + j;
                 if((cur_word >> j) % 2) {
                   f(tid, curr_nb);
                 }

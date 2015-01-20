@@ -826,9 +826,9 @@ namespace ops{
     return C_in;
 }
 inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, const Set<bitset> *B_in){
-    uint8_t * const C = C_in->data;
-    const uint8_t * const A = A_in->data;
-    const uint8_t * const B = B_in->data;
+    uint64_t * const C = (uint64_t*)C_in->data+sizeof(uint32_t);
+    const uint64_t * const A = (uint64_t*) A_in->data+sizeof(uint32_t);
+    const uint64_t * const B = (uint64_t*) B_in->data+sizeof(uint32_t);
     const size_t s_a = A_in->number_of_bytes;
     const size_t s_b = B_in->number_of_bytes;
 
@@ -837,37 +837,46 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     #endif
 
     long count = 0l;
-    const uint8_t *small = (s_a > s_b) ? B : A;
-    const size_t small_length = (s_a > s_b) ? s_b : s_a;
-    const uint8_t *large = (s_a <= s_b) ? B : A;
 
+    const uint32_t *a_index = (uint32_t*) A;
+    const uint32_t *b_index = (uint32_t*) B;
+
+    const uint32_t start_index = (a_index[0] > b_index[0]) ? a_index[0] : b_index[0];
+    const uint32_t end_index = ((a_index[0]+s_a) > (b_index[0]+s_b)) ? (b_index[0]+s_b):(a_index[0]+s_a);
+    const uint32_t total_size = end_index-start_index;
     //16 uint16_ts
     //8 ints
     //4 longs
     size_t i = 0;
     
-    #if VECTORIZE == 1
-    while((i+15) < small_length){
-      __m128i a1 = _mm_loadu_si128((const __m128i*)&A[i]);
-      __m128i a2 = _mm_loadu_si128((const __m128i*)&B[i]);
-      
-      __m128i r = _mm_and_si128(a1, a2);
-      
-      #if WRITE_VECTOR == 1
-      _mm_storeu_si128((__m128i*)&C[i], r);
-      #endif
-      
-      unsigned long l = _mm_extract_epi64(r,0);
-      count += _mm_popcnt_u64(l);
-      l = _mm_extract_epi64(r,1);
-      count += _mm_popcnt_u64(l);
+    #if WRITE_VECTOR == 1
+    uint32_t *c_index = (uint32_t*) C_in->data;
+    c_index[0] = start_index;
+    #endif
 
-      i += 16;
+    #if VECTORIZE == 1
+    while((i+3) < total_size){
+      const __m256 a1 = _mm256_loadu_ps((const float*)&A[i+start_index]);
+      const __m256 a2 = _mm256_loadu_ps((const float*)&B[i+start_index]);
+      
+      const __m256 r = _mm256_and_ps(a2, a1);
+
+      #if WRITE_VECTOR == 1
+      _mm256_storeu_ps((float*)&C[i], r);
+      #endif
+
+      uint64_t* count_ptr = (uint64_t*)&C[i];
+      count += _mm_popcnt_u64(count_ptr[0]);
+      count += _mm_popcnt_u64(count_ptr[1]);
+      count += _mm_popcnt_u64(count_ptr[2]);
+      count += _mm_popcnt_u64(count_ptr[3]);
+
+      i += 4;
     }
     #endif
 
-    for(; i < small_length; i++){
-      uint8_t result = small[i] & large[i];
+    for(; i < end_index; i++){
+      const uint64_t result = A[i] & B[i];
 
       #if WRITE_VECTOR == 1
       C[i] = result;
@@ -878,7 +887,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     const double density = 0.0;//(count > 0) ? (double)count/(8*small_length) : 0.0;
 
     C_in->cardinality = count;
-    C_in->number_of_bytes = small_length;
+    C_in->number_of_bytes = total_size;
     C_in->density = density;
     C_in->type= common::BITSET;
 

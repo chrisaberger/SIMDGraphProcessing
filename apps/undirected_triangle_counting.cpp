@@ -38,8 +38,7 @@ class application{
     }
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
       (void) attribute;
-      return true;
-      //return nbr < node;
+      return nbr < node;
     }
     #endif
 

@@ -277,5 +277,13 @@ namespace common{
     common::stopClock("PARALLEL TEAR DOWN",td);
     #endif
   }
+
+  static vector<uint32_t> range(uint32_t max) {
+    vector<uint32_t> result;
+    result.reserve(max);
+    for(uint32_t i = 0; i < max; i++)
+      result.push_back(i);
+    return result;
+  }
 }
 #endif

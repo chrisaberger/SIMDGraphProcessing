@@ -26,7 +26,7 @@ struct MutableGraph {
   void reorder_by_the_game();
   void reorder_by_shingles();
 
-  void reassign_ids(uint32_t *new2old_ids, uint32_t *old2new_ids);
+  void reassign_ids(vector<uint32_t> const& new2old_ids);
 
   void writeDirectedToLigra(const string path);
   void writeUndirectedToBinary(const string path);

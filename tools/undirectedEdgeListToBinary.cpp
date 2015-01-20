@@ -2,6 +2,20 @@
 #include <stdlib.h>
 #include "MutableGraph.hpp"
 
+void gen_ordering(
+    char* argv[],
+    string const& name,
+    std::function<void(MutableGraph*)> reorder_graph) {
+  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]);
+  string outfile = argv[2];
+  outfile.append("/u_" + name + ".bin");
+  auto startTime = common::startClock();
+  reorder_graph(inputGraph);
+  common::stopClock(name, startTime);
+  inputGraph->writeUndirectedToBinary(outfile);
+  cout << name << " generated" << endl;
+}
+
 int main (int argc, char* argv[]) {
   if(argc != 3){
     cout << "Please see usage below: " << endl;
@@ -9,54 +23,13 @@ int main (int argc, char* argv[]) {
     exit(0);
   }
 
-  MutableGraph *inputGraphShingles = MutableGraph::undirectedFromEdgeList(argv[1]);
-  string outfile = argv[2];
-  outfile.append("/u_shingles.bin");
-  inputGraphShingles->reorder_by_shingles();
-  inputGraphShingles->writeUndirectedToBinary(outfile);
-  cout << "Shingles generated" << endl;
-
-  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]);
-  outfile = argv[2];
-  outfile.append("/u_the_game.bin");
-  inputGraph->reorder_by_the_game();
-  inputGraph->writeUndirectedToBinary(outfile);
-  cout << "The game generated" << endl;
-
-  MutableGraph *inputGraph2 = MutableGraph::undirectedFromEdgeList(argv[1]);
-  outfile = argv[2];
-  outfile.append("/u_bfs.bin");
-  inputGraph2->reorder_bfs();
-  inputGraph2->writeUndirectedToBinary(outfile);
-  cout << "BFS generated" << endl;
-
-  MutableGraph *inputGraph3 = MutableGraph::undirectedFromEdgeList(argv[1]);
-  outfile = argv[2];
-  outfile.append("/u_degree.bin");
-  inputGraph3->reorder_by_degree();
-  inputGraph3->writeUndirectedToBinary(outfile);
-  cout << "Degree generated" << endl;
-
-  MutableGraph *inputGraph4 = MutableGraph::undirectedFromEdgeList(argv[1]);
-  outfile = argv[2];
-  outfile.append("/u_rev_degree.bin");
-  inputGraph4->reorder_by_rev_degree();
-  inputGraph4->writeUndirectedToBinary(outfile);
-  cout << "Rev degree generated" << endl;
-
-  MutableGraph *inputGraph5 = MutableGraph::undirectedFromEdgeList(argv[1]);
-  outfile = argv[2];
-  outfile.append("/u_strong_run.bin");
-  inputGraph5->reorder_strong_run();
-  inputGraph5->writeUndirectedToBinary(outfile);
-  cout << "Strong run generated" << endl;
-
-  MutableGraph *inputGraph6 = MutableGraph::undirectedFromEdgeList(argv[1]);
-  outfile = argv[2];
-  outfile.append("/u_random.bin");
-  inputGraph6->reorder_random();
-  inputGraph6->writeUndirectedToBinary(outfile);
-  cout << "Random generated" << endl;
+  gen_ordering(argv, "shingles", [](MutableGraph* g) { g->reorder_by_shingles(); });
+  gen_ordering(argv, "the_game", [](MutableGraph* g) { g->reorder_by_the_game(); });
+  gen_ordering(argv, "bfs", [](MutableGraph* g) { g->reorder_bfs(); });
+  gen_ordering(argv, "degree", [](MutableGraph* g) { g->reorder_by_degree(); });
+  gen_ordering(argv, "rev_degree", [](MutableGraph* g) { g->reorder_by_rev_degree(); });
+  gen_ordering(argv, "strong_run", [](MutableGraph* g) { g->reorder_strong_run(); });
+  gen_ordering(argv, "random", [](MutableGraph* g) { g->reorder_random(); });
 
   return 0;
 }

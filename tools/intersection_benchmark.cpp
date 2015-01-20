@@ -12,7 +12,7 @@ template<class T, class R> Set<R> decode_array(size_t n, uint8_t* set_data, uint
   return Set<R>(set);
 }
 
-template<class T, class R> void intersect(uint64_t n, uint32_t* a, uint32_t* b) {
+template<class T, class R> void intersect(uint64_t n, uint32_t* a, uint32_t* b, string filename) {
   uint32_t* buffer1 = new uint32_t[n];
   uint32_t* buffer2 = new uint32_t[n];
 
@@ -25,7 +25,8 @@ template<class T, class R> void intersect(uint64_t n, uint32_t* a, uint32_t* b) 
   std::cout << "Start encoding" << std::endl;
   auto start_time_encoding = common::startClock();
   size_t set_a_size = Set<T>::flatten_from_array(set_a_buffer, a, n);
-  size_t set_b_size = Set<T>::flatten_from_array(set_b_buffer, b, n);
+  //size_t set_b_size =
+   Set<T>::flatten_from_array(set_b_buffer, b, n);
   common::stopClock("encoding", start_time_encoding);
   std::cout << "Size: " << set_a_size << std::endl;
 
@@ -38,6 +39,15 @@ template<class T, class R> void intersect(uint64_t n, uint32_t* a, uint32_t* b) 
   ops::set_intersect(&set_c, &set_a_dec, &set_b_dec);
   common::stopClock("intersect", start_time_intersect);
   std::cout << "End intersect. |C| = " << set_c.cardinality << std::endl;
+
+  ofstream myfile;
+  cout << filename << endl;
+  myfile.open(filename);
+  size_t index = 0;
+  set_c.foreach([&myfile,&index](uint32_t i){
+    myfile << "Index: " << index++ << " Data: " << i << endl;
+  });
+
 }
 
 uint64_t c_str_to_uint64_t(char* str) {
@@ -50,18 +60,20 @@ uint64_t c_str_to_uint64_t(char* str) {
 }
 
 int main(int argc, char* argv[]) {
+  /*
   if(argc != 4) {
     std::cout << "Expected 3 arguments" << std::endl;
     return -1;
-  }
+  }*/
+  ops::prepare_shuffling_dictionary16();
 
   srand(time(NULL));
 
   uint64_t n = c_str_to_uint64_t(argv[1]);
-  double density = std::stod(argv[2]);
-  uint64_t gap_len = c_str_to_uint64_t(argv[3]);
-  uint64_t run_len = (uint64_t)(density * gap_len / (1.0 - density));
-  std::cout << "Elems: " << n << ", Run len: " << run_len << ", Gap len: " << gap_len << std::endl;
+  double density = 0.00128; //std::stod(argv[2]);
+  uint64_t gap_len = 4;// c_str_to_uint64_t(argv[3]);
+  uint64_t run_len = 1;//(uint64_t)(density * gap_len / (1.0 - density));
+  //std::cout << "Elems: " << n << ", Run len: " << run_len << ", Gap len: " << gap_len << std::endl;
 
   if(run_len == 0) {
     std::cout << "Run len has to be at least 1" << std::endl;
@@ -82,6 +94,8 @@ int main(int argc, char* argv[]) {
     a[i] = a_v;
     b[i] = b_v;
 
+    //cout << "Index i: " << a_v  << " " << b_v << endl;
+
     if(i % run_len == 0) {
       a_v += gap_len + rand() % max_gap_offset - half_max_gap_offset;
       b_v += gap_len + rand() % max_gap_offset - half_max_gap_offset;
@@ -92,10 +106,19 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  intersect<uinteger, uinteger>(n, a, b);
-  intersect<pshort, pshort>(n, a, b);
-  intersect<bitset, bitset>(n, a, b);
-  intersect<variant, uinteger>(n, a, b);
-  intersect<bitpacked, uinteger>(n, a, b);
+  cout << endl << "UINTEGER" << endl;
+  intersect<uinteger, uinteger>(n, a, b,"uinteger");
+
+  cout << endl << "PSHORT" << endl;
+  intersect<pshort, pshort>(n, a, b,"pshort");
+
+  cout << endl << "BITSET" << endl;
+  intersect<bitset, bitset>(n, a, b,"bitset");
+
+  cout << endl << "VARIANT" << endl;
+  intersect<variant, uinteger>(n, a, b,"variant");
+
+  cout << endl << "BITPACKED" << endl;
+  intersect<bitpacked, uinteger>(n, a, b,"bitpacked");
   return 0;
 }

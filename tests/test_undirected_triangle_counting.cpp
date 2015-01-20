@@ -53,46 +53,42 @@ class application{
       system_counter_state_t before_sstate = pcm_get_counter_state();
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
-      ParallelBuffer<uint32_t> *src_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size);
-      ParallelBuffer<uint32_t> *dst_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size);
-      ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,graph->max_nbrhood_size*sizeof(uint32_t));
-
       const size_t matrix_size = graph->matrix_size;
-      size_t *t_count = new size_t[num_threads * PADDING];
-      common::par_for_range(num_threads, 0, matrix_size, 100,
-        [this,src_buffers,dst_buffers,buffers,t_count](size_t tid){
-          src_buffers->allocate(tid);
-          dst_buffers->allocate(tid);
-          buffers->allocate(tid);
-          t_count[tid*PADDING] = 0;
-        },
-        ////////////////////////////////////////////////////
-        [this,src_buffers,dst_buffers,buffers,t_count](size_t tid, size_t i) {
-           long t_num_triangles = 0;
-           uint32_t *src_buffer = src_buffers->data[tid];
-           uint32_t *dst_buffer = dst_buffers->data[tid];
 
-           Set<R> A = this->graph->get_decoded_row(i,src_buffer);
-           Set<R> C(buffers->data[tid]);
+      uint32_t *src_buffer = new uint32_t[matrix_size];
+      uint32_t *dst_buffer = new uint32_t[matrix_size];
+      uint8_t *result_buffer = new uint8_t[matrix_size*8];
 
-           A.foreach([this, i, &A, &C, &dst_buffer, &t_num_triangles] (uint32_t j){
-             Set<R> B = this->graph->get_decoded_row(j,dst_buffer);
-             const size_t tmp_count = ops::set_intersect(&C,&A,&B)->cardinality;
-             t_num_triangles += tmp_count;
-           });
+      uint32_t i = 100565;
+      uint32_t j = 66033;
 
-           t_count[tid*PADDING] += t_num_triangles;
-        },
-        ////////////////////////////////////////////////////////////
-        [this,t_count](size_t tid){
-          num_triangles += t_count[tid*PADDING];
-        }
-      );
+      cout << "src: " << i << " dst: " << j << endl;
 
-    server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();
-    pcm_print_uncore_power_state(before_uncstate, after_uncstate);
-    system_counter_state_t after_sstate = pcm_get_counter_state();
-    pcm_print_counter_stats(before_sstate, after_sstate);
+      Set<R> A = this->graph->get_decoded_row(i,src_buffer);
+
+      A.foreach([](uint32_t data){
+        cout << "AData: " << data << endl;
+      });
+
+      Set<R> B = this->graph->get_decoded_row(j,dst_buffer);
+
+      B.foreach([](uint32_t data){
+        cout << "BData: " << data << endl;
+      });
+
+      Set<R> C(result_buffer);
+
+     size_t tmp_count = ops::set_intersect(&C,&A,&B)->cardinality;
+     cout << "Card: " << tmp_count << endl;
+
+      C.foreach([](uint32_t data){
+        cout << "CData: " << data << endl;
+      });
+
+      server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();
+      pcm_print_uncore_power_state(before_uncstate, after_uncstate);
+      system_counter_state_t after_sstate = pcm_get_counter_state();
+      pcm_print_counter_stats(before_sstate, after_sstate);
   }
 
   inline void run(){

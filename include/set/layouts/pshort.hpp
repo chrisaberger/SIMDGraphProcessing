@@ -40,14 +40,14 @@ inline size_t pshort::build(uint8_t *r_in, const uint32_t *A, const size_t s_a){
   if(s_a > 0){
     uint16_t *R = (uint16_t*) r_in;
 
-    uint16_t high = 0;
-    size_t partition_length = 0;
+    uint16_t high = (A[0] >> 16)+1;
+    size_t partition_length = 1;
     size_t partition_size_position = 1;
     size_t counter = 0;
     for(size_t p = 0; p < s_a; p++) {
-      uint16_t chigh = A[p] >> 16; // upper dword
-      uint16_t clow = A[p] & 0xFFFF;   // lower dword
-      if(chigh == high && p != 0) { // add element to the current partition
+      const uint16_t chigh = A[p] >> 16; // upper dword
+      const uint16_t clow = A[p] & 0xFFFF;   // lower dword
+      if(chigh == high) { // add element to the current partition
         partition_length++;
         R[counter++] = clow;
       }else{ // start new partition
@@ -58,7 +58,7 @@ inline size_t pshort::build(uint8_t *r_in, const uint32_t *A, const size_t s_a){
 
         R[partition_size_position] = partition_length;
 
-        partition_length = 0; // reset counters
+        partition_length = 1; // reset counters
         partition_size_position = counter - 2;
         high = chigh;
       }
@@ -109,7 +109,7 @@ inline void pshort::foreach_until(const std::function <bool (uint32_t)>& f,
     i += 2;
 
     size_t inner_end = i+size;
-    while(i <= inner_end){
+    while(i < inner_end){
       uint32_t tmp = prefix | A[i];
       if(f(tmp))
         goto DONE;
@@ -138,9 +138,9 @@ inline void pshort::foreach(
 
     i += 2;
 
-    size_t inner_end = i+size;
-    for(; i <= inner_end; i++) {
-      uint32_t tmp = prefix | A[i];
+    const size_t inner_end = i+size;
+    for(; i < inner_end; i++) {
+      const uint32_t tmp = prefix | A[i];
       f(tmp);
       ++count;
     }

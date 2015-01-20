@@ -40,7 +40,7 @@
 #define PADDING 300 
 
 //#define ATTRIBUTES
-#define WRITE_VECTOR 0
+#define WRITE_VECTOR 1
 #define WRITE_TABLE 0
 
 #define COMPRESSION 0
@@ -109,6 +109,16 @@ namespace common{
       cout << "Data[" << i << "]: " << data[i] << endl;
     }
     delete[] data;
+  }
+  static void _mm128i_print_shorts(__m128i x) {
+    for(size_t i =0 ; i < 8; i++){
+      cout << "Data[" << i << "]: " << _mm_extract_epi16(x,i) << endl;
+    }
+  }
+  static void _mm128i_print(__m128i x) {
+    for(size_t i =0 ; i < 4; i++){
+      cout << "Data[" << i << "]: " << _mm_extract_epi32(x,i) << endl;
+    }
   }
   static void _mm256i_print(__m256i x) {
     int *data = new int[8];

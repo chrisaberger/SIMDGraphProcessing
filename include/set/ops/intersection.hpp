@@ -62,7 +62,11 @@ namespace ops{
                   return (out - initout);
           }
           if (*A == *B) {
+              #if WRITE_VECTOR == 1
               *out++ = *A;
+              #else
+              out++;
+              #endif
               if (++A == endA || ++B == endB)
                   return (out - initout);
           } else {
@@ -547,7 +551,7 @@ namespace ops{
       
      // __m128i res_v = _mm_cmpistrm(v_b, v_a,
      //         _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
-      const __m128i res_vl = _mm_cmpestrm(v_a_l, SHORTS_PER_REG, v_b_l, SHORTS_PER_REG,
+      const __m128i res_vl = _mm_cmpestrm(v_b_l, SHORTS_PER_REG, v_a_l, SHORTS_PER_REG,
               _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
       const uint32_t result_l = _mm_extract_epi32(res_vl, 0);
 
@@ -564,25 +568,13 @@ namespace ops{
         const __m128i v_b_u2 = _mm_shuffle_epi8(v_b_2_32,_mm_set_epi8(uint8_t(0x0F),uint8_t(0x0E),uint8_t(0x0B),uint8_t(0x0A),uint8_t(0x07),uint8_t(0x06),uint8_t(0x03),uint8_t(0x2),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80)));
         const __m128i v_b_u = _mm_or_si128(v_b_u1,v_b_u2);
 
-        const __m128i res_vu = _mm_cmpestrm(v_a_u, SHORTS_PER_REG, v_b_u, SHORTS_PER_REG,
+        const __m128i res_vu = _mm_cmpestrm(v_b_u, SHORTS_PER_REG, v_a_u, SHORTS_PER_REG,
                 _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
         const uint32_t result_u = _mm_extract_epi32(res_vu, 0);
 
         const uint32_t w_bitmask = result_u & result_l;
-        #if WRITE_VECTOR == 1
-          //You could probably use a shuffle for this instead.
-        __m128i p = _mm_shuffle_epi8(v_a_1_32, shuffle_mask32[w_bitmask & 0x0F]);
-        _mm_storeu_si128((__m128i*)&C[count], p);
-        count += _mm_popcnt_u32(w_bitmask & 0x0F);
-
-        p = _mm_shuffle_epi8(v_a, shuffle_mask32[(w_bitmask & 0xF0) >> 4]);
-        _mm_storeu_si128((__m128i*)&C[count], p);
-        count += _mm_popcnt_u32(w_bitmask & 0x0F);
-       #else
-        (void) C;
-        count += _mm_popcnt_u32(w_bitmask);
-        #endif
-
+        const size_t start_index = _mm_popcnt_u32((~w_bitmask)&(w_bitmask-1));
+        count += scalar(&A[i_a+start_index],8-start_index,&B[i_b],8,&C[count]);
       } 
       if(A[i_a+7] > B[i_b+7]){
         goto advanceB;
@@ -591,14 +583,20 @@ namespace ops{
       } else{
         goto advanceAB;
       }
-      advanceB:
-        i_a += 8;
       advanceA:
+        i_a += 8;
+        continue;
+      advanceB:
         i_b += 8;
+        continue;
       advanceAB:
         i_a += 8;
         i_b += 8;
+        continue;
     }
+
+    // intersect the tail using scalar intersection
+    count += scalar(&A[i_a],s_a-i_a,&B[i_b],s_b-i_b,&C[count]);
 
     //XXX: Fix
     const double density = 0.0;//((count > 0) ? ((double)count/(C[count]-C[0])) : 0.0);
@@ -671,6 +669,8 @@ namespace ops{
     #endif
 
     // intersect the tail using scalar intersection
+    count += scalar(&A[i_a],s_a-i_a,&B[i_b],s_b-i_b,&C[count]);
+
     bool notFinished = i_a < s_a  && i_b < s_b;
     while(notFinished){
       while(notFinished && B[i_b] < A[i_a]){
@@ -776,10 +776,10 @@ namespace ops{
     while(notFinished) {
       //size_t limLower = limLowerHolder;
       if(A[i_a] < B[i_b]) {
-        i_a += A[i_a + 1] + 3;
+        i_a += A[i_a + 1] + 2;
         notFinished = i_a < s_a;
       } else if(B[i_b] < A[i_a]) {
-        i_b += B[i_b + 1] + 3;
+        i_b += B[i_b + 1] + 2;
         notFinished = i_b < s_b;
       } else {
         uint16_t partition_size = 0;
@@ -787,12 +787,12 @@ namespace ops{
         #if WRITE_VECTOR == 1
         C[counter++] = A[i_a]; // write partition prefix
         #endif
-        partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2],&B[i_b + 2],((size_t)A[i_a+1])+1,((size_t)B[i_b+1])+1);
+        partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2],&B[i_b + 2],((size_t)A[i_a+1]),((size_t)B[i_b+1]));
         #if WRITE_VECTOR == 1
         C[counter++] = partition_size; // write partition size
         #endif
-        i_a += A[i_a+1] + 3;
-        i_b += B[i_b+1] + 3;      
+        i_a += A[i_a+1] + 2;
+        i_b += B[i_b+1] + 2;      
 
         count += partition_size;
         counter += partition_size;
@@ -883,7 +883,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     size_t counter = 0;
     for(size_t i = 0; i < s_a; i++){
       uint32_t prefix = (A[i] << 16);
-      uint16_t size = A[i+1]+1;
+      uint16_t size = A[i+1];
       i += 2;
 
       size_t old_count = count;
@@ -976,7 +976,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     bool not_finished = a_i < s_a && b_i < s_b;
     while(not_finished){
       uint32_t prefix = (B[b_i] << 16);
-      uint16_t b_inner_size = B[b_i+1]+1;
+      uint16_t b_inner_size = B[b_i+1];
       uint32_t cur_match = A[a_i];
       size_t inner_end = b_i+b_inner_size+2;
       //cout << endl;

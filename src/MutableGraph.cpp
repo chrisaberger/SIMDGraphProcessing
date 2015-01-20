@@ -111,8 +111,8 @@ void MutableGraph::reorder_strong_run(){
   new2old_ids.reserve(num_nodes);
 
   std::unordered_set<uint32_t> visited;
-  for(size_t i = 0; i < out_neighborhoods->size(); ++i) {
-    vector<uint32_t> *hood = out_neighborhoods->at(tmp_new2old_ids.at(i));
+  for(uint32_t v : tmp_new2old_ids) {
+    vector<uint32_t> *hood = out_neighborhoods->at(v);
     for(size_t j = 0; j < hood->size(); ++j) {
       if(visited.find(hood->at(j)) == visited.end()){
         new2old_ids.push_back(hood->at(j));

@@ -25,7 +25,7 @@ class application{
 #ifdef ATTRIBUTES
     inline bool myNodeSelection(uint32_t node, uint32_t attribute){
       (void)node; (void) attribute;
-      return attribute > 500;
+      return true;//attribute > 500;
     }
     inline bool myEdgeSelection(uint32_t src, uint32_t dst, uint32_t attribute){
       (void) attribute;
@@ -38,7 +38,8 @@ class application{
     }
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
       (void) attribute;
-      return nbr < node;
+      return true;
+      //return nbr < node;
     }
     #endif
 
@@ -109,6 +110,10 @@ class application{
     common::stopClock("UNDIRECTED TRIANGLE COUNTING",start_time);
 
     cout << "Count: " << num_triangles << endl << endl;
+
+    common::dump_stats();
+
+    
     pcm_cleanup();
   }
 };

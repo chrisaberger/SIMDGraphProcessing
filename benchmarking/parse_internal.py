@@ -38,7 +38,7 @@ def parseInput():
 def main():
   options = parseInput();
 
-  datasets = ["higgs"]
+  datasets = ["baidu","california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec","twitter2010","wikipedia"]
   orderings = ["u_the_game","u_degree","u_bfs","u_random","u_rev_degree","u_strong_run"]
   layouts = ["uint","pshort","hybrid_perf","hybrid_comp","bp","v"]
   threads = ["1","24","48"]

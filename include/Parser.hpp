@@ -135,6 +135,9 @@ namespace input_parser{
     MutableGraph *inputGraph;
     if(app.compare("n_path") == 0){
       if(attribute_path != NULL){
+        #ifndef ATTRIBUTES
+        cout << "WARNING: Gave a attributes file but pragma is turned off." << endl;
+        #endif 
         inputGraph = MutableGraph::directedFromAttributeList(graph_path,attribute_path);
       } else{
         if(string(input_type).compare("text") == 0){
@@ -145,6 +148,9 @@ namespace input_parser{
       }
     } else{
       if(attribute_path != NULL){
+        #ifndef ATTRIBUTES
+        cout << "WARNING: Gave a attributes file but pragma is turned off." << endl;
+        #endif         
         inputGraph = MutableGraph::undirectedFromAttributeList(graph_path,attribute_path);
       } else{
         if(string(input_type).compare("text") == 0){

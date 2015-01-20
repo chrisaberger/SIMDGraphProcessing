@@ -13,6 +13,8 @@ from graphlab.parse_output import getGraphLabPerformance
 from galois.parse_output import getGaloisPerformance
 from ligra.parse_output import getLigraPerformance
 from postgres.parse_output import getPostgresPerformance
+from snapr.parse_output import getSnaprPerformance
+from pgx.parse_output import getPGXPerformance
 
 def parseInput():
   parser = OptionParser()
@@ -36,6 +38,7 @@ def main():
   bfs_details = True
 
   datasets = ["baidu","california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec","twitter2010","wikipedia"]
+  #datasets = ["baidu","california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec"]#,"twitter2010","wikipedia"]
 
   threads = ["1","24","48"]
 
@@ -46,34 +49,40 @@ def main():
 
   for dataset in datasets:
     for thread in threads:
-      fname = os.path.join(options.folder, system + "." + dataset + "." + thread + ".log")
-      if os.path.isfile(fname):
-          f = open(fname)
-          if system == "graphlab":
-            perf_info = getGraphLabPerformance(f);
-            avg = average_runs(perf_info['perf'])
-            print "data: " + dataset + " t: " + thread + " time: " + str(avg)
-          elif system == "postgres":
-            queries = ["path_counting", "triangle_counting", "clique_counting"]
-            perf_info = getPostgresPerformance(f);
-            for query in queries:
-                if query in perf_info:
-                    avg = average_runs(perf_info[query])
-                    print "query: " + query + " data: " + dataset + " t: " + thread + " time: " + str(avg / 1000.0)
-          elif system == "galois":
-            perf_info = getGaloisPerformance(f);
-            avg = average_runs(perf_info['perf'])
-            print "data: " + dataset + " t: " + thread + " time: " + str(avg)
-          elif system == "ligra":
-            perf_info = getLigraPerformance(f);
-            avg = average_runs(perf_info['perf'])
-            print "data: " + dataset + " t: " + thread + " time: " + str(avg)
-          elif system == "emptyheaded":
-            perf_info = getInternalPerformanceInfo(f, get_bfs_details=bfs_details);
-            for p in perf_info['perfs']:
-                query = p['query']
-                avg = average_runs(p['perf'])
-                print "query: " + p['query'] + " data: " + dataset + " t: " + thread + " time: " + str(avg)
+      f = open(os.path.join(options.folder, system + "." + dataset + "." + thread + ".log"))
+      if system == "graphlab":
+        perf_info = getGraphLabPerformance(f);
+        avg = average_runs(perf_info['perf'])
+        print "data: " + dataset + " t: " + thread + " time: " + str(avg)
+      elif system == "postgres":
+        queries = ["path_counting", "triangle_counting", "clique_counting"]
+        perf_info = getPostgresPerformance(f);
+        for query in queries:
+            if query in perf_info:
+                avg = average_runs(perf_info[query])
+                print "query: " + query + " data: " + dataset + " t: " + thread + " time: " + str(avg / 1000.0)
+      elif system == "galois":
+        perf_info = getGaloisPerformance(f);
+        avg = average_runs(perf_info['perf'])
+        print "data: " + dataset + " t: " + thread + " time: " + str(avg)
+      elif system == "ligra":
+        perf_info = getLigraPerformance(f);
+        avg = average_runs(perf_info['perf'])
+        print "data: " + dataset + " t: " + thread + " time: " + str(avg)
+      elif system == "snapr":
+        perf_info = getSnaprPerformance(f);
+        avg = average_runs(perf_info['perf'])
+        print "data: " + dataset + " t: " + thread + " time: " + str(avg)
+      elif system == "pgx":
+        perf_info = getPGXPerformance(f);
+        avg = average_runs(perf_info['perf'])
+        print "data: " + dataset + " t: " + thread + " time: " + str(avg)
+      elif system == "emptyheaded":
+        perf_info = getInternalPerformanceInfo(f, get_bfs_details=bfs_details);
+        for p in perf_info['perfs']:
+            query = p['query']
+            avg = average_runs(p['perf'])
+            print "query: " + p['query'] + " data: " + dataset + " t: " + thread + " time: " + str(avg)
 
             if bfs_details:
                 for k, v in perf_info['bfs_details'].iteritems():

@@ -5,11 +5,19 @@
 int main (int argc, char* argv[]) {
   if(argc != 3){
     cout << "Please see usage below: " << endl;
-    cout << "\t./main <adjacency list file/folder> <input edgeList> <output file>" << endl;
+    cout << "\t./main <input edgeList> <output path>" << endl;
     exit(0);
   }
-  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]);
+
+  MutableGraph *inputGraphShingles = MutableGraph::undirectedFromEdgeList(argv[1]);
   string outfile = argv[2];
+  outfile.append("/u_shingles.bin");
+  inputGraphShingles->reorder_by_shingles();
+  inputGraphShingles->writeUndirectedToBinary(outfile);
+  cout << "Shingles generated" << endl;
+
+  MutableGraph *inputGraph = MutableGraph::undirectedFromEdgeList(argv[1]);
+  outfile = argv[2];
   outfile.append("/u_the_game.bin");
   inputGraph->reorder_by_the_game();
   inputGraph->writeUndirectedToBinary(outfile);

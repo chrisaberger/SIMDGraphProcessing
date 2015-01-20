@@ -537,6 +537,12 @@ namespace ops{
       const __m128i v_a_1_32 = _mm_loadu_si128((__m128i*)&A[i_a]);
       const __m128i v_a_2_32 = _mm_loadu_si128((__m128i*)&A[i_a+(SHORTS_PER_REG/2)]);
 
+      /*cout << endl;
+      cout << "ORIGINAL DATA" << endl;
+      common::_mm128i_print(v_a_1_32);
+      common::_mm128i_print(v_a_2_32);*/
+
+
       //shuffle to get lower 16 bits only in one register
       const __m128i v_a_l1 = _mm_shuffle_epi8(v_a_1_32,_mm_set_epi8(uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x0D),uint8_t(0x0C),uint8_t(0x09),uint8_t(0x08),uint8_t(0x05),uint8_t(0x04),uint8_t(0x01),uint8_t(0x0)));
       const __m128i v_a_l2 = _mm_shuffle_epi8(v_a_2_32,_mm_set_epi8(uint8_t(0x0D),uint8_t(0x0C),uint8_t(0x09),uint8_t(0x08),uint8_t(0x05),uint8_t(0x04),uint8_t(0x01),uint8_t(0x0),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80)));
@@ -544,6 +550,9 @@ namespace ops{
 
       const __m128i v_b_1_32 = _mm_loadu_si128((__m128i*)&B[i_b]);
       const __m128i v_b_2_32 = _mm_loadu_si128((__m128i*)&B[i_b+(SHORTS_PER_REG/2)]);
+
+      //common::_mm128i_print(v_b_1_32);
+      //common::_mm128i_print(v_b_2_32);
 
       const __m128i v_b_l1 = _mm_shuffle_epi8(v_b_1_32,_mm_set_epi8(uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x0D),uint8_t(0x0C),uint8_t(0x09),uint8_t(0x08),uint8_t(0x05),uint8_t(0x04),uint8_t(0x01),uint8_t(0x0)));
       const __m128i v_b_l2 = _mm_shuffle_epi8(v_b_2_32,_mm_set_epi8(uint8_t(0x0D),uint8_t(0x0C),uint8_t(0x09),uint8_t(0x08),uint8_t(0x05),uint8_t(0x04),uint8_t(0x01),uint8_t(0x0),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80)));
@@ -554,6 +563,8 @@ namespace ops{
       const __m128i res_vl = _mm_cmpestrm(v_b_l, SHORTS_PER_REG, v_a_l, SHORTS_PER_REG,
               _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
       const uint32_t result_l = _mm_extract_epi32(res_vl, 0);
+
+     // cout << "LOWER " << hex  << result_l << dec << endl;
 
       if(result_l != 0){
         //shuffle to get upper 16 bits only in one register
@@ -572,9 +583,14 @@ namespace ops{
                 _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
         const uint32_t result_u = _mm_extract_epi32(res_vu, 0);
 
+        //cout << "UPPER " << hex  << result_l << dec << endl;
+
         const uint32_t w_bitmask = result_u & result_l;
-        const size_t start_index = _mm_popcnt_u32((~w_bitmask)&(w_bitmask-1));
-        count += scalar(&A[i_a+start_index],8-start_index,&B[i_b],8,&C[count]);
+        //cout << count << " BITMASK: " << hex  << w_bitmask << dec << endl;
+        if(w_bitmask != 0){
+          const size_t start_index = _mm_popcnt_u32((~w_bitmask)&(w_bitmask-1));
+          count += scalar(&A[i_a+start_index],8-start_index,&B[i_b],8,&C[count]);
+        }
       } 
       if(A[i_a+7] > B[i_b+7]){
         goto advanceB;

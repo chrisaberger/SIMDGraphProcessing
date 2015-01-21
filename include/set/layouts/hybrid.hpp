@@ -34,6 +34,7 @@ class hybrid{
 inline common::type hybrid::get_type(){
   return common::PSHORT;
 }
+
 inline common::type hybrid::compute_type(const double density){
   if(density > 1.0 / 32.0) {
     return common::BITSET;
@@ -41,11 +42,33 @@ inline common::type hybrid::compute_type(const double density){
     return common::PSHORT;
   } else {
     return common::UINTEGER;
-  } 
+  }
 }
+
+inline double compressibility(const uint32_t* data, const size_t length) {
+  double inv_compressibility = 0.0;
+  for(size_t i = 1; i < length; i++) {
+    inv_compressibility += log(data[i] - data[i - 1]);
+  }
+  return length / inv_compressibility;
+}
+
 #if PERFORMANCE == 1
 inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
-  if(length > 0){
+  if(length > 0) {
+    double density = (double) length / (data[length - 1] - data[0]);
+    double c = compressibility(data, length);
+    if((density < 0.00032 && c < 0.5) || length < 3) {
+      return common::UINTEGER;
+    } else if(density < 0.02048) {
+      return common::PSHORT;
+    } else {
+      return common::BITSET;
+    }
+
+/*
+    OLD HEURISTIC:
+
     uint32_t max_value = data[length-1];
     double sparsity = (double) length/max_value;
     if( sparsity > (double) 1/32 ){
@@ -54,7 +77,7 @@ inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
       return common::PSHORT;
     } else {
       return common::UINTEGER;
-    }
+    }*/
   } else{
     return common::UINTEGER;
   }

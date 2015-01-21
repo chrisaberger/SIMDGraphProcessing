@@ -1,10 +1,11 @@
 #ifndef MUTABLEGRAPH_H
 #define MUTABLEGRAPH_H
 
-#include "common.hpp"
 #include <sstream>
 #include <unordered_set>
 #include <assert.h>
+
+#include "common.hpp"
 
 struct MutableGraph {
   size_t num_nodes;

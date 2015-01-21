@@ -58,7 +58,8 @@ void MutableGraph::reassign_ids(vector<uint32_t> const& new2old_ids) {
 
 void MutableGraph::reorder_bfs(){
   vector<uint32_t> tmp_new2old_ids = common::range(num_nodes);
-  std::sort(tmp_new2old_ids.begin(), tmp_new2old_ids.end(), OrderNeighborhoodByDegree(out_neighborhoods));
+  std::random_shuffle(tmp_new2old_ids.begin(), tmp_new2old_ids.end());
+  //std::sort(tmp_new2old_ids.begin(), tmp_new2old_ids.end(), OrderNeighborhoodByDegree(out_neighborhoods));
 
   vector<uint32_t> new2old_ids;
   new2old_ids.reserve(num_nodes);

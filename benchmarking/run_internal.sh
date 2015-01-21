@@ -18,12 +18,12 @@ echo $odir
           ./run_internal.sh $numruns $perf_bin /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/${dataset}.${threads}.${layout}.${ordering}.log
         done
         ./run_internal.sh $numruns $perf_bin /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads hybrid | tee $odir/${dataset}.${threads}.hybrid_perf.${ordering}.log
-        for layout in "bp" "v"; do
-          ./run_internal.sh $numruns $comp_bin /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/${dataset}.${threads}.${layout}.${ordering}.log
-        done
-        ./run_internal.sh $numruns $comp_bin /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads hybrid | tee $odir/${dataset}.${threads}.hybrid_comp.${ordering}.log
+        #for layout in "bp" "v"; do
+        #  ./run_internal.sh $numruns $comp_bin /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/${dataset}.${threads}.${layout}.${ordering}.log
+        #done
+        #./run_internal.sh $numruns $comp_bin /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads hybrid | tee $odir/${dataset}.${threads}.hybrid_comp.${ordering}.log
         #SIMD vrs NON-SIMD
-        ./run_internal.sh $numruns $nosimd_bin /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads hybrid | tee $odir/nonsimd_${dataset}.${threads}.hybrid_perf.${ordering}.log
+        #./run_internal.sh $numruns $nosimd_bin /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads hybrid | tee $odir/nonsimd_${dataset}.${threads}.hybrid_perf.${ordering}.log
         cd ..
       done
     done

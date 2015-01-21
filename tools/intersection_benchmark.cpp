@@ -1,7 +1,41 @@
 #include "SparseMatrix.hpp"
 #include "common.hpp"
 
-#define BUF_SIZE 1024L * 1024L * 256L
+#define BUF_SIZE 1024L * 1024L * 1024L
+#define DUMMY_SIZE 1024L * 1024L * 64L
+
+uint32_t* dummy1;
+uint32_t* dummy2;
+
+double W1(const double z) {
+  int i; 
+  const double eps=4.0e-16, em1=0.3678794411714423215955237701614608; 
+  double p=1.0,e,t,w,l1,l2;
+  if (z<-em1 || z>=0.0 || std::isinf(z) || std::isnan(z)) { 
+    fprintf(stderr,"LambertW1: bad argument %g, exiting.\n",z); exit(1); 
+  }
+  /* initial approx for iteration... */
+  if (z<-1e-6) { /* series about -1/e */
+    p=-sqrt(2.0*(2.7182818284590452353602874713526625*z+1.0));
+    w=-1.0+p*(1.0+p*(-0.333333333333333333333+p*0.152777777777777777777777)); 
+  } else { /* asymptotic near zero */
+    l1=log(-z);
+    l2=log(-l1);
+    w=l1-l2+l2/l1;
+  }
+  if (fabs(p)<1e-4) return w;
+  for (i=0; i<10; i++) { /* Halley iteration */
+    e=exp(w); 
+    t=w*e-z;
+    p=w+1.0;
+    t/=e*p-0.5*(p+1.0)*t/p; 
+    w-=t;
+    if (fabs(t)<eps*(1.0+fabs(w))) return w; /* rel-abs error */
+  }
+  /* should never get here */
+  fprintf(stderr,"LambertW1: No convergence at z=%g, exiting.\n",z); 
+  exit(1);
+}
 
 template<class T, class R> Set<R> decode_array(size_t n, uint8_t* set_data, uint32_t *buffer) {
   Set<T> set = Set<T>::from_flattened(set_data, n);
@@ -29,6 +63,11 @@ template<class T, class R> void intersect(uint64_t n, uint32_t* a, uint32_t* b, 
    Set<T>::flatten_from_array(set_b_buffer, b, n);
   common::stopClock("encoding", start_time_encoding);
   std::cout << "Size: " << set_a_size << std::endl;
+
+  // erase caches
+  for(size_t i = 0; i < DUMMY_SIZE; i++) {
+    dummy1[i] = dummy1[i] + dummy2[i] + 1;
+  }
 
   std::cout << "Start intersect" << std::endl;
   auto start_time_intersect = common::startClock();
@@ -69,18 +108,35 @@ int main(int argc, char* argv[]) {
 
   srand(time(NULL));
 
+  dummy1 = new uint32_t[DUMMY_SIZE];
+  dummy2 = new uint32_t[DUMMY_SIZE];
+
   uint64_t n = c_str_to_uint64_t(argv[1]);
+
+  /*
   double density = 0.00128; //std::stod(argv[2]);
   uint64_t gap_len = 4;// c_str_to_uint64_t(argv[3]);
   uint64_t run_len = 1;//(uint64_t)(density * gap_len / (1.0 - density));
   //std::cout << "Elems: " << n << ", Run len: " << run_len << ", Gap len: " << gap_len << std::endl;
+  */
+  double density = std::stod(argv[2]);
+  double comp = std::stod(argv[3]);
+  
+  double d_gap_len = exp(-W1(density * comp / (density - 1.0)));
+  double d_run_len = -density * d_gap_len / (density - 1.0);
+  uint64_t gap_len = (uint64_t) std::round(d_gap_len);
+  uint64_t run_len = (uint64_t) std::round(d_run_len);
+
+  std::cout << d_gap_len << " " << d_run_len << std::endl;
+  std::cout << d_run_len / (d_run_len + d_gap_len) << std::endl;
+  std::cout << log(d_gap_len) / d_run_len << std::endl;
 
   if(run_len == 0) {
     std::cout << "Run len has to be at least 1" << std::endl;
     return -1;
   }
 
-  const uint64_t max_offset = 6;
+  const uint64_t max_offset = 10;
   const uint64_t max_gap_offset = min(gap_len - 1, max_offset);
   const uint64_t half_max_gap_offset = max_gap_offset / 2;
 

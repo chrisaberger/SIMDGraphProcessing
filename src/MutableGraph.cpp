@@ -31,232 +31,168 @@ struct OrderByID{
   }
 };
 
-void MutableGraph::reassign_ids(vector< vector<uint32_t>* > *neighborhoods,vector< vector<uint32_t>* > *new_neighborhoods,uint32_t *new2old_ids,uint32_t *old2new_ids){
-  vector<uint64_t> *new_id_map = new vector<uint64_t>();
+void MutableGraph::reassign_ids(vector<uint32_t> const& new2old_ids) {
+  vector<uint32_t> old2new_ids(num_nodes);
+  for(size_t i = 0; i < num_nodes; i++) {
+    old2new_ids.at(new2old_ids.at(i)) = i;
+  }
 
-  for(size_t i = 0; i < neighborhoods->size(); ++i) {
-    vector<uint32_t> *hood = neighborhoods->at(new2old_ids[i]);
-    new_id_map->push_back(id_map->at(new2old_ids[i]));
+  vector<uint64_t> *new_id_map = new vector<uint64_t>();
+  vector<vector<uint32_t>*>* new_neighborhoods =
+    new vector<vector<uint32_t>*>(num_nodes);
+
+  for(size_t i = 0; i < out_neighborhoods->size(); ++i) {
+    vector<uint32_t> *hood = out_neighborhoods->at(new2old_ids.at(i));
+    new_id_map->push_back(id_map->at(new2old_ids.at(i)));
     for(size_t j = 0; j < hood->size(); ++j) {
-      hood->at(j) = old2new_ids[hood->at(j)];
+      hood->at(j) = old2new_ids.at(hood->at(j));
     }
     sort(hood->begin(),hood->end());
-    new_neighborhoods->push_back(hood);
+    new_neighborhoods->at(i) = hood;
   }
 
   id_map->swap(*new_id_map);
+  out_neighborhoods = new_neighborhoods;
+  in_neighborhoods = new_neighborhoods;
 }
+
 void MutableGraph::reorder_bfs(){
-  //Pull out what you are going to reorder.
-  vector< vector<uint32_t>*  > *neighborhoods = new vector< vector<uint32_t>* >();
-  neighborhoods = out_neighborhoods;
+  vector<uint32_t> tmp_new2old_ids = common::range(num_nodes);
+  std::sort(tmp_new2old_ids.begin(), tmp_new2old_ids.end(), OrderNeighborhoodByDegree(out_neighborhoods));
 
-  uint32_t *tmp_new2old_ids = new uint32_t[num_nodes];
-  for(size_t i = 0; i < num_nodes; i++){
-    tmp_new2old_ids[i] = i;
-  }
+  vector<uint32_t> new2old_ids;
+  new2old_ids.reserve(num_nodes);
 
-  std::sort(&tmp_new2old_ids[0],&tmp_new2old_ids[num_nodes],OrderNeighborhoodByDegree(neighborhoods));
-  
-  uint32_t *new2old_ids = new uint32_t[num_nodes];
-  std::unordered_set<uint32_t> *visited = new unordered_set<uint32_t>();
-  
-  size_t num_added = 0;
-  uint32_t *cur_level = new uint32_t[num_nodes];
-  size_t cur_level_size = 1;
+  std::unordered_set<uint32_t> visited;
+
+  vector<uint32_t> cur_level;
   size_t bfs_i = 0;
-  cur_level[bfs_i] = tmp_new2old_ids[bfs_i];
-  new2old_ids[num_added++] = bfs_i;
-  visited->insert(bfs_i);
+  uint32_t mapped_bfs_i = tmp_new2old_ids.at(bfs_i);
+  cur_level.push_back(mapped_bfs_i);
+  new2old_ids.push_back(mapped_bfs_i);
+  visited.insert(mapped_bfs_i);
   bfs_i++;
 
-  uint32_t *next_level = new uint32_t[num_nodes];
-  while(num_added != neighborhoods->size()){
-    //cout << "here: " << num_added << " " << neighborhoods->size() << endl;
-    size_t cur_level_i = 0;
-    size_t next_level_size = 0;
-    while(cur_level_i < cur_level_size){
-      vector<uint32_t> *hood = neighborhoods->at(cur_level[cur_level_i++]);
+  vector<uint32_t> next_level;
+  while(new2old_ids.size() != out_neighborhoods->size()){
+    for(size_t i = 0; i < cur_level.size(); i++) {
+      vector<uint32_t>* hood = out_neighborhoods->at(cur_level.at(i));
       for(size_t j = 0; j < hood->size(); ++j) {
-        if(visited->find(hood->at(j)) == visited->end()){
-          new2old_ids[num_added++] = hood->at(j);
-          visited->insert(hood->at(j));
-          next_level[next_level_size++] = hood->at(j);
+        if(visited.find(hood->at(j)) == visited.end()){
+          next_level.push_back(hood->at(j));
+          new2old_ids.push_back(hood->at(j));
+          visited.insert(hood->at(j));
         }
       }
     }
-    //cout << num_added << endl;
-    if(next_level_size == 0 && num_added < neighborhoods->size()){
-      next_level_size = 1;
-      while(visited->find(bfs_i) != visited->end()){
+    if(next_level.size() == 0 && new2old_ids.size() < out_neighborhoods->size()) {
+      while(visited.find(tmp_new2old_ids.at(bfs_i)) != visited.end()) {
         bfs_i++;
       }
-      cur_level[bfs_i] = tmp_new2old_ids[bfs_i];
-      new2old_ids[num_added++] = bfs_i;
-      visited->insert(bfs_i);
+      uint32_t mapped_bfs_i = tmp_new2old_ids.at(bfs_i);
+      next_level.push_back(mapped_bfs_i);
+      new2old_ids.push_back(mapped_bfs_i);
+      visited.insert(mapped_bfs_i);
       bfs_i++;
     }
-    uint32_t *tmp = cur_level;
-    cur_level = next_level;
-    next_level = tmp;
-    cur_level_size = next_level_size;
+
+    cur_level.swap(next_level);
+    next_level.clear();
   }
 
-  delete visited;
-  delete[] cur_level;
-  delete[] next_level;
-  delete[] tmp_new2old_ids;
-
-  uint32_t *old2new_ids = new uint32_t[num_nodes];
-  for(size_t i = 0; i < num_nodes; i++){
-    assert(new2old_ids[i] < num_nodes);
-    old2new_ids[new2old_ids[i]] = i;
-  }
-
-  vector< vector<uint32_t>*  > *new_neighborhoods = new vector< vector<uint32_t>* >();
-  new_neighborhoods->reserve(num_nodes);
-  reassign_ids(neighborhoods,new_neighborhoods,new2old_ids,old2new_ids);
-  
-  delete neighborhoods;
-  delete[] new2old_ids;
-  delete[] old2new_ids;
-
-  //Reassign what you reordered.
-  out_neighborhoods = new_neighborhoods;
-  in_neighborhoods = new_neighborhoods;
+  reassign_ids(new2old_ids);
 }
+
 void MutableGraph::reorder_strong_run(){
-  //Pull out what you are going to reorder.
-  vector< vector<uint32_t>*  > *neighborhoods = new vector< vector<uint32_t>* >();
-  neighborhoods = out_neighborhoods;
+  vector<uint32_t> tmp_new2old_ids = common::range(num_nodes);
+  std::sort(tmp_new2old_ids.begin(), tmp_new2old_ids.end(), OrderNeighborhoodByDegree(out_neighborhoods));
 
-  uint32_t *tmp_new2old_ids = new uint32_t[num_nodes];
-  for(size_t i = 0; i < num_nodes; i++){
-    tmp_new2old_ids[i] = i;
-  }
+  vector<uint32_t> new2old_ids;
+  new2old_ids.reserve(num_nodes);
 
-  std::sort(&tmp_new2old_ids[0],&tmp_new2old_ids[num_nodes],OrderNeighborhoodByDegree(neighborhoods));
-  
-  uint32_t *new2old_ids = new uint32_t[num_nodes];
-  std::unordered_set<uint32_t> *visited = new unordered_set<uint32_t>();
-  size_t num_added = 0;
-  for(size_t i = 0; i < neighborhoods->size(); ++i) {
-    vector<uint32_t> *hood = neighborhoods->at(tmp_new2old_ids[i]);
+  std::unordered_set<uint32_t> visited;
+  for(uint32_t v : tmp_new2old_ids) {
+    vector<uint32_t> *hood = out_neighborhoods->at(v);
     for(size_t j = 0; j < hood->size(); ++j) {
-      if(visited->find(hood->at(j)) == visited->end()){
-        new2old_ids[num_added++] = hood->at(j);
-        visited->insert(hood->at(j));
+      if(visited.find(hood->at(j)) == visited.end()){
+        new2old_ids.push_back(hood->at(j));
+        visited.insert(hood->at(j));
       }
     }
   }
-  delete[] tmp_new2old_ids;
 
-  uint32_t *old2new_ids = new uint32_t[num_nodes];
-  for(size_t i = 0; i < num_nodes; i++){
-    old2new_ids[new2old_ids[i]] = i;
-  }
-
-  vector< vector<uint32_t>*  > *new_neighborhoods = new vector< vector<uint32_t>* >();
-  new_neighborhoods->reserve(num_nodes);
-  reassign_ids(neighborhoods,new_neighborhoods,new2old_ids,old2new_ids);
-  
-  delete neighborhoods;
-  delete visited;
-  delete[] new2old_ids;
-  delete[] old2new_ids;
-
-  //Reassign what you reordered.
-  out_neighborhoods = new_neighborhoods;
-  in_neighborhoods = new_neighborhoods;
+  reassign_ids(new2old_ids);
 }
-void MutableGraph::reorder_random(){
-  //Pull out what you are going to reorder.
-  vector< vector<uint32_t>*  > *neighborhoods = new vector< vector<uint32_t>* >();
-  neighborhoods = out_neighborhoods;
 
-  uint32_t *new2old_ids = new uint32_t[num_nodes];
-  for(size_t i = 0; i < num_nodes; i++){
-    new2old_ids[i] = i;
-  }
-
-  std::random_shuffle(&new2old_ids[0],&new2old_ids[num_nodes]);
-  //std::sort(&new2old_ids[0],&new2old_ids[num_nodes],OrderNeighborhoodByDegree(neighborhoods));
-  
-  uint32_t *old2new_ids = new uint32_t[num_nodes];
-  for(size_t i = 0; i < num_nodes; i++){
-    old2new_ids[new2old_ids[i]] = i;
-  }
-
-  vector< vector<uint32_t>*  > *new_neighborhoods = new vector< vector<uint32_t>* >();
-  new_neighborhoods->reserve(num_nodes);
-  reassign_ids(neighborhoods,new_neighborhoods,new2old_ids,old2new_ids);
-  
-  delete neighborhoods;
-  delete[] new2old_ids;
-  delete[] old2new_ids;
-
-  //Reassign what you reordered.
-  out_neighborhoods = new_neighborhoods;
-  in_neighborhoods = new_neighborhoods;
+void MutableGraph::reorder_random() {
+  vector<uint32_t> new2old_ids = common::range(num_nodes);
+  std::random_shuffle(new2old_ids.begin(), new2old_ids.end());
+  reassign_ids(new2old_ids);
 }
+
+void MutableGraph::reorder_by_shingles() {
+  // Initialize ordering
+  vector<uint32_t> ordering = common::range(num_nodes);
+  vector<uint32_t> new2old_ids = common::range(num_nodes);
+
+  // Find shingles for different orderings
+  const size_t num_orderings = 2;
+  vector<vector<uint32_t>> shingles(num_orderings, vector<uint32_t>(num_nodes));
+  for(size_t i = 0; i < num_orderings; i++) {
+    // New ordering
+    std::random_shuffle(ordering.begin(), ordering.end());
+
+    // Find shingles for each neighbor set
+    for(size_t j = 0; j < num_nodes; j++) {
+      vector<uint32_t>* neighbors = out_neighborhoods->at(j);
+
+      uint32_t shingle = 0;
+      if(neighbors->size() > 0) {
+        shingle = neighbors->at(0);
+        uint32_t shingle_ord = ordering.at(shingle);
+        for(size_t k = 1; k < neighbors->size(); k++) {
+          uint32_t curr_elem = neighbors->at(k);
+          uint32_t curr_ord = ordering.at(curr_elem);
+          if(curr_ord < shingle_ord) {
+            shingle = curr_elem;
+            shingle_ord = curr_ord;
+          }
+        }
+      }
+      shingles.at(i).at(j) = shingle;
+    }
+  }
+
+  auto cmp_nodes = [num_nodes, &shingles](uint32_t a, uint32_t b) {
+    for(size_t i = 0; i < num_orderings; i++) {
+      uint32_t a_val = shingles.at(i).at(a);
+      uint32_t b_val = shingles.at(i).at(b);
+
+      if(a_val < b_val) {
+        return true;
+      } else if(a_val > b_val) {
+        return false;
+      }
+    }
+
+    return false;
+  };
+
+  // Sort using shingles
+  std::sort(new2old_ids.begin(), new2old_ids.end(), cmp_nodes);
+  reassign_ids(new2old_ids);
+}
+
 void MutableGraph::reorder_by_degree(){
-  //Pull out what you are going to reorder.
-  vector< vector<uint32_t>*  > *neighborhoods = new vector< vector<uint32_t>* >();
-  neighborhoods = out_neighborhoods;
-
-  uint32_t *new2old_ids = new uint32_t[num_nodes];
-  for(size_t i = 0; i < num_nodes; i++){
-    new2old_ids[i] = i;
-  }
-
-  std::sort(&new2old_ids[0],&new2old_ids[num_nodes],OrderNeighborhoodByDegree(neighborhoods));
-  
-  uint32_t *old2new_ids = new uint32_t[num_nodes];
-  for(size_t i = 0; i < num_nodes; i++){
-    old2new_ids[new2old_ids[i]] = i;
-  }
-
-  vector< vector<uint32_t>*  > *new_neighborhoods = new vector< vector<uint32_t>* >();
-  new_neighborhoods->reserve(num_nodes);
-  reassign_ids(neighborhoods,new_neighborhoods,new2old_ids,old2new_ids);
-  
-  delete neighborhoods;
-  delete[] new2old_ids;
-  delete[] old2new_ids;
-
-  //Reassign what you reordered.
-  out_neighborhoods = new_neighborhoods;
-  in_neighborhoods = new_neighborhoods;
+  vector<uint32_t> new2old_ids = common::range(num_nodes);
+  std::sort(new2old_ids.begin(), new2old_ids.end(), OrderNeighborhoodByDegree(out_neighborhoods));
+  reassign_ids(new2old_ids);
 }
 
 void MutableGraph::reorder_by_rev_degree(){
-  //Pull out what you are going to reorder.
-  vector< vector<uint32_t>*  > *neighborhoods = new vector< vector<uint32_t>* >();
-  neighborhoods = out_neighborhoods;
-
-  uint32_t *new2old_ids = new uint32_t[num_nodes];
-  for(size_t i = 0; i < num_nodes; i++){
-    new2old_ids[i] = i;
-  }
-
-  std::sort(&new2old_ids[0],&new2old_ids[num_nodes],OrderNeighborhoodByRevDegree(neighborhoods));
-  
-  uint32_t *old2new_ids = new uint32_t[num_nodes];
-  for(size_t i = 0; i < num_nodes; i++){
-    old2new_ids[new2old_ids[i]] = i;
-  }
-
-  vector< vector<uint32_t>*  > *new_neighborhoods = new vector< vector<uint32_t>* >();
-  new_neighborhoods->reserve(num_nodes);
-  reassign_ids(neighborhoods,new_neighborhoods,new2old_ids,old2new_ids);
-  
-  delete neighborhoods;
-  delete[] new2old_ids;
-  delete[] old2new_ids;
-
-  //Reassign what you reordered.
-  out_neighborhoods = new_neighborhoods;
-  in_neighborhoods = new_neighborhoods;
+  vector<uint32_t> new2old_ids = common::range(num_nodes);
+  std::sort(new2old_ids.begin(), new2old_ids.end(), OrderNeighborhoodByRevDegree(out_neighborhoods));
+  reassign_ids(new2old_ids);
 }
 
 void MutableGraph::reorder_by_the_game() {
@@ -276,16 +212,18 @@ dst1 src0
 
 */
 void MutableGraph::writeUndirectedToBinary(const string path) {
+  std::cout << "Writing graph to binary file..." << std::endl;
+
   ofstream outfile;
   outfile.open(path, ios::binary | ios::out);
 
   size_t osize = out_neighborhoods->size();
-  outfile.write((char *)&osize, sizeof(osize)); 
+  outfile.write((char *)&osize, sizeof(osize));
   for(size_t i = 0; i < out_neighborhoods->size(); ++i){
     vector<uint32_t> *row = out_neighborhoods->at(i);
     size_t rsize = row->size();
     outfile.write((char*)&id_map->at(i),sizeof(uint64_t));
-    outfile.write((char *)&rsize, sizeof(rsize)); 
+    outfile.write((char *)&rsize, sizeof(rsize));
     outfile.write((char *)row->data(),sizeof(uint32_t)*rsize);
   }
   outfile.close();

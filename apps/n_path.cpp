@@ -65,7 +65,7 @@ class application{
     Set<bitset> next_frontier(bs_size);
 
     Set<bitset> visited(bs_size);
-    bitset::set(start_node,visited.data);
+    bitset::set(start_node,(uint64_t*)visited.data,0);
 
     Set<bitset> old_visited(bs_size);
 
@@ -96,11 +96,11 @@ class application{
         //common::par_for_range(num_threads, 0, graph->matrix_size, 4096,
           [this, &visited, &frontier](size_t tid, size_t i) {
              (void) tid;
-            if(!bitset::is_set(i,visited.data)) {
+            if(!bitset::is_set(i,(uint64_t*)visited.data,0)) {
                Set<T> innbrs = this->graph->get_column(i);
                innbrs.foreach_until([frontier,i,&visited] (uint32_t nbr) {
-                if(bitset::is_set(nbr,frontier.data)){
-                  bitset::set(i,visited.data);
+                if(bitset::is_set(nbr,(uint64_t*)frontier.data,0)){
+                  bitset::set(i,(uint64_t*)visited.data,0);
                   return true;
                 }
                 return false;

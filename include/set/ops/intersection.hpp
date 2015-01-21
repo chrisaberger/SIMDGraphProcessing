@@ -519,7 +519,7 @@ namespace ops{
                             stopFreq + freqspace - freq, rare, stopRare + rarespace - rare, out);
   }
 
-  inline Set<uinteger>* set_intersect(Set<uinteger> *C_in, const Set<uinteger> *A_in, const Set<uinteger> *B_in){
+  inline Set<uinteger>* set_intersect_ibm(Set<uinteger> *C_in, const Set<uinteger> *A_in, const Set<uinteger> *B_in){
     uint32_t * const C = (uint32_t*) C_in->data; 
     const uint32_t * const A = (uint32_t*) A_in->data;
     const uint32_t * const B = (uint32_t*) B_in->data;
@@ -625,7 +625,6 @@ namespace ops{
     return C_in;  
   } 
 
-  /*
   inline Set<uinteger>* set_intersect(Set<uinteger> *C_in, const Set<uinteger> *A_in, const Set<uinteger> *B_in){
     uint32_t * const C = (uint32_t*) C_in->data; 
     const uint32_t * const A = (uint32_t*) A_in->data;
@@ -687,23 +686,6 @@ namespace ops{
     // intersect the tail using scalar intersection
     count += scalar(&A[i_a],s_a-i_a,&B[i_b],s_b-i_b,&C[count]);
 
-    bool notFinished = i_a < s_a  && i_b < s_b;
-    while(notFinished){
-      while(notFinished && B[i_b] < A[i_a]){
-        ++i_b;
-        notFinished = i_b < s_b;
-      }
-      if(notFinished && A[i_a] == B[i_b]){
-        #if WRITE_VECTOR == 1
-        C[count] = A[i_a];
-        #endif
-
-        ++count;
-      }
-      ++i_a;
-      notFinished = notFinished && i_a < s_a;
-    }
-
     #if WRITE_VECTOR == 0
     (void) C;
     #endif
@@ -718,8 +700,8 @@ namespace ops{
 
     return C_in;  
   }
-  */
-  inline size_t simd_intersect_vector16(uint16_t *C, const uint16_t *A, const uint16_t *B, const size_t s_a, const size_t s_b) {
+  
+ inline size_t simd_intersect_vector16(uint16_t *C, const uint16_t *A, const uint16_t *B, const size_t s_a, const size_t s_b) {
     #if WRITE_VECTOR == 0
     (void)C;
     #endif
@@ -728,15 +710,15 @@ namespace ops{
     size_t i_a = 0, i_b = 0;
 
     #if VECTORIZE == 1
-    const size_t st_a = (s_a / SHORTS_PER_REG) * SHORTS_PER_REG;
-    const size_t st_b = (s_b / SHORTS_PER_REG) * SHORTS_PER_REG;
+    size_t st_a = (s_a / SHORTS_PER_REG) * SHORTS_PER_REG;
+    size_t st_b = (s_b / SHORTS_PER_REG) * SHORTS_PER_REG;
 
     while(i_a < st_a && i_b < st_b) {
-      const __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
-      const __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);    
+      __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
+      __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);    
 
-      const uint16_t a_max = _mm_extract_epi16(v_a, SHORTS_PER_REG-1);
-      const uint16_t b_max = _mm_extract_epi16(v_b, SHORTS_PER_REG-1);
+      uint16_t a_max = _mm_extract_epi16(v_a, SHORTS_PER_REG-1);
+      uint16_t b_max = _mm_extract_epi16(v_b, SHORTS_PER_REG-1);
       
      // __m128i res_v = _mm_cmpistrm(v_b, v_a,
      //         _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
@@ -745,7 +727,7 @@ namespace ops{
       uint32_t r = _mm_extract_epi32(res_v, 0);
 
       #if WRITE_VECTOR == 1
-      const __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask16[r]);
+      __m128i p = _mm_shuffle_epi8(v_a, shuffle_mask16[r]);
       _mm_storeu_si128((__m128i*)&C[count], p);
      #endif
 
@@ -792,10 +774,10 @@ namespace ops{
     while(notFinished) {
       //size_t limLower = limLowerHolder;
       if(A[i_a] < B[i_b]) {
-        i_a += A[i_a + 1] + 2;
+        i_a += A[i_a + 1] + 3;
         notFinished = i_a < s_a;
       } else if(B[i_b] < A[i_a]) {
-        i_b += B[i_b + 1] + 2;
+        i_b += B[i_b + 1] + 3;
         notFinished = i_b < s_b;
       } else {
         uint16_t partition_size = 0;
@@ -803,12 +785,12 @@ namespace ops{
         #if WRITE_VECTOR == 1
         C[counter++] = A[i_a]; // write partition prefix
         #endif
-        partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2],&B[i_b + 2],((size_t)A[i_a+1]),((size_t)B[i_b+1]));
+        partition_size = simd_intersect_vector16(&C[counter+1],&A[i_a + 2],&B[i_b + 2],((size_t)A[i_a+1])+1,((size_t)B[i_b+1])+1);
         #if WRITE_VECTOR == 1
-        C[counter++] = partition_size; // write partition size
+        C[counter++] = (partition_size-1); // write partition size
         #endif
-        i_a += A[i_a+1] + 2;
-        i_b += B[i_b+1] + 2;      
+        i_a += A[i_a+1] + 3;
+        i_b += B[i_b+1] + 3;      
 
         count += partition_size;
         counter += partition_size;
@@ -826,68 +808,75 @@ namespace ops{
     return C_in;
 }
 inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, const Set<bitset> *B_in){
-    uint64_t * const C = (uint64_t*)C_in->data+sizeof(uint32_t);
-    const uint64_t * const A = (uint64_t*) A_in->data+sizeof(uint32_t);
-    const uint64_t * const B = (uint64_t*) B_in->data+sizeof(uint32_t);
-    const size_t s_a = A_in->number_of_bytes;
-    const size_t s_b = B_in->number_of_bytes;
-
-    #if WRITE_VECTOR == 0
-    (void) C;
-    #endif
-
     long count = 0l;
+    C_in->number_of_bytes = 0;
 
-    const uint32_t *a_index = (uint32_t*) A;
-    const uint32_t *b_index = (uint32_t*) B;
-
-    const uint32_t start_index = (a_index[0] > b_index[0]) ? a_index[0] : b_index[0];
-    const uint32_t end_index = ((a_index[0]+s_a) > (b_index[0]+s_b)) ? (b_index[0]+s_b):(a_index[0]+s_a);
-    const uint32_t total_size = end_index-start_index;
-    //16 uint16_ts
-    //8 ints
-    //4 longs
-    size_t i = 0;
-    
-    #if WRITE_VECTOR == 1
-    uint32_t *c_index = (uint32_t*) C_in->data;
-    c_index[0] = start_index;
-    #endif
-
-    #if VECTORIZE == 1
-    while((i+3) < total_size){
-      const __m256 a1 = _mm256_loadu_ps((const float*)&A[i+start_index]);
-      const __m256 a2 = _mm256_loadu_ps((const float*)&B[i+start_index]);
+    if(A_in->number_of_bytes > 0 && B_in->number_of_bytes > 0){
+      const uint32_t *a_index = (uint32_t*) A_in->data;
+      const uint32_t *b_index = (uint32_t*) B_in->data;
       
-      const __m256 r = _mm256_and_ps(a2, a1);
+      uint64_t * const C = (uint64_t*)(C_in->data+sizeof(uint32_t));
+      const uint64_t * const A = (uint64_t*)(A_in->data+sizeof(uint32_t));
+      const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint32_t));
+      const size_t s_a = ((A_in->number_of_bytes-sizeof(uint32_t))/sizeof(uint64_t));
+      const size_t s_b = ((B_in->number_of_bytes-sizeof(uint32_t))/sizeof(uint64_t));
 
-      #if WRITE_VECTOR == 1
-      _mm256_storeu_ps((float*)&C[i], r);
+      #if WRITE_VECTOR == 0
+      (void) C;
       #endif
 
-      uint64_t* count_ptr = (uint64_t*)&C[i];
-      count += _mm_popcnt_u64(count_ptr[0]);
-      count += _mm_popcnt_u64(count_ptr[1]);
-      count += _mm_popcnt_u64(count_ptr[2]);
-      count += _mm_popcnt_u64(count_ptr[3]);
+      const bool a_big = a_index[0] > b_index[0];
+      const uint32_t start_index = (a_big) ? a_index[0] : b_index[0];
+      const uint32_t a_start_index = (a_big) ? 0:(b_index[0]-a_index[0]);
+      const uint32_t b_start_index = (a_big) ? (a_index[0]-b_index[0]):0;
 
-      i += 4;
-    }
-    #endif
+      const uint32_t end_index = ((a_index[0]+s_a) > (b_index[0]+s_b)) ? (b_index[0]+s_b):(a_index[0]+s_a);
+      const uint32_t total_size = (start_index > end_index) ? 0:(end_index-start_index);
 
-    for(; i < end_index; i++){
-      const uint64_t result = A[i] & B[i];
-
-      #if WRITE_VECTOR == 1
-      C[i] = result;
-      #endif
+      //16 uint16_ts
+      //8 ints
+      //4 longs
+      size_t i = 0;
       
-      count += _mm_popcnt_u32(result);
+      #if WRITE_VECTOR == 1
+      uint32_t *c_index = (uint32_t*) C_in->data;
+      c_index[0] = start_index;
+      #endif
+
+      #if VECTORIZE == 1
+      while((i+3) < total_size){
+        const __m256 a1 = _mm256_loadu_ps((const float*)&A[i+a_start_index]);
+        const __m256 a2 = _mm256_loadu_ps((const float*)&B[i+b_start_index]);
+        const __m256 r = _mm256_and_ps(a2, a1);
+
+        //#if WRITE_VECTOR == 1
+        _mm256_storeu_ps((float*)&C[i], r);
+        //#endif
+
+        uint64_t* count_ptr = (uint64_t*)&C[i];
+        count += _mm_popcnt_u64(count_ptr[0]);
+        count += _mm_popcnt_u64(count_ptr[1]);
+        count += _mm_popcnt_u64(count_ptr[2]);
+        count += _mm_popcnt_u64(count_ptr[3]);
+
+        i += 4;
+      }
+      #endif
+
+      for(; i < total_size; i++){
+        const uint64_t result = A[i+a_start_index] & B[i+b_start_index];
+
+        #if WRITE_VECTOR == 1
+        C[i] = result;
+        #endif
+        
+        count += _mm_popcnt_u64(result);
+      }
+      C_in->number_of_bytes = total_size*sizeof(uint64_t)+sizeof(uint32_t);
     }
     const double density = 0.0;//(count > 0) ? (double)count/(8*small_length) : 0.0;
 
     C_in->cardinality = count;
-    C_in->number_of_bytes = total_size;
     C_in->density = density;
     C_in->type= common::BITSET;
 
@@ -896,9 +885,12 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
   inline Set<pshort>* set_intersect(Set<pshort> *C_in, const Set<pshort> *A_in, const Set<bitset> *B_in){
     uint16_t * const C = (uint16_t*)C_in->data;
     const uint16_t * const A = (uint16_t*)A_in->data;
-    const uint8_t * const B = B_in->data;
+    const uint32_t * const s_index_p = (uint32_t*)B_in->data;
+    const uint32_t start_index = (B_in->number_of_bytes > 0) ? s_index_p[0]:0;
+
+    const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint32_t));
     const size_t s_a = A_in->number_of_bytes / sizeof(uint16_t);
-    const size_t s_b = B_in->number_of_bytes / sizeof(uint64_t);
+    const size_t s_b = (B_in->number_of_bytes > 0) ? (B_in->number_of_bytes-sizeof(uint32_t))/sizeof(uint64_t):0;
 
     #if WRITE_VECTOR == 0
     (void) C;
@@ -907,18 +899,19 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     size_t count = 0;
     size_t counter = 0;
     for(size_t i = 0; i < s_a; i++){
-      uint32_t prefix = (A[i] << 16);
-      uint16_t size = A[i+1];
+      const uint32_t prefix = (A[i] << 16);
+      const uint16_t size = A[i+1]+1;
       i += 2;
 
-      size_t old_count = count;
-      size_t old_counter = counter;
+      const size_t old_count = count;
+      const size_t old_counter = counter;
       counter += 2;
 
-      size_t inner_end = i+size;
+      const size_t inner_end = i+size;
       while(i < inner_end){
-        uint32_t cur = prefix | A[i];
-        if(bitset::word_index(cur) < s_b && bitset::is_set(cur,B)){
+        const uint32_t cur = prefix | A[i];
+        //Why not do bounds check in is_set?
+        if((bitset::word_index(cur) < (s_b+start_index)) && (bitset::word_index(cur) >= start_index) && bitset::is_set(cur,B,start_index)){
           #if WRITE_VECTOR == 1
           C[counter++] = A[i];
           #endif
@@ -932,7 +925,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         counter = old_counter;
       } else{
         C[old_counter] = (prefix >> 16);
-        C[old_counter+1] = old_count-count;
+        C[old_counter+1] = count-old_count-1;
       }
     }
 
@@ -952,9 +945,13 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
   inline Set<uinteger>* set_intersect(Set<uinteger> *C_in,const Set<uinteger> *A_in,const Set<bitset> *B_in){
     uint32_t * const C = (uint32_t*)C_in->data;
     const uint32_t * const A = (uint32_t*)A_in->data;
-    const uint8_t * const B = B_in->data;
     const size_t s_a = A_in->cardinality;
-    const size_t s_b = B_in->number_of_bytes / sizeof(uint64_t);
+    const size_t s_b = (B_in->number_of_bytes > 0) ? (B_in->number_of_bytes-sizeof(uint32_t))/sizeof(uint64_t):0;
+
+    const uint32_t * const s_index_p = (uint32_t*)B_in->data;
+    const uint32_t start_index = (B_in->number_of_bytes > 0) ? s_index_p[0]:0;
+
+    const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint32_t));
 
     #if WRITE_VECTOR == 0
     (void) C;
@@ -962,8 +959,9 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
 
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
-      uint32_t cur = A[i];
-      if(bitset::word_index(cur) < s_b && bitset::is_set(cur,B)){
+      const uint32_t cur = A[i];
+      if((bitset::word_index(cur) < (s_b+start_index)) && (bitset::word_index(cur) >= start_index)
+       && bitset::is_set(cur,B,start_index)){
         #if WRITE_VECTOR == 1
         C[count] = cur;
         #endif
@@ -1001,7 +999,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     bool not_finished = a_i < s_a && b_i < s_b;
     while(not_finished){
       uint32_t prefix = (B[b_i] << 16);
-      uint16_t b_inner_size = B[b_i+1];
+      uint16_t b_inner_size = B[b_i+1]+1;
       uint32_t cur_match = A[a_i];
       size_t inner_end = b_i+b_inner_size+2;
       //cout << endl;

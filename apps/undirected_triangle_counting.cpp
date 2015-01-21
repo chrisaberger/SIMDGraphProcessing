@@ -50,6 +50,8 @@ class application{
     }
 
     inline void queryOver(){
+      //graph->print_data("graph.txt");
+
       system_counter_state_t before_sstate = pcm_get_counter_state();
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 

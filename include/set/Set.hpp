@@ -83,7 +83,7 @@ class Set{
     }
 
     //basic traversal
-    void foreach(const std::function <void (uint32_t)>& f);
+    void foreach(const std::function <void (uint32_t)>& f) const;
     void foreach_until(const std::function <bool (uint32_t)>& f);
 
     void par_foreach(const size_t num_threads, const std::function <void (size_t, uint32_t)>& f);
@@ -100,7 +100,7 @@ class Set{
 // Apply a function to each element in the set
 ///////////////////////////////////////////////////////////////////////////////
 template <class T>
-inline void Set<T>::foreach(const std::function <void (uint32_t)>& f) {
+inline void Set<T>::foreach(const std::function <void (uint32_t)>& f) const {
   T::foreach(f,data,cardinality,number_of_bytes,type);
 }
 

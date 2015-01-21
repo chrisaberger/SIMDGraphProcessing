@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
     a[i] = a_v;
     b[i] = b_v;
 
-    //cout << "Index i: " << a_v  << " " << b_v << endl;
+    cout << "Index i - A: " << a_v  << " B: " << b_v << endl;
 
     if(i % run_len == 0) {
       a_v += gap_len + rand() % max_gap_offset - half_max_gap_offset;

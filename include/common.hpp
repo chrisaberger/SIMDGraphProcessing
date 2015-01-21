@@ -40,7 +40,7 @@
 #define PADDING 300 
 
 //#define ATTRIBUTES
-#define WRITE_VECTOR 1
+#define WRITE_VECTOR 0
 #define WRITE_TABLE 0
 
 #define COMPRESSION 0

@@ -113,15 +113,16 @@ int main(int argc, char* argv[]) {
 
   uint64_t n = c_str_to_uint64_t(argv[1]);
 
-  /*
-  double density = 0.00128; //std::stod(argv[2]);
-  uint64_t gap_len = 4;// c_str_to_uint64_t(argv[3]);
-  uint64_t run_len = 1;//(uint64_t)(density * gap_len / (1.0 - density));
+  double density = 0.0128; //std::stod(argv[2]);
+  //uint64_t gap_len = 4;// c_str_to_uint64_t(argv[3]);
+  //uint64_t run_len = 1;//(uint64_t)(density * gap_len / (1.0 - density));
+  double comp = 2.0;//std::stod(argv[3]);
+
   //std::cout << "Elems: " << n << ", Run len: " << run_len << ", Gap len: " << gap_len << std::endl;
-  */
+  /*
   double density = std::stod(argv[2]);
   double comp = std::stod(argv[3]);
-  
+  */
   double d_gap_len = exp(-W1(density * comp / (density - 1.0)));
   double d_run_len = -density * d_gap_len / (density - 1.0);
   uint64_t gap_len = (uint64_t) std::round(d_gap_len);

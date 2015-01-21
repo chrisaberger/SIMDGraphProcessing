@@ -843,22 +843,24 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       c_index[0] = start_index;
       #endif
 
+      uint64_t tmp[4];
+
       #if VECTORIZE == 1
       while((i+3) < total_size){
         const __m256 a1 = _mm256_loadu_ps((const float*)&A[i+a_start_index]);
         const __m256 a2 = _mm256_loadu_ps((const float*)&B[i+b_start_index]);
         const __m256 r = _mm256_and_ps(a2, a1);
 
-        //#if WRITE_VECTOR == 1
+        #if WRITE_VECTOR == 1
         _mm256_storeu_ps((float*)&C[i], r);
-        //#endif
+        #endif
 
-        uint64_t* count_ptr = (uint64_t*)&C[i];
-        count += _mm_popcnt_u64(count_ptr[0]);
-        count += _mm_popcnt_u64(count_ptr[1]);
-        count += _mm_popcnt_u64(count_ptr[2]);
-        count += _mm_popcnt_u64(count_ptr[3]);
-
+        _mm256_storeu_ps((float*)tmp, r);
+        count += _mm_popcnt_u64(tmp[0]);
+        count += _mm_popcnt_u64(tmp[1]);
+        count += _mm_popcnt_u64(tmp[2]);
+        count += _mm_popcnt_u64(tmp[3]);
+  
         i += 4;
       }
       #endif

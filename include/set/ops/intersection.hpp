@@ -120,10 +120,13 @@ namespace ops{
    *
    * This function  use inline assembly.
    */
-  inline size_t v1
-  (const uint32_t *rare, size_t lenRare,
-   const uint32_t *freq, size_t lenFreq,
-   uint32_t *matchOut) {
+  inline Set<uinteger>* set_intersect_v1(Set<uinteger> *C_in, const Set<uinteger> *A_in, const Set<uinteger> *B_in){
+      const uint32_t *rare = (uint32_t*)A_in->data;
+      size_t lenRare = A_in->cardinality;
+      const uint32_t *freq = (uint32_t*)B_in->data;
+      size_t lenFreq = B_in->cardinality;
+      uint32_t *matchOut = (uint32_t*)C_in->data;
+
       assert(lenRare <= lenFreq);
       const uint32_t *matchOrig = matchOut;
       if (lenFreq == 0 || lenRare == 0) return 0;
@@ -211,7 +214,13 @@ namespace ops{
 
       size_t tail = match_scalar(freq, lenFreq, rare, lenRare, matchOut);
 
-      return count + tail;
+    const size_t density = 0.0;
+    C_in->cardinality = count + tail;
+    C_in->number_of_bytes = (count+tail)*sizeof(uint32_t);
+    C_in->density = density;
+    C_in->type= common::UINTEGER;
+
+    return C_in;  
   }
 
 
@@ -228,8 +237,13 @@ namespace ops{
    *
    * This function DOES NOT use inline assembly instructions. Just intrinsics.
    */
-  inline size_t v3(const uint32_t *rare, const size_t lenRare,
-            const uint32_t *freq, const size_t lenFreq, uint32_t *out) {
+  inline Set<uinteger>* set_intersect_v3(Set<uinteger> *C_in, const Set<uinteger> *A_in, const Set<uinteger> *B_in){
+      const uint32_t *rare = (uint32_t*)A_in->data;
+      const size_t lenRare = A_in->cardinality;
+      const uint32_t *freq = (uint32_t*)B_in->data;
+      const size_t lenFreq = B_in->cardinality;
+      uint32_t *out = (uint32_t*)C_in->data;
+
       if (lenFreq == 0 || lenRare == 0)
           return 0;
       assert(lenRare <= lenFreq);
@@ -243,7 +257,13 @@ namespace ops{
       const uint32_t *stopFreq = freq + lenFreq - freqspace;
       const uint32_t *stopRare = rare + lenRare - rarespace;
       if (freq > stopFreq) {
-          return scalar(freq, lenFreq, rare, lenRare, out);
+        const size_t final_count = scalar(freq, lenFreq, rare, lenRare, out);
+        const size_t density = 0.0;
+        C_in->cardinality = final_count;
+        C_in->number_of_bytes = (final_count)*sizeof(uint32_t);
+        C_in->density = density;
+        C_in->type= common::UINTEGER;
+        return C_in;
       }
       while (freq[veclen * 31 + vecmax] < *rare) {
           freq += veclen * 32;
@@ -330,8 +350,14 @@ namespace ops{
           }
       }
 
-  FINISH_SCALAR: return (out - initout) + scalar(freq,
-                            stopFreq + freqspace - freq, rare, stopRare + rarespace - rare, out);
+  FINISH_SCALAR: 
+    const size_t final_count = (out - initout) + scalar(freq,stopFreq + freqspace - freq, rare, stopRare + rarespace - rare, out);
+    const size_t density = 0.0;
+    C_in->cardinality = final_count;
+    C_in->number_of_bytes = (final_count)*sizeof(uint32_t);
+    C_in->density = density;
+    C_in->type= common::UINTEGER;
+    return C_in;
   }
 
 
@@ -349,8 +375,14 @@ namespace ops{
    *
    * This function DOES NOT use assembly. It only relies on intrinsics.
    */
-  inline size_t SIMDgalloping(const uint32_t *rare, const size_t lenRare,
-                       const uint32_t *freq, const size_t lenFreq, uint32_t *out) {
+
+  inline Set<uinteger>* set_intersect_galloping(Set<uinteger> *C_in, const Set<uinteger> *A_in, const Set<uinteger> *B_in){
+      const uint32_t *rare = (uint32_t*)A_in->data;
+      const size_t lenRare = A_in->cardinality;
+      const uint32_t *freq = (uint32_t*)B_in->data;
+      const size_t lenFreq = B_in->cardinality;
+      uint32_t *out = (uint32_t*)C_in->data;
+
       if (lenFreq == 0 || lenRare == 0)
           return 0;
       assert(lenRare <= lenFreq);
@@ -364,7 +396,13 @@ namespace ops{
       const uint32_t *stopFreq = freq + lenFreq - freqspace;
       const uint32_t *stopRare = rare + lenRare - rarespace;
       if (freq > stopFreq) {
-          return scalar(freq, lenFreq, rare, lenRare, out);
+        const size_t final_count = scalar(freq, lenFreq, rare, lenRare, out);
+        const size_t density = 0.0;
+        C_in->cardinality = final_count;
+        C_in->number_of_bytes = (final_count)*sizeof(uint32_t);
+        C_in->density = density;
+        C_in->type= common::UINTEGER;
+        return C_in;
       }
       for (; rare < stopRare; ++rare) {
           const uint32_t matchRare = *rare;//nextRare;
@@ -515,8 +553,14 @@ namespace ops{
           }
       }
 
-  FINISH_SCALAR: return (out - initout) + scalar(freq,
-                            stopFreq + freqspace - freq, rare, stopRare + rarespace - rare, out);
+  FINISH_SCALAR: 
+    const size_t final_count = (out - initout) + scalar(freq,stopFreq + freqspace - freq, rare, stopRare + rarespace - rare, out);
+    const size_t density = 0.0;
+    C_in->cardinality = final_count;
+    C_in->number_of_bytes = (final_count)*sizeof(uint32_t);
+    C_in->density = density;
+    C_in->type= common::UINTEGER;
+    return C_in;
   }
 
   inline Set<uinteger>* set_intersect_ibm(Set<uinteger> *C_in, const Set<uinteger> *A_in, const Set<uinteger> *B_in){
@@ -959,19 +1003,32 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     (void) C;
     #endif
 
+    uint32_t cur = 0;
+    uint32_t offset = 0;
     size_t count = 0;
-    for(size_t i = 0; i < s_a; i++){
-      const uint32_t cur = A[i];
-      if((bitset::word_index(cur) < (s_b+start_index)) && (bitset::word_index(cur) >= start_index)
-       && bitset::is_set(cur,B,start_index)){
-        #if WRITE_VECTOR == 1
-        C[count] = cur;
-        #endif
-        count++;
-      }
+    size_t i = 0;
+    if(i >= s_a) goto FINISHED;
+    while(bitset::word_index(A[i++]) < start_index){
+      if(i >= s_a) goto FINISHED;
     }
+    if(i >= s_a) goto FINISHED;
+
+    cur = A[i++];
+    offset = cur >> ADDRESS_BITS_PER_WORD;
+    while(((offset) < (s_b+start_index)) && ((B)[offset-start_index] & ((uint64_t) 1 << (offset%BITS_PER_WORD)))){
+      if(i >= s_a) goto FINISHED;
+      #if WRITE_VECTOR == 1
+      C[count] = cur;
+      #endif
+      cur = A[i++];
+      offset = cur >> ADDRESS_BITS_PER_WORD;
+      count++;
+    }
+    
+    FINISHED:
     // XXX: Correct density computation
     const double density = 0.0;//((count > 1) ? ((double)count/(C[count - 1]-C[0])) : 0.0);
+
 
     C_in->cardinality = count;
     C_in->number_of_bytes = count*sizeof(uint32_t);
@@ -1099,11 +1156,21 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     return set_intersect(C_in,B_in,A_in);
   }
   inline Set<hybrid>* set_intersect(Set<hybrid> *C_in,const Set<hybrid> *A_in,const Set<hybrid> *B_in){
+    if(A_in->cardinality == 0 || B_in->cardinality == 0){
+      C_in->cardinality = 0;
+      C_in->number_of_bytes = 0;
+      return C_in;
+    }
+
     switch (A_in->type) {
         case common::UINTEGER:
           switch (B_in->type) {
             case common::UINTEGER:
-              return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
+              if(A_in->cardinality < B_in->cardinality){
+                return (Set<hybrid>*)set_intersect_v3((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
+              } else{
+                return (Set<hybrid>*)set_intersect_v3((Set<uinteger>*)C_in,(const Set<uinteger>*)B_in,(const Set<uinteger>*)A_in);
+              }
             break;
             case common::PSHORT:
               return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<pshort>*)B_in);

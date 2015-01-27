@@ -1003,32 +1003,19 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     (void) C;
     #endif
 
-    uint32_t cur = 0;
-    uint32_t offset = 0;
     size_t count = 0;
-    size_t i = 0;
-    if(i >= s_a) goto FINISHED;
-    while(bitset::word_index(A[i++]) < start_index){
-      if(i >= s_a) goto FINISHED;
+    for(size_t i = 0; i < s_a; i++){
+      const uint32_t cur = A[i];
+      if((bitset::word_index(cur) < (s_b+start_index)) && (bitset::word_index(cur) >= start_index)
+       && bitset::is_set(cur,B,start_index)){
+        #if WRITE_VECTOR == 1
+        C[count] = cur;
+        #endif
+        count++;
+      }
     }
-    if(i >= s_a) goto FINISHED;
-
-    cur = A[i++];
-    offset = cur >> ADDRESS_BITS_PER_WORD;
-    while(((offset) < (s_b+start_index)) && ((B)[offset-start_index] & ((uint64_t) 1 << (offset%BITS_PER_WORD)))){
-      if(i >= s_a) goto FINISHED;
-      #if WRITE_VECTOR == 1
-      C[count] = cur;
-      #endif
-      cur = A[i++];
-      offset = cur >> ADDRESS_BITS_PER_WORD;
-      count++;
-    }
-    
-    FINISHED:
     // XXX: Correct density computation
     const double density = 0.0;//((count > 1) ? ((double)count/(C[count - 1]-C[0])) : 0.0);
-
 
     C_in->cardinality = count;
     C_in->number_of_bytes = count*sizeof(uint32_t);

@@ -59,23 +59,25 @@ class application{
       uint32_t *dst_buffer = new uint32_t[matrix_size];
       uint8_t *result_buffer = new uint8_t[matrix_size*8];
 
-      uint32_t i = 4;
-      uint32_t j = 1;
+      uint32_t i = 134648;
+      uint32_t j = 93185;
 
       cout << "src: " << i << " dst: " << j << endl;
 
       Set<R> A = this->graph->get_decoded_row(i,src_buffer);
 
+      size_t index = 0;
       cout << "A type: " << (uint32_t)A.type << endl;
-      A.foreach([](uint32_t data){
-        cout << "AData: " << data << endl;
+      A.foreach([&index](uint32_t data){
+        cout << "Index: " << index++ << " AData: " << data << endl;
       });
 
       Set<R> B = this->graph->get_decoded_row(j,dst_buffer);
 
       cout << "B type: " << (uint32_t)B.type << endl;
-      B.foreach([](uint32_t data){
-        cout << "BData: " << data << endl;
+      i = 0;
+      B.foreach([&index](uint32_t data){
+        cout <<"Index: " << index++ <<  " BData: " << data << endl;
       });
 
       Set<R> C(result_buffer);

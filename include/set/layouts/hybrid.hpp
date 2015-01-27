@@ -55,7 +55,9 @@ inline double compressibility(const uint32_t* data, const size_t length) {
 
 #if PERFORMANCE == 1
 inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
+  
   if(length > 0) {
+  /*
     double density = (double) length / (data[length - 1] - data[0]);
     double c = compressibility(data, length);
     if((density < 0.00032 && c < 0.5) || length < 3) {
@@ -65,9 +67,8 @@ inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
     } else {
       return common::BITSET;
     }
-
-/*
     OLD HEURISTIC:
+    */
 
     uint32_t max_value = data[length-1];
     double sparsity = (double) length/max_value;
@@ -77,7 +78,7 @@ inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
       return common::PSHORT;
     } else {
       return common::UINTEGER;
-    }*/
+    }
   } else{
     return common::UINTEGER;
   }

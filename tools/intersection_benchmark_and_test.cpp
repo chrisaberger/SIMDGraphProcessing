@@ -1,7 +1,7 @@
 #include "SparseMatrix.hpp"
 #include "common.hpp"
 
-#define DEBUG
+//#define DEBUG
 //#define FROM_FILE
 
 #define BUF_SIZE 1024L * 1024L * 1024L
@@ -85,6 +85,8 @@ template<class T, class R, class U, class P, class F> void intersect(size_t len_
   set_c.foreach([&myfile,&index](uint32_t i){
     myfile << "Index: " << index++ << " Data: " << i << endl;
   });
+#else
+  (void) filename;
 #endif
 }
 

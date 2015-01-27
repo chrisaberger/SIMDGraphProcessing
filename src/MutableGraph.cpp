@@ -57,48 +57,44 @@ void MutableGraph::reassign_ids(vector<uint32_t> const& new2old_ids) {
 }
 
 void MutableGraph::reorder_bfs(){
-  vector<uint32_t> tmp_new2old_ids = common::range(num_nodes);
-  std::random_shuffle(tmp_new2old_ids.begin(), tmp_new2old_ids.end());
-  //std::sort(tmp_new2old_ids.begin(), tmp_new2old_ids.end(), OrderNeighborhoodByDegree(out_neighborhoods));
-
+  vector<bool> visited(num_nodes);
+  vector<uint32_t> cur_level;
+  vector<uint32_t> next_level;
   vector<uint32_t> new2old_ids;
   new2old_ids.reserve(num_nodes);
 
-  std::unordered_set<uint32_t> visited;
+  uint32_t last_elem = 0;
 
-  vector<uint32_t> cur_level;
-  size_t bfs_i = 0;
-  uint32_t mapped_bfs_i = tmp_new2old_ids.at(bfs_i);
-  cur_level.push_back(mapped_bfs_i);
-  new2old_ids.push_back(mapped_bfs_i);
-  visited.insert(mapped_bfs_i);
-  bfs_i++;
+  while(new2old_ids.size() != out_neighborhoods->size()) {
+    //uint32_t max_elem = 0;
+    //uint32_t max_size = 0;
+    for(; last_elem < num_nodes; last_elem++) {
+      if(!visited.at(last_elem)) { // && out_neighborhoods->at(i)->size() > max_size) {
+        //max_elem = i;
+        //max_size = out_neighborhoods->at(i)->size();
+        break;
+      }
+    }
 
-  vector<uint32_t> next_level;
-  while(new2old_ids.size() != out_neighborhoods->size()){
-    for(size_t i = 0; i < cur_level.size(); i++) {
-      vector<uint32_t>* hood = out_neighborhoods->at(cur_level.at(i));
-      for(size_t j = 0; j < hood->size(); ++j) {
-        if(visited.find(hood->at(j)) == visited.end()){
-          next_level.push_back(hood->at(j));
-          new2old_ids.push_back(hood->at(j));
-          visited.insert(hood->at(j));
+    next_level.push_back(last_elem);
+    new2old_ids.push_back(last_elem);
+    visited.at(last_elem) = true;
+
+    while(next_level.size() != 0) {
+      cur_level.swap(next_level);
+      next_level.clear();
+
+      for(size_t i = 0; i < cur_level.size(); i++) {
+        vector<uint32_t>* hood = out_neighborhoods->at(cur_level.at(i));
+        for(size_t j = 0; j < hood->size(); ++j) {
+          if(!visited.at(hood->at(j))) {
+            next_level.push_back(hood->at(j));
+            new2old_ids.push_back(hood->at(j));
+            visited.at(hood->at(j)) = true;
+          }
         }
       }
     }
-    if(next_level.size() == 0 && new2old_ids.size() < out_neighborhoods->size()) {
-      while(visited.find(tmp_new2old_ids.at(bfs_i)) != visited.end()) {
-        bfs_i++;
-      }
-      uint32_t mapped_bfs_i = tmp_new2old_ids.at(bfs_i);
-      next_level.push_back(mapped_bfs_i);
-      new2old_ids.push_back(mapped_bfs_i);
-      visited.insert(mapped_bfs_i);
-      bfs_i++;
-    }
-
-    cur_level.swap(next_level);
-    next_level.clear();
   }
 
   reassign_ids(new2old_ids);

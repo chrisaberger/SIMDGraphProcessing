@@ -47,6 +47,8 @@ def parse_file(f):
 def main():
   options = parseInput();
   f_perf = open('intersection_perf.csv', 'w')
+  v_perf = open('vintersection_perf.csv', 'w')
+
   f_mem = open('intersection_mem.csv', 'w')
   f_constr = open('intersection_constr.csv', 'w')
 
@@ -76,29 +78,69 @@ def main():
   my_keys = results.keys()
   my_keys.sort()
 
+  prev = 0.0
+  first = True
+  f_perf.write('\t')
+  for k in my_keys:
+    if(k[0] == prev or first):
+      f_perf.write(str(k[1]) + "\t")
+      prev = k[0]
+    first = False
+  f_perf.write('\n') 
+
+  lastDen = 0
+  first = True
+  numShift = 0
   for k in my_keys:
     times = results[k]
     denA = k[0]
     denB = k[1]
+
+    if(denA != lastDen):
+      if(first):
+        first = False
+      else:
+        f_perf.write('\n')
+      f_perf.write(str(denA) +'\t')
+
+      incrementer = 0
+      while incrementer < numShift:
+        incrementer += 1
+        f_perf.write('-1\t')
+      numShift += 1
+
+    lastDen = denA
+
     if denA <= denB: 
       curTup = k
       results[curTup] = [average_runs(t) for t in times]
-      f_perf.write(str(curTup[0]) + "|" + str(curTup[1]) + ',')
+      v_perf.write(str(curTup[0]) + "|" + str(curTup[1]) + ',')
+
+      lowest = 1e6
+      lowest_counter = 0
+      counter = 0
       for kk in results[curTup]:
-        f_perf.write(str(kk) + ',')
+        v_perf.write(str(kk) + '\t')
+        if(kk < lowest):
+          lowest_counter = counter
+          lowest = kk
+        counter = counter+ 1
 
       curTup = (denB,denA)
       results[curTup] = [average_runs(t) for t in times]
       for kk in results[curTup]:
-        f_perf.write(str(kk) + ',')
-      f_perf.write('\n')
+        v_perf.write(str(kk) + '\t')
+        if(kk < lowest):
+          lowest_counter = counter
+          lowest = kk
+        counter += 1
+      v_perf.write('\n')
 
+      f_perf.write(str(lowest_counter) + '\t')
       #constr_results[curTup] = [average_runs(t) for t in times]
       #densities_set.add(curTup)
       #comps_set.add(k[1])
-
-
-  
+      
   comm = ''' 
   densities = sorted(list(densities_set))
   comps = sorted(list(comps_set))

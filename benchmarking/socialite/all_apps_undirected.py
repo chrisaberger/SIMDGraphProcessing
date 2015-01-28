@@ -1,60 +1,81 @@
+import threading
+from java.lang import Thread as JThread, InterruptedException
 import time
 import sys
 import os
+import signal
 
-num_runs = int(sys.argv[2])
+# Timeout for queries
+timeout = 10
 
-filename = os.path.join(sys.argv[1], "glab_undirected", "data.txt")
+# Here come the queries
+def triangle_counting():
+  `total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(x, z).`
 
-print "Loading data (undirected)"
-`edge(int a:0..20000000, (int b)) indexby a, sortby b.
- edgeRaw(int a:0..20000000, (int b)) indexby a, sortby b.
- edgeRaw(a, b) :- l = $read($filename), (v1,v2) = $split(l, " "), a = $toInt(v1), b = $toInt(v2).`
+def clique_counting():
+  `total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), edge(x, z), edge(y, w).`
 
-print "Preprocessing data"
-`edge(a, b) :- edgeRaw(a, b).
- edge(b, a) :- edgeRaw(a, b).`
+def cycle_counting():
+  `total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), x != z.`
 
-`total(int x:0..0, int s).`
+def lollipop_counting():
+  `total(0, $sum(1)) :- uedge(x, y), uedge(y, z), uedge(x, z), uedge(x, w), y < z, w != y, w != z.`
 
-print "Triangle counting"
-for k in range(0, num_runs):
-    print "Run " + str(k)
+def tadpole_counting():
+  `total(0, $sum(1)) :- uedge(x, y), uedge(y, z), uedge(z, w), uedge(x, w), uedge(x, a), uedge(a, b), y < z, x != z, y != w, a != y, a != z, a != w, b != x.`
+
+def barbell_counting():
+  `total(0, $sum(1)) :- uedge(x, y), uedge(y, z), uedge(x, z), uedge(x, a), uedge(a, b), uedge(b, c), uedge(a, c), a != y, a != z, y < z, b < c, x < a.`
+
+def benchmark_query(name, fn, num_runs):
+  print
+
+  for k in range(0, num_runs):
+    print "Starting run " + str(k)
     `clear total.`
 
     start = time.time()
-    `total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(x, z).`
-    print "Triangle time: " + str(time.time() - start)
+    t = threading.Thread(target=fn, args=None)
+    t.setDaemon(True)
+    t.start()
+    t.join(timeout)
 
-for i, s in `total(i, s)`:
-    print "Triangles: " + str(s)
+    if t.isAlive():
+      print name + " time: timeout"
 
-print "4-clique counting"
-for k in range(0, num_runs):
-    print "Run " + str(k)
-    `clear total.`
+      # Yeah, this is not exactly beautiful but there seems to be no easy way
+      # to kill the threads spawned by SociaLite... 
+      os.kill(os.getpid(), signal.SIGINT)
+      sys.exit(-1)
+    else:
+      print name + " time: " + str(time.time() - start)
+      for i, s in `total(i, s)`:
+        print name + " count: " + str(s)
 
-    start = time.time()
-    `total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), edge(x, z), edge(y, w).`
-    print "4-clique time: " + str(time.time() - start)
+if __name__ == '__main__':
+  filename = os.path.join(sys.argv[1], "glab_undirected", "data.txt")
+  num_runs = int(sys.argv[2])
 
-for i, s in `total(i, s)`:
-    print "4-cliques: " + str(s)
+  print "Loading data (undirected)"
+  `edge(int a:0..20000000, (int b)) indexby a, sortby b.
+   uedge(int a:0..20000000, (int b)) indexby a, sortby b.
+   edgeRaw(int a:0..20000000, (int b)) indexby a, sortby b.
+   total(int x:0..0, int s).
+   edgeRaw(a, b) :- l = $read($filename), (v1,v2) = $split(l, " "), a = $toInt(v1), b = $toInt(v2).`
 
-print "4-cycle counting"
-for k in range(0, num_runs):
-    print "Run " + str(k)
-    `clear total.`
+  print "Preprocessing data"
+  `edge(a, b) :- edgeRaw(a, b), a < b.
+   edge(b, a) :- edgeRaw(a, b), b < a.
+   uedge(a, b) :- edgeRaw(a, b).
+   uedge(b, a) :- edgeRaw(a, b).`
 
-    start = time.time()
-    `total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), x != y, x != z, x != w, y != z, y != w, z != w.`
-    print "4-cycles time: " + str(time.time() - start)
+  queries = {
+      "triangle_counting": triangle_counting,
+      "clique_counting": clique_counting,
+      "cycle_counting": cycle_counting,
+      "lollipop_counting": lollipop_counting,
+      "tadpole_counting": tadpole_counting,
+      "barbell_counting": barbell_counting }
 
-    `cycle(int x, int y, int z, int w).
-     cycle(x, y, z, w) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), x != y, x != z, x != w, y != z, y != w, z != w.`
-    for x, y, z, w in `cycle(x, y, z, w)`:
-        print x, y, z, w
-
-
-for i, s in `total(i, s)`:
-    print "4-cycles: " + str(s)
+  query = sys.argv[3]
+  benchmark_query(query, queries[query], num_runs)

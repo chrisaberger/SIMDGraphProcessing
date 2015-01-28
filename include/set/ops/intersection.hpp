@@ -1003,32 +1003,19 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     (void) C;
     #endif
 
-    uint32_t cur = 0;
-    uint32_t offset = 0;
     size_t count = 0;
-    size_t i = 0;
-    if(i >= s_a) goto FINISHED;
-    while(bitset::word_index(A[i++]) < start_index){
-      if(i >= s_a) goto FINISHED;
+    for(size_t i = 0; i < s_a; i++){
+      const uint32_t cur = A[i];
+      if((bitset::word_index(cur) < (s_b+start_index)) && (bitset::word_index(cur) >= start_index)
+       && bitset::is_set(cur,B,start_index)){
+        #if WRITE_VECTOR == 1
+        C[count] = cur;
+        #endif
+        count++;
+      }
     }
-    if(i >= s_a) goto FINISHED;
-
-    cur = A[i++];
-    offset = cur >> ADDRESS_BITS_PER_WORD;
-    while(((offset) < (s_b+start_index)) && ((B)[offset-start_index] & ((uint64_t) 1 << (offset%BITS_PER_WORD)))){
-      if(i >= s_a) goto FINISHED;
-      #if WRITE_VECTOR == 1
-      C[count] = cur;
-      #endif
-      cur = A[i++];
-      offset = cur >> ADDRESS_BITS_PER_WORD;
-      count++;
-    }
-    
-    FINISHED:
     // XXX: Correct density computation
     const double density = 0.0;//((count > 1) ? ((double)count/(C[count - 1]-C[0])) : 0.0);
-
 
     C_in->cardinality = count;
     C_in->number_of_bytes = count*sizeof(uint32_t);
@@ -1046,6 +1033,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     const uint16_t * const B = (uint16_t*)B_in->data;
     const size_t s_a = A_in->cardinality;
     const size_t s_b = B_in->number_of_bytes/sizeof(uint16_t);
+    const size_t st_a = (s_a/SHORTS_PER_REG)*SHORTS_PER_REG;
 
     #if WRITE_VECTOR == 0
     (void)C;
@@ -1073,15 +1061,15 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         //cout << "2" << endl;
         a_i++;
         not_finished = a_i < s_a;
-      } else{
+      } else {
         //cout << "3" << endl;
         b_i += 2;
         size_t i_b = 0;
 
+        bool innerNotFinished = true;
         #if VECTORIZE == 1
-        bool a_continue = (a_i+SHORTS_PER_REG) < s_a && (A[a_i+SHORTS_PER_REG-1] & 0xFFFF0000) == prefix;
-        size_t st_b = (b_inner_size / SHORTS_PER_REG) * SHORTS_PER_REG;
-        while(a_continue && i_b < st_b) {
+        const size_t st_b = (b_inner_size / SHORTS_PER_REG) * SHORTS_PER_REG;
+        while((a_i+SHORTS_PER_REG) < st_a && i_b < st_b && (A[a_i] & 0xFFFF0000) <= prefix) {
           __m128i v_a_1_32 = _mm_loadu_si128((__m128i*)&A[a_i]);
           __m128i v_a_2_32 = _mm_loadu_si128((__m128i*)&A[a_i+(SHORTS_PER_REG/2)]);
 
@@ -1095,53 +1083,74 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
 
           __m128i v_b = _mm_loadu_si128((__m128i*)&B[b_i+i_b]);    
 
-          uint16_t a_max = _mm_extract_epi16(v_a, SHORTS_PER_REG-1);
-          uint16_t b_max = _mm_extract_epi16(v_b, SHORTS_PER_REG-1);
+          const uint32_t a_max = A[a_i+SHORTS_PER_REG-1];
+          const uint32_t b_max = prefix | (uint32_t)B[b_i+i_b+SHORTS_PER_REG-1];
           
           __m128i res_v = _mm_cmpestrm(v_b, SHORTS_PER_REG, v_a, SHORTS_PER_REG,
                   _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
-          uint32_t r = _mm_extract_epi32(res_v, 0);
-
-          #if WRITE_VECTOR == 1
-          uint32_t r_lower = r & 0x0F;
-          uint32_t r_upper = (r & 0xF0) >> 4;
-          __m128i p = _mm_shuffle_epi8(v_a_1_32,shuffle_mask32[r_lower]);
-          _mm_storeu_si128((__m128i*)&C[count], p);
           
-          //uint32_t *t = (uint32_t*) &p;
-          //cout << "Data: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << endl;
-
-          p = _mm_shuffle_epi8(v_a_2_32,shuffle_mask32[r_upper]);
-          _mm_storeu_si128((__m128i*)&C[count+_mm_popcnt_u32(r_lower)], p);
-          C[count] = A[a_i];
-          #endif
-
-          count += _mm_popcnt_u32(r);
+          const uint32_t r = _mm_extract_epi32(res_v, 0);
+          if(_mm_popcnt_u32(r)){
+            const size_t a_i_end = a_i+8;
+            const size_t i_b_end = i_b+8;
+            size_t a_i_tmp = a_i;
+            size_t i_b_tmp = i_b;
+            innerNotFinished = a_i_tmp < a_i_end  && i_b_tmp < i_b_end;
+            while(innerNotFinished){
+              while(innerNotFinished && A[a_i_tmp] < (uint32_t)(prefix | B[i_b_tmp+b_i]) ){
+                ++a_i_tmp;
+                innerNotFinished = a_i_tmp < a_i_end;
+                if(innerNotFinished && (A[a_i_tmp] & 0xFFFF0000) > prefix){
+                  a_i += (a_max <= b_max) * SHORTS_PER_REG;
+                  i_b += (a_max >= b_max) * SHORTS_PER_REG;
+                  goto INNER_PARTITION_DONE;
+                }
+              }
+              if(innerNotFinished && A[a_i_tmp] == (uint32_t)(prefix | B[i_b_tmp+b_i])){
+                //cout << A[a_i_tmp]<< endl;
+                #if WRITE_VECTOR == 1
+                C[count] = A[a_i_tmp];
+                #endif
+                ++count;
+              }
+              ++i_b_tmp;
+              innerNotFinished = innerNotFinished && i_b_tmp < i_b_end;
+            }
+          }
           a_i += (a_max <= b_max) * SHORTS_PER_REG;
-          a_continue = (a_i+SHORTS_PER_REG) < s_a && (A[a_i+SHORTS_PER_REG-1] & 0xFFFF0000) == prefix;
           i_b += (a_max >= b_max) * SHORTS_PER_REG;
         }
         #endif
 
-        bool notFinished = a_i < s_a  && i_b < b_inner_size && (A[a_i] & 0xFFFF0000) == prefix;
-        while(notFinished){
-          while(notFinished && (uint32_t)(prefix | B[i_b+b_i]) < A[a_i]){
-            ++i_b;
-            notFinished = i_b < b_inner_size;
+        //cout << "1a_i: " << a_i << " i_b: " << i_b << " " << inner_end << endl;
+
+
+        innerNotFinished = a_i < s_a  && i_b < b_inner_size && (A[a_i] & 0xFFFF0000) <= prefix;
+        while(innerNotFinished){
+          while(innerNotFinished && A[a_i] < (uint32_t)(prefix | B[i_b+b_i])){
+            ++a_i;
+            innerNotFinished = a_i < s_a && (A[a_i] & 0xFFFF0000) <= prefix;
           }
-          if(notFinished && A[a_i] == (uint32_t)(prefix | B[i_b+b_i])){
+          if(innerNotFinished && A[a_i] == (uint32_t)(prefix | B[i_b+b_i])){
+            //cout << A[a_i]<< endl;
             #if WRITE_VECTOR == 1
             C[count] = A[a_i];
             #endif
             ++count;
           }
-          ++a_i;
-          notFinished = notFinished && a_i < s_a && (A[a_i] & 0xFFFF0000) == prefix;
+          ++i_b;
+          innerNotFinished = innerNotFinished && i_b < b_inner_size;
         }
+
+        INNER_PARTITION_DONE:
         b_i = inner_end;
+
+        //cout << "a_i: " << a_i << " b_i: " << b_i << endl;
+
         not_finished = a_i < s_a && b_i < s_b;
       }
     }
+
     // XXX: Density computation is broken
     const double density = 0.0;//((count > 0) ? ((double)count/(C[count]-C[0])) : 0.0);
 
@@ -1166,16 +1175,21 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         case common::UINTEGER:
           switch (B_in->type) {
             case common::UINTEGER:
-              if(A_in->cardinality < B_in->cardinality){
-                return (Set<hybrid>*)set_intersect_v3((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
-              } else{
-                return (Set<hybrid>*)set_intersect_v3((Set<uinteger>*)C_in,(const Set<uinteger>*)B_in,(const Set<uinteger>*)A_in);
-              }
+              #ifdef STATS
+              common::num_uint_uint++;
+              #endif
+              return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
             break;
             case common::PSHORT:
+              #ifdef STATS
+              common::num_uint_pshort++;
+              #endif
               return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<pshort>*)B_in);
             break;
             case common::BITSET:
+              #ifdef STATS
+              common::num_pshort_bs++;
+              #endif
               return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<bitset>*)B_in);
             break;
             default:
@@ -1185,12 +1199,21 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         case common::PSHORT:
           switch (B_in->type) {
             case common::UINTEGER:
+              #ifdef STATS
+              common::num_uint_pshort++;
+              #endif
               return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)B_in,(const Set<pshort>*)A_in);
             break;
             case common::PSHORT:
+              #ifdef STATS
+              common::num_pshort_pshort++;
+              #endif
               return (Set<hybrid>*)set_intersect((Set<pshort>*)C_in,(const Set<pshort>*)A_in,(const Set<pshort>*)B_in);
             break;
             case common::BITSET:
+              #ifdef STATS
+              common::num_pshort_bs++;
+              #endif
               return (Set<hybrid>*)set_intersect((Set<pshort>*)C_in,(const Set<pshort>*)A_in,(const Set<bitset>*)B_in);
             break;
             default:
@@ -1200,12 +1223,21 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         case common::BITSET:
           switch (B_in->type) {
             case common::UINTEGER:
+              #ifdef STATS
+              common::num_uint_bs++;
+              #endif
               return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)B_in,(const Set<bitset>*)A_in);
             break;
             case common::PSHORT:
+              #ifdef STATS
+              common::num_pshort_bs++;
+              #endif
               return (Set<hybrid>*)set_intersect((Set<pshort>*)C_in,(const Set<pshort>*)B_in,(const Set<bitset>*)A_in);
             break;
             case common::BITSET:
+              #ifdef STATS
+              common::num_bs_bs++;
+              #endif
               return (Set<hybrid>*)set_intersect((Set<bitset>*)C_in,(const Set<bitset>*)A_in,(const Set<bitset>*)B_in);
             break;
             default:

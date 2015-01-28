@@ -40,12 +40,14 @@
 #define PADDING 300 
 
 //#define ATTRIBUTES
-#define WRITE_VECTOR 1
+#define WRITE_VECTOR 0
 #define WRITE_TABLE 0
 
 #define COMPRESSION 0
 #define PERFORMANCE 1
 #define VECTORIZE 1
+
+//#define STATS
 
 //CONSTANTS THAT SHOULD NOT CHANGE
 #define SHORTS_PER_REG 8
@@ -148,6 +150,13 @@ namespace common{
   static double bits_per_edge = 0;
   static double bits_per_edge_nometa = 0;
 
+  static size_t num_uint_uint = 0;
+  static size_t num_pshort_pshort = 0;
+  static size_t num_bs_bs = 0;
+  static size_t num_uint_pshort = 0;
+  static size_t num_uint_bs = 0;
+  static size_t num_pshort_bs = 0;
+
   enum type: uint8_t {
     BITSET = 0,
     PSHORT = 1,
@@ -166,6 +175,14 @@ namespace common{
     cout << "Num V: " << num_v << endl;
     cout << "Bits per edge (meta): " << bits_per_edge << endl;
     cout << "Bits per edge (no meta): " << bits_per_edge_nometa << endl;
+
+    cout << "Num UINT/UINT: " << num_uint_uint << endl;
+    cout << "Num UINT/PSHORT: " << num_uint_pshort << endl;
+    cout << "Num UINT/BS: " << num_uint_bs << endl;
+    cout << "Num PSHORT/PSHORT: " << num_pshort_pshort << endl;
+    cout << "Num PSHORT/BS: " << num_pshort_bs << endl;
+    cout << "Num BS/BS: " << num_bs_bs << endl;
+
 
   }
 

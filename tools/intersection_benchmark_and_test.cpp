@@ -1,7 +1,7 @@
 #include "SparseMatrix.hpp"
 #include "common.hpp"
 
-#define DEBUG
+//#define DEBUG
 //#define FROM_FILE
 
 #define BUF_SIZE 1024L * 1024L * 1024L
@@ -85,6 +85,8 @@ template<class T, class R, class U, class P, class F> void intersect(size_t len_
   set_c.foreach([&myfile,&index](uint32_t i){
     myfile << "Index: " << index++ << " Data: " << i << endl;
   });
+#else
+  (void) filename;
 #endif
 }
 
@@ -140,7 +142,7 @@ int main(int argc, char* argv[]) {
   const uint64_t n = c_str_to_uint64_t(argv[1]);
   double densityA = std::stod(argv[2]);
   double densityB = std::stod(argv[3]);
-  const uint64_t max_offset = 100;
+  const uint64_t max_offset = n*0.1;
 
   uint32_t a_v = rand() % max_offset;
   uint32_t b_v = rand() % max_offset;

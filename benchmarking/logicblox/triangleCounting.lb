@@ -3,3 +3,5 @@ addblock '
   triangles[] = value <- agg<<value = count()>> edge(x, y), edge(y, z), edge(x, z), x < y, y < z.
 '
 elapsedtime
+
+print triangles

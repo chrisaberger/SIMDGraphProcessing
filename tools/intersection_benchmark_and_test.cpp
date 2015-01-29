@@ -181,38 +181,46 @@ int main(int argc, char* argv[]) {
   }
 #endif
 
-  cout << "Density A: " << (double)len_a/(a[len_a-1]-a[0]) << endl;
-  cout << "Density B: " << (double)len_b/(b[len_b-1]-b[0])  << endl;
+  double denA = (double)len_a/(a[len_a-1]-a[0]);
+  double denB = (double)len_b/(b[len_b-1]-b[0]);
 
-  cout << endl << "UINTEGER_UINTEGER_STANDARD" << endl;
-  intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len_a, len_b, a, b,"uinteger_uinteger_standard",STANDARD);
+  uint32_t *in1 = (denA < denB) ? a:b;
+  uint32_t *in2 = (denA < denB) ? b:a;
+  const size_t len1 = (denA < denB) ? len_a:len_b;
+  const size_t len2 = (denA < denB) ? len_b:len_a;
 
-  cout << endl << "UINTEGER_UINTEGER_V3" << endl;
-  intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len_a, len_b, a, b,"uinteger_uinteger_v3",V3);
-
-  cout << endl << "UINTEGER_UINTEGER_V1" << endl;
-  intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len_a, len_b, a, b,"uinteger_uinteger_v1",V1);
-
-  cout << endl << "UINTEGER_UINTEGER_GALLOP" << endl;
-  intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len_a, len_b, a, b,"uinteger_uinteger_gallop",GALLOP);
+  cout << "Density A: " << min(denA,denB) << endl;
+  cout << "Density B: " << max(denA,denB) << endl;
 
   cout << endl << "UINTEGER_UINTEGER_IBM" << endl;
-  intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len_a, len_b, a, b,"uinteger_uinteger_ibm",IBM);
+  intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_ibm",IBM);
+
+  cout << endl << "UINTEGER_UINTEGER_STANDARD" << endl;
+  intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_standard",STANDARD);
+
+  cout << endl << "UINTEGER_UINTEGER_V3" << endl;
+  intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_v3",V3);
+
+  cout << endl << "UINTEGER_UINTEGER_V1" << endl;
+  intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_v1",V1);
+
+  cout << endl << "UINTEGER_UINTEGER_GALLOP" << endl;
+  intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_gallop",GALLOP);
 
   cout << endl << "PSHORT_PSHORT" << endl;
-  intersect<pshort,pshort,pshort,pshort,pshort>(len_a, len_b, a, b,"pshort_pshort",STANDARD);
+  intersect<pshort,pshort,pshort,pshort,pshort>(len1, len2, in1, in2, "pshort_pshort",STANDARD);
 
   cout << endl << "BITSET_BITSET" << endl;
-  intersect<bitset,bitset,bitset,bitset,bitset>(len_a, len_b, a, b,"bitset_bitset",STANDARD);
+  intersect<bitset,bitset,bitset,bitset,bitset>(len1, len2, in1, in2, "bitset_bitset",STANDARD);
 
   cout << endl << "UINTEGER_PSHORT" << endl;
-  intersect<pshort,pshort,uinteger,uinteger,uinteger>(len_a, len_b, a, b,"uinteger_pshort",STANDARD);
+  intersect<pshort,pshort,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_pshort",STANDARD);
 
   cout << endl << "UINTEGER_BITSET" << endl;
-  intersect<uinteger,uinteger,bitset,bitset,uinteger>(len_a, len_b, a, b,"uinteger_bitset",STANDARD);
+  intersect<uinteger,uinteger,bitset,bitset,uinteger>(len1, len2, in1, in2, "uinteger_bitset",STANDARD);
 
   cout << endl << "PSHORT_BITSET" << endl;
-  intersect<pshort,pshort,bitset,bitset,pshort>(len_a, len_b, a, b,"pshort_bitset",STANDARD);
+  intersect<pshort,pshort,bitset,bitset,pshort>(len1, len2, in1, in2, "pshort_bitset",STANDARD);
 
   return 0;
 }

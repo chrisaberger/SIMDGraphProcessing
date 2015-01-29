@@ -6,7 +6,7 @@ import os
 import signal
 
 # Timeout for queries
-timeout = 10
+timeout = 7200
 
 # Here come the queries
 def triangle_counting():

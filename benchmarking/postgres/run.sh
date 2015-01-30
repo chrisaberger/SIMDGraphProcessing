@@ -8,7 +8,7 @@ if [ "${3}" -eq "1" ]; then
       echo "Currently no queries with attributes"
     else
        psql -p ${PORT} -v dataset="${2}/glab_undirected/data.txt" -f load_undirected.sql
-       for app in "tadpole_counting"; do
+       for app in "lollipop_counting" "tadpole_counting"; do
           echo "----- ${app} -----"
           psql -p ${PORT} -v dataset=${2} -f ${app}.sql
        done

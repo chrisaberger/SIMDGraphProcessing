@@ -1,8 +1,8 @@
 #include "SparseMatrix.hpp"
 #include "common.hpp"
 
-//#define DEBUG
-//#define FROM_FILE
+#define DEBUG
+#define FROM_FILE
 
 #define BUF_SIZE 1024L * 1024L * 1024L
 #define DUMMY_SIZE 1024L * 1024L * 64L
@@ -221,6 +221,10 @@ int main(int argc, char* argv[]) {
 
   cout << endl << "PSHORT_BITSET" << endl;
   intersect<pshort,pshort,bitset,bitset,pshort>(len1, len2, in1, in2, "pshort_bitset",STANDARD);
+
+  cout << endl << "HYBRID" << endl;
+  intersect<hybrid,hybrid,hybrid,hybrid,hybrid>(len1, len2, in1, in2, "hybrid",STANDARD);
+
 
   return 0;
 }

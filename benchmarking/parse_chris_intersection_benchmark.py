@@ -46,11 +46,9 @@ def parse_file(f):
 
 def main():
   options = parseInput();
-  f_perf = open('intersection_perf.csv', 'w')
-  v_perf = open('vintersection_perf.csv', 'w')
-
-  f_mem = open('intersection_mem.csv', 'w')
-  f_constr = open('intersection_constr.csv', 'w')
+  f_perf = open('intersection_density_perf.csv', 'w')
+  v_perf = open('vintersection_density_perf.csv', 'w')
+  d_perf = open('dintersection_density_perf.csv', 'w')
 
   results = dict()
   mem_results = dict()
@@ -78,109 +76,74 @@ def main():
   my_keys = results.keys()
   my_keys.sort()
 
-  prev = 0.0
-  first = True
+  prev = -1
   f_perf.write('\t')
+  current_line = []
+  num_intersections = 0
   for k in my_keys:
-    if(k[0] == prev or first):
-      f_perf.write(str(k[1]) + "\t")
+    if(k[0] == prev or prev == -1):
+      num_intersections += 1
+      current_line.append(str(k[1]))
       prev = k[0]
-    first = False
-  f_perf.write('\n') 
+  f_perf.write("\t".join(current_line)) 
+  f_perf.write('\n')
 
-  lastDen = 0
-  first = True
+  d_perf.write("\t".join(current_line)) 
+  d_perf.write('\n')
+
+  current_line = []
+  current_line2 = []
+
   numShift = 0
+  lastDen = -1
+  first = True
+  diff = 1e6
+
+  current_line.append(str(my_keys[0][0]))
+  current_line2.append(str(my_keys[0][0]))
+
   for k in my_keys:
     times = results[k]
     denA = k[0]
     denB = k[1]
 
-    if(denA != lastDen):
-      if(first):
-        first = False
-      else:
-        f_perf.write('\n')
-      f_perf.write(str(denA) +'\t')
+    if(denA != lastDen and lastDen != -1):
+      f_perf.write("\t".join(current_line))
+      f_perf.write("\n")
 
-      incrementer = 0
-      while incrementer < numShift:
-        incrementer += 1
-        f_perf.write('-1\t')
+      d_perf.write("\t".join(current_line2))
+      d_perf.write("\n")
+
+      current_line = []
+      current_line.append(str(denA))
+      current_line2 = []
+      current_line2.append(str(denA))
+
       numShift += 1
+      for i in range(0,numShift):
+        current_line.append('-1')
+        current_line2.append('-1')
 
     lastDen = denA
 
-    if denA <= denB: 
-      curTup = k
-      results[curTup] = [average_runs(t) for t in times]
-      v_perf.write(str(curTup[0]) + "|" + str(curTup[1]) + ',')
+    curTup = k
+    results[curTup] = [average_runs(t) for t in times]
+    v_perf.write(str(curTup[0]) + "|" + str(curTup[1]) + ',')
 
-      lowest = 1e6
-      lowest_counter = 0
-      counter = 0
-      for kk in results[curTup]:
-        v_perf.write(str(kk) + '\t')
-        if(kk < lowest):
-          lowest_counter = counter
-          lowest = kk
-        counter = counter+ 1
+    lowest = 1e6
+    lowest_counter = 0
+    counter = 0
+    for kk in results[curTup]:
+      v_perf.write(str(kk) + ',')
+      if(kk < lowest and counter < (num_intersections-1)):
+        lowest_counter = counter
+        lowest = kk
+      diff = float((kk)/lowest) 
+      counter += 1
 
-      curTup = (denB,denA)
-      results[curTup] = [average_runs(t) for t in times]
-      for kk in results[curTup]:
-        v_perf.write(str(kk) + '\t')
-        if(kk < lowest):
-          lowest_counter = counter
-          lowest = kk
-        counter += 1
-      v_perf.write('\n')
-
-      f_perf.write(str(lowest_counter) + '\t')
-      #constr_results[curTup] = [average_runs(t) for t in times]
-      #densities_set.add(curTup)
-      #comps_set.add(k[1])
-      
-  comm = ''' 
-  densities = sorted(list(densities_set))
-  comps = sorted(list(comps_set))
-  f_perf.write("\t" + "\t".join([str(x) for x in comps]) + "\n")
-  for density in densities:
-    line = [density]
-    for comp in comps:
-      result = results[density, comp]
-      if result == []:
-        line.append("-1")
-      else:
-        line.append(np.argmin(result))
-    f_perf.write("\t".join([str(x) for x in line]) + "\n")
-
-  f_mem.write("\t" + "\t".join([str(x) for x in comps]) + "\n")
-  for density in densities:
-    line = [density]
-    for comp in comps:
-      result = mem_results[density, comp]
-      if result == []:
-        line.append("-1")
-      else:
-        line.append(np.argmin(result))
-    f_mem.write("\t".join([str(x) for x in line]) + "\n")
-
-  f_constr.write("\t" + "\t".join([str(x) for x in comps]) + "\n")
-  for density in densities:
-    line = [density]
-    for comp in comps:
-      result = constr_results[density, comp]
-      if result == []:
-        line.append("-1")
-      else:
-        line.append(np.argmin(result))
-    f_constr.write("\t".join([str(x) for x in line]) + "\n")
-
-  f_perf.close()
-  f_mem.close()
-  f_constr.close()
-  '''
+    v_perf.write('\n')
+    current_line.append(str(lowest_counter))
+    current_line2.append(str(diff))
 
 if __name__ == "__main__":
     main()

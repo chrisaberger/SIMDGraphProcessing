@@ -836,8 +836,8 @@ namespace ops{
         i_a += A[i_a+1] + 3;
         i_b += B[i_b+1] + 3;      
 
+        counter += (partition_size > 0) ? (partition_size):(-2);
         count += partition_size;
-        counter += partition_size;
         notFinished = i_a < s_a && i_b < s_b;
       }
     }

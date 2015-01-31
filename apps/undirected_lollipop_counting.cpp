@@ -62,48 +62,6 @@ class application{
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
 
-      /*
-      y_buffers->allocate(0);
-      z_buffers->allocate(0);
-      r_buffers->allocate(0);
-      uint32_t* y_buffer = y_buffers->data[0];
-      uint32_t* z_buffer = z_buffers->data[0];
-      std::cout << "SET 3" << << std::endl;
-      dbg1.foreach([&](uint32_t x) {
-          std::cout << x << std::endl;
-      });
-
-      std::cout << "SET 552" << std::endl;
-      dbg2.foreach([&](uint32_t x) {
-          std::cout << x << std::endl;
-      });
-      Set<R> rs(r_buffers->data[0]);
-      Set<R> dbg1 = this->graph->get_decoded_row(1, y_buffer);
-      Set<R> dbg2 = this->graph->get_decoded_row(552, z_buffer);
-      ops::set_intersect(&rs, &dbg2, &dbg1);
-
-      std::cout << "RESULT " << dbg1.type << " " << dbg2.type << std::endl;
-      rs.foreach([&](uint32_t x) {
-          std::cout << x << std::endl;
-      });
-
-      //dbg1 = this->graph->get_decoded_row(1, y_buffer);
-      dbg2 = this->graph->get_decoded_row(553, z_buffer);
-      ops::set_intersect(&rs, &dbg2, &dbg1);
-
-      std::cout << "RESULT " << dbg1.type << " " << dbg2.type << std::endl;
-      rs.foreach([&](uint32_t x) {
-          std::cout << x << std::endl;
-      });
-      //dbg1 = this->graph->get_decoded_row(1, y_buffer);
-      dbg2 = this->graph->get_decoded_row(554, z_buffer);
-      ops::set_intersect(&rs, &dbg2, &dbg1);
-
-      std::cout << "RESULT " << dbg1.type << " " << dbg2.type << std::endl;
-      rs.foreach([&](uint32_t x) {
-          std::cout << x << std::endl;
-      });*/
-
       double start_time = common::startClock();
       common::par_for_range(num_threads, 0, matrix_size, 100,
         [&](size_t tid){
@@ -114,17 +72,15 @@ class application{
         },
         ////////////////////////////////////////////////////
         [&](size_t tid, size_t x) {
-           Set<R> rs(r_buffers->data[tid]);
            long t_num_lollipops = 0;
            uint32_t* y_buffer = y_buffers->data[tid];
            uint32_t* z_buffer = z_buffers->data[tid];
 
            Set<R> ys = this->graph->get_decoded_row(x, y_buffer);
            ys.foreach([&](uint32_t y) {
+             Set<R> rs(r_buffers->data[tid]);
              Set<R> zs = this->graph->get_decoded_row(y, z_buffer);
-             //std::cout << x << " " << " " << y << "---" << zs.type << " " << ys.type << std::endl;
              ops::set_intersect(&rs, &ys, &zs);
-             //std::cout << rs.number_of_bytes << std::endl;
 
              rs.foreach([&](uint32_t r) {
                //std::cout << r << std::endl;

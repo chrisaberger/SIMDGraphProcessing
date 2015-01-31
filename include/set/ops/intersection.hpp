@@ -851,6 +851,7 @@ namespace ops{
 
     return C_in;
 }
+
 inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, const Set<bitset> *B_in){
     long count = 0l;
     C_in->number_of_bytes = 0;

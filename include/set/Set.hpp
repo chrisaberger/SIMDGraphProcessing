@@ -90,9 +90,9 @@ class Set{
     // [1] http://stackoverflow.com/questions/21407691/c11-inline-lambda-functions-without-template
     template<typename F>
     void foreach(F f) const {
-      std::cout << number_of_bytes << std::endl;
-      std::cout << number_of_bytes << std::endl;
-      std::cout << "---" << std::endl;
+      /*std::cout << number_of_bytes << std::endl;
+      std::cout << number_of_bytes << std::endl;*/
+      //std::cout << "---" << std::endl;
       T::foreach(f,data,cardinality,number_of_bytes,type);
     }
 

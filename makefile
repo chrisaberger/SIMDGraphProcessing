@@ -7,9 +7,9 @@ ifeq ($(UNAME), Linux)
 	LIBS=-lnuma
 endif
 
-CXX ?= g++-4.7
-# CXX = /dfs/scratch0/noetzli/downloads/tmp/cilkplus-install/bin/g++
-override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -O3 -Wall -Wextra -Wcast-align -march=native
+#CXX ?= g++-4.7
+#CXX = /dfs/scratch0/noetzli/downloads/tmp/cilkplus-install/bin/g++
+override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -O3 -Wall -Wextra -Wcast-align -march=native -mtune=native
 
 INCLUDE_DIRS=-Iinclude
 OBJDIR=build

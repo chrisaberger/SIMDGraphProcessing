@@ -14,20 +14,25 @@ class bitpacked{
     static size_t build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length);
     static tuple<size_t,size_t,common::type> get_flattened_data(const uint8_t *set_data, const size_t cardinality);
 
+    template<typename F>
+    static void foreach(
+        F f,
+        const uint8_t *data_in,
+        const size_t cardinality,
+        const size_t number_of_bytes,
+        const common::type t);
+
+    template<typename F>
+    static void foreach_until(
+        F f,
+        const uint8_t *data_in,
+        const size_t cardinality,
+        const size_t number_of_bytes,
+        const common::type t);
+
     static size_t get_num_simd_packed(size_t cardinality);
     static size_t simd_bit_pack(const uint8_t bits_used, const uint32_t *data, size_t data_index, size_t num_simd_packed, uint8_t *result_in, size_t result_i);
     static uint32_t produce_deltas(const uint32_t *data_in, size_t length, uint32_t *data, size_t num_simd_packed);
-
-    static void foreach_until(const std::function <bool (uint32_t)>& f,
-      const uint8_t *data_in, 
-      const size_t cardinality, 
-      const size_t number_of_bytes,
-      const common::type type);
-    static void foreach(const std::function <void (uint32_t)>& f,
-      const uint8_t *data_in, 
-      const size_t cardinality, 
-      const size_t number_of_bytes,
-      const common::type type);
 };
 
 inline common::type bitpacked::get_type(){
@@ -166,11 +171,14 @@ inline tuple<size_t,size_t,common::type> bitpacked::get_flattened_data(const uin
     return make_tuple(0,0,common::BITPACKED);
   }
 }
-inline void bitpacked::foreach_until(const std::function <bool (uint32_t)>& f, 
-  const uint8_t *A_in, 
-  const size_t cardinality, 
-  const size_t number_of_bytes, 
-  const common::type type){
+
+template<typename F>
+inline void bitpacked::foreach_until(
+    F f,
+    const uint8_t *A_in,
+    const size_t cardinality,
+    const size_t number_of_bytes,
+    const common::type type) {
   (void) number_of_bytes; (void) type;
 
   size_t data_i = 1;
@@ -259,11 +267,14 @@ inline void bitpacked::foreach_until(const std::function <bool (uint32_t)>& f,
   }
   DONE: ;
 }
-inline void bitpacked::foreach(const std::function <void (uint32_t)>& f, 
-  const uint8_t *A_in, 
-  const size_t cardinality, 
-  const size_t number_of_bytes, 
-  const common::type type){
+
+template<typename F>
+inline void bitpacked::foreach(
+    F f,
+    const uint8_t *A_in,
+    const size_t cardinality,
+    const size_t number_of_bytes,
+    const common::type type) {
   (void) number_of_bytes; (void) type;
 
   size_t data_i = 1;

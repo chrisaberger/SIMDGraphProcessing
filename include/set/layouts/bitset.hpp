@@ -21,16 +21,22 @@ class bitset{
     static size_t build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length);
     static tuple<size_t,size_t,common::type> get_flattened_data(const uint8_t *set_data, const size_t cardinality);
 
-    static void foreach_until(const std::function <bool (uint32_t)>& f,
-      const uint8_t *data_in,
-      const size_t cardinality,
-      const size_t number_of_bytes,
-      const common::type type);
-    static void foreach(const std::function <void (uint32_t)>& f,
-      const uint8_t *data_in,
-      const size_t cardinality,
-      const size_t number_of_bytes,
-      const common::type type);
+    template<typename F>
+    static void foreach(
+        F f,
+        const uint8_t *data_in,
+        const size_t cardinality,
+        const size_t number_of_bytes,
+        const common::type t);
+
+    template<typename F>
+    static void foreach_until(
+        F f,
+        const uint8_t *data_in,
+        const size_t cardinality,
+        const size_t number_of_bytes,
+        const common::type t);
+
     static void par_foreach(
       const size_t num_threads,
       const std::function <void (size_t, uint32_t)>& f,
@@ -114,11 +120,13 @@ inline tuple<size_t,size_t,common::type> bitset::get_flattened_data(const uint8_
 }
 
 //Iterates over set applying a lambda.
-inline void bitset::foreach_until(const std::function <bool (uint32_t)>& f,
-  const uint8_t *A,
-  const size_t cardinality,
-  const size_t number_of_bytes,
-  const common::type type){
+template<typename F>
+inline void bitset::foreach_until(
+    F f,
+    const uint8_t *A,
+    const size_t cardinality,
+    const size_t number_of_bytes,
+    const common::type type) {
   (void) cardinality; (void) type;
 
   if(number_of_bytes > 0){
@@ -139,11 +147,13 @@ inline void bitset::foreach_until(const std::function <bool (uint32_t)>& f,
 }
 
 //Iterates over set applying a lambda.
-inline void bitset::foreach(const std::function <void (uint32_t)>& f,
-  const uint8_t * const A,
-  const size_t cardinality,
-  const size_t number_of_bytes,
-  const common::type type){
+template<typename F>
+inline void bitset::foreach(
+    F f,
+    const uint8_t * const A,
+    const size_t cardinality,
+    const size_t number_of_bytes,
+    const common::type type) {
   (void) cardinality; (void) type;
 
   if(number_of_bytes > 0){

@@ -181,8 +181,8 @@ int main(int argc, char* argv[]) {
   }
 #endif
 
-  double denA = (double)len_a/(a[len_a-1]-a[0]);
-  double denB = (double)len_b/(b[len_b-1]-b[0]);
+  double denA = (double)len_a / (a[len_a-1]-a[0]);
+  double denB = (double)len_b / (b[len_b-1]-b[0]);
 
   uint32_t *in1 = (denA < denB) ? a:b;
   uint32_t *in2 = (denA < denB) ? b:a;

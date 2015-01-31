@@ -37,7 +37,7 @@ class Table{
         }
       }
       T *cur_column = data[num_columns-1]+offset;
-      c.foreach([num_columns,cur_column,data,id_map](uint32_t data){
+      c.foreach([this,cur_column,id_map](uint32_t data){
         cur_column[num_columns-1] = id_map[data];
       });
     }

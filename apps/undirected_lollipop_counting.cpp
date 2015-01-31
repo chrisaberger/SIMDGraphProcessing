@@ -62,12 +62,13 @@ class application{
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
 
+      /*
       y_buffers->allocate(0);
       z_buffers->allocate(0);
       r_buffers->allocate(0);
       uint32_t* y_buffer = y_buffers->data[0];
       uint32_t* z_buffer = z_buffers->data[0];
-/*      std::cout << "SET 3" << << std::endl;
+      std::cout << "SET 3" << << std::endl;
       dbg1.foreach([&](uint32_t x) {
           std::cout << x << std::endl;
       });

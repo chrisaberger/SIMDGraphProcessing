@@ -2,7 +2,7 @@
 #include "common.hpp"
 
 #define DEBUG
-#define FROM_FILE
+//#define FROM_FILE
 
 #define BUF_SIZE 1024L * 1024L * 1024L
 #define DUMMY_SIZE 1024L * 1024L * 64L
@@ -192,6 +192,7 @@ int main(int argc, char* argv[]) {
   cout << "Density A: " << min(denA,denB) << endl;
   cout << "Density B: " << max(denA,denB) << endl;
 
+  /*
   cout << endl << "UINTEGER_UINTEGER_IBM" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_ibm",IBM);
 
@@ -212,7 +213,8 @@ int main(int argc, char* argv[]) {
 
   cout << endl << "BITSET_BITSET" << endl;
   intersect<bitset,bitset,bitset,bitset,bitset>(len1, len2, in1, in2, "bitset_bitset",STANDARD);
-
+  */
+  
   cout << endl << "UINTEGER_PSHORT" << endl;
   intersect<pshort,pshort,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_pshort",STANDARD);
 

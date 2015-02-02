@@ -21,8 +21,23 @@ class hybrid{
     static size_t build(uint8_t *r_in, const uint32_t *data, const size_t length);
     static size_t build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length);
     static tuple<size_t,size_t,common::type> get_flattened_data(const uint8_t *set_data, const size_t cardinality);
-    static void foreach_until(const std::function <bool (uint32_t)>& f,const uint8_t *data_in, const size_t cardinality, const size_t number_of_bytes, const common::type t);
-    static void foreach(const std::function <void (uint32_t)>& f,const uint8_t *data_in, const size_t cardinality, const size_t number_of_bytes, const common::type t);
+
+    template<typename F>
+    static void foreach(
+        F f,
+        const uint8_t *data_in,
+        const size_t cardinality,
+        const size_t number_of_bytes,
+        const common::type t);
+
+    template<typename F>
+    static void foreach_until(
+        F f,
+        const uint8_t *data_in,
+        const size_t cardinality,
+        const size_t number_of_bytes,
+        const common::type t);
+
     static void par_foreach(
       const size_t num_threads,
       const std::function <void (size_t, uint32_t)>& f,
@@ -158,37 +173,38 @@ inline tuple<size_t,size_t,common::type> hybrid::get_flattened_data(const uint8_
     case common::UINTEGER :
       mytup = uinteger::get_flattened_data(&set_data[1],cardinality);
       get<0>(mytup)++;
-      return mytup;
-    break;
+      break;
     case common::PSHORT :
       mytup = pshort::get_flattened_data(&set_data[1],cardinality);
       get<0>(mytup)++;
-      return mytup;
-    break;
+      break;
     case common::BITSET :
       mytup = bitset::get_flattened_data(&set_data[1],cardinality);
       get<0>(mytup)++;
-      return mytup;
-    break;
+      break;
     case common::VARIANT :
       mytup = variant::get_flattened_data(&set_data[1],cardinality);
       get<0>(mytup)++;
-      return mytup;
-    break;
+      break;
     case common::BITPACKED :
       mytup = bitpacked::get_flattened_data(&set_data[1],cardinality);
       get<0>(mytup)++;
-      return mytup;
-    break;
+      break;
     default:
-      return make_tuple(0,0,common::UINTEGER);
+      mytup = make_tuple(0,0,common::UINTEGER);
+      break;
   }
+  return mytup;
 }
 
 //Iterates over set applying a lambda.
-inline void hybrid::foreach_until(const std::function <bool (uint32_t)>& f, const uint8_t *data_in, 
-  const size_t cardinality, const size_t number_of_bytes, const common::type t){
-
+template<typename F>
+inline void hybrid::foreach_until(
+    F f,
+    const uint8_t *data_in,
+    const size_t cardinality,
+    const size_t number_of_bytes,
+    const common::type t) {
   switch(t){
     case common::UINTEGER :
       uinteger::foreach(f,data_in,cardinality,number_of_bytes,common::UINTEGER);
@@ -211,27 +227,31 @@ inline void hybrid::foreach_until(const std::function <bool (uint32_t)>& f, cons
 }
 
 //Iterates over set applying a lambda.
-inline void hybrid::foreach(const std::function <void (uint32_t)>& f, const uint8_t *data_in, 
-  const size_t cardinality, const size_t number_of_bytes, const common::type t){
-
+template<typename F>
+inline void hybrid::foreach(
+    F f,
+    const uint8_t *data_in,
+    const size_t cardinality,
+    const size_t number_of_bytes,
+    const common::type t) {
   switch(t){
     case common::UINTEGER :
       uinteger::foreach(f,data_in,cardinality,number_of_bytes,common::UINTEGER);
-    break;
+      break;
     case common::PSHORT :
       pshort::foreach(f,data_in,cardinality,number_of_bytes,common::PSHORT);
-    break;
+      break;
     case common::BITSET :
       bitset::foreach(f,data_in,cardinality,number_of_bytes,common::BITSET);
-    break;
+      break;
     case common::VARIANT :
       variant::foreach(f,data_in,cardinality,number_of_bytes,common::BITSET);
-    break;
+      break;
     case common::BITPACKED :
       bitpacked::foreach(f,data_in,cardinality,number_of_bytes,common::BITSET);
-    break;
+      break;
     default:
-    break;
+      break;
   }
 }
 

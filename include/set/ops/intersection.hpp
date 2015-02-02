@@ -851,6 +851,7 @@ namespace ops{
 
     return C_in;
 }
+
 inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, const Set<bitset> *B_in){
     long count = 0l;
     C_in->number_of_bytes = 0;
@@ -858,7 +859,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     if(A_in->number_of_bytes > 0 && B_in->number_of_bytes > 0){
       const uint32_t *a_index = (uint32_t*) A_in->data;
       const uint32_t *b_index = (uint32_t*) B_in->data;
-      
+
       uint64_t * const C = (uint64_t*)(C_in->data+sizeof(uint32_t));
       const uint64_t * const A = (uint64_t*)(A_in->data+sizeof(uint32_t));
       const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint32_t));
@@ -881,7 +882,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       //8 ints
       //4 longs
       size_t i = 0;
-      
+
       #if WRITE_VECTOR == 1
       uint32_t *c_index = (uint32_t*) C_in->data;
       c_index[0] = start_index;
@@ -891,12 +892,12 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
 
       #if VECTORIZE == 1
       while((i+3) < total_size){
-        const __m256 a1 = _mm256_loadu_ps((const float*)&A[i+a_start_index]);
-        const __m256 a2 = _mm256_loadu_ps((const float*)&B[i+b_start_index]);
+        const __m256 a1 = _mm256_loadu_ps((const float*)(A + i + a_start_index));
+        const __m256 a2 = _mm256_loadu_ps((const float*)(B + i + b_start_index));
         const __m256 r = _mm256_and_ps(a2, a1);
 
         #if WRITE_VECTOR == 1
-        _mm256_storeu_ps((float*)&C[i], r);
+        _mm256_storeu_ps((float*)(C + i), r);
         #endif
 
         _mm256_storeu_ps((float*)tmp, r);
@@ -904,7 +905,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         count += _mm_popcnt_u64(tmp[1]);
         count += _mm_popcnt_u64(tmp[2]);
         count += _mm_popcnt_u64(tmp[3]);
-  
+
         i += 4;
       }
       #endif
@@ -915,7 +916,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         #if WRITE_VECTOR == 1
         C[i] = result;
         #endif
-        
+
         count += _mm_popcnt_u64(result);
       }
       C_in->number_of_bytes = total_size*sizeof(uint64_t)+sizeof(uint32_t);
@@ -943,35 +944,36 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     #endif
 
     size_t count = 0;
-    size_t counter = 0;
-    for(size_t i = 0; i < s_a; i++){
+    size_t write_pos = 0;
+    for(size_t i = 0; i < s_a;) {
       const uint32_t prefix = (A[i] << 16);
-      const uint16_t size = A[i+1]+1;
+      const uint32_t size = A[i+1];
       i += 2;
 
-      const size_t old_count = count;
-      const size_t old_counter = counter;
-      counter += 2;
+      const size_t part_header_pos = write_pos;
+      size_t part_count = 0;
+      write_pos += 2;
 
-      const size_t inner_end = i+size;
-      while(i < inner_end){
+      const size_t part_end = i + size;
+      for(; i <= part_end; i++) {
         const uint32_t cur = prefix | A[i];
+        const size_t cur_index = bitset::word_index(cur);
+
         //Why not do bounds check in is_set?
-        if((bitset::word_index(cur) < (s_b+start_index)) && (bitset::word_index(cur) >= start_index) && bitset::is_set(cur,B,start_index)){
+        if((cur_index < (s_b+start_index)) && (cur_index >= start_index) && bitset::is_set(cur,B,start_index)){
           #if WRITE_VECTOR == 1
-          C[counter++] = A[i];
+          C[write_pos++] = A[i];
           #endif
+          part_count++;
           count++;
         }
-        ++i;
       }
-      i--;
 
-      if(old_counter == (counter-2)){
-        counter = old_counter;
+      if(part_count == 0) {
+        write_pos -= 2;
       } else{
-        C[old_counter] = (prefix >> 16);
-        C[old_counter+1] = count-old_count-1;
+        C[part_header_pos] = (prefix >> 16);
+        C[part_header_pos + 1] = part_count - 1;
       }
     }
 
@@ -979,15 +981,17 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     const double density = 0.0;
 
     C_in->cardinality = count;
-    C_in->number_of_bytes = counter*sizeof(uint16_t);
+    C_in->number_of_bytes = write_pos * sizeof(uint16_t);
     C_in->density = density;
     C_in->type= common::PSHORT;
 
     return C_in;
   }
+
   inline Set<pshort>* set_intersect(Set<pshort> *C_in,const Set<bitset> *A_in,const Set<pshort> *B_in){
     return set_intersect(C_in,B_in,A_in);
   }
+
   inline Set<uinteger>* set_intersect(Set<uinteger> *C_in,const Set<uinteger> *A_in,const Set<bitset> *B_in){
     uint32_t * const C = (uint32_t*)C_in->data;
     const uint32_t * const A = (uint32_t*)A_in->data;

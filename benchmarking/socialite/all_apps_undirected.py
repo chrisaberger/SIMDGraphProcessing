@@ -10,22 +10,22 @@ timeout = 7200
 
 # Here come the queries
 def triangle_counting():
-  `total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(x, z).`
+  `total(0, $sum(1L)) :- edge(x, y), edge(y, z), edge(x, z).`
 
 def clique_counting():
-  `total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), edge(x, z), edge(y, w).`
+  `total(0, $sum(1L)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), edge(x, z), edge(y, w).`
 
 def cycle_counting():
-  `total(0, $sum(1)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), x != z.`
+  `total(0, $sum(1L)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), x != z.`
 
 def lollipop_counting():
-  `total(0, $sum(1)) :- uedge(x, y), uedge(y, z), uedge(x, z), uedge(x, w), y < z, w != y, w != z.`
+  `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), uedge(x, z), y < z, uedge(x, w), w != y, w != z.`
 
 def tadpole_counting():
-  `total(0, $sum(1)) :- uedge(x, y), uedge(y, z), uedge(z, w), uedge(x, w), uedge(x, a), uedge(a, b), y < z, x != z, y != w, a != y, a != z, a != w, b != x.`
+  `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), x != z, uedge(z, w), y != w, uedge(x, w), w < y, uedge(x, a), a != y, a != z, a != w, uedge(a, b), b != x.`
 
 def barbell_counting():
-  `total(0, $sum(1)) :- uedge(x, y), uedge(y, z), uedge(x, z), uedge(x, a), uedge(a, b), uedge(b, c), uedge(a, c), a != y, a != z, y < z, b < c, x < a.`
+  `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), uedge(x, z), uedge(x, a), uedge(a, b), uedge(b, c), uedge(a, c), a != y, a != z, y < z, b < c, x < a.`
 
 def benchmark_query(name, fn, num_runs):
   print
@@ -60,7 +60,7 @@ if __name__ == '__main__':
   `edge(int a:0..20000000, (int b)) indexby a, sortby b.
    uedge(int a:0..20000000, (int b)) indexby a, sortby b.
    edgeRaw(int a:0..20000000, (int b)) indexby a, sortby b.
-   total(int x:0..0, int s).
+   total(int x:0..0, long s).
    edgeRaw(a, b) :- l = $read($filename), (v1,v2) = $split(l, " "), a = $toInt(v1), b = $toInt(v2).`
 
   print "Preprocessing data"

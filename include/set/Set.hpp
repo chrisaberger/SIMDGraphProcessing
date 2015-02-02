@@ -82,9 +82,31 @@ class Set{
       type = in->type;
     }
 
-    //basic traversal
-    void foreach(const std::function <void (uint32_t)>& f) const;
-    void foreach_until(const std::function <bool (uint32_t)>& f);
+    // Applies a function to each element in the set.
+    //
+    // Note: We use templates here to allow the compiler to inline the
+    // lambda [1].
+    //
+    // [1] http://stackoverflow.com/questions/21407691/c11-inline-lambda-functions-without-template
+    template<typename F>
+    void foreach(F f) const {
+      /*std::cout << number_of_bytes << std::endl;
+      std::cout << number_of_bytes << std::endl;*/
+      //std::cout << "---" << std::endl;
+      T::foreach(f,data,cardinality,number_of_bytes,type);
+    }
+
+    // Applies a function to each element in the set until the function returns
+    // true.
+    //
+    // Note: We use templates here to allow the compiler to inline the
+    // lambda [1].
+    //
+    // [1] http://stackoverflow.com/questions/21407691/c11-inline-lambda-functions-without-template
+    template<typename F>
+    void foreach_until(F f) const {
+      T::foreach_until(f,data,cardinality,number_of_bytes,type);
+    }
 
     void par_foreach(const size_t num_threads, const std::function <void (size_t, uint32_t)>& f);
     Set<uinteger> decode(uint32_t *buffer);
@@ -95,22 +117,6 @@ class Set{
     static Set<T> from_flattened(uint8_t *set_data, size_t cardinality_in);
     static size_t flatten_from_array(uint8_t *set_data, const uint32_t * const array_data, const size_t data_size);
 };
-
-///////////////////////////////////////////////////////////////////////////////
-// Apply a function to each element in the set
-///////////////////////////////////////////////////////////////////////////////
-template <class T>
-inline void Set<T>::foreach(const std::function <void (uint32_t)>& f) const {
-  T::foreach(f,data,cardinality,number_of_bytes,type);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// Iterate over the set until something is true
-///////////////////////////////////////////////////////////////////////////////
-template <class T>
-inline void Set<T>::foreach_until(const std::function <bool (uint32_t)>& f) {
-  T::foreach_until(f,data,cardinality,number_of_bytes,type);
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Apply a function to each element in the set in parallel

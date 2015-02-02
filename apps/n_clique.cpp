@@ -62,7 +62,7 @@ class application{
       #endif
       return C->cardinality;
     } else{
-      C->foreach([this,&count,depth,set_buffers,output,query_depth,decode_buffers] (uint32_t i){
+      C->foreach([this,&count,depth,set_buffers,output,decode_buffers] (uint32_t i){
         output->tuple[depth-1] = graph->id_map[i]; 
         count += this->apply_function(i,depth,set_buffers,decode_buffers,output);
       });
@@ -81,7 +81,7 @@ class application{
 
     common::par_for_range(num_threads,0,matrix_size,100,
       ///////////////////////////////////////////////////////////
-      [this,query_depth,set_buffers,decode_buffers,output,graph](size_t tid){
+      [this,set_buffers,decode_buffers,output](size_t tid){
         for(size_t j = 0; j < query_depth; j++){
           set_buffers[PADDING*tid*query_depth+j] = new Set<R>(graph->matrix_size*8*8); //OVERALLOCATING FOR BITSET
         }
@@ -89,7 +89,7 @@ class application{
         output->allocate(tid);
       },
       //////////////////////////////////////////////////////////
-      [this,output,query_depth,set_buffers,decode_buffers](size_t tid, size_t i) {
+      [this,output,set_buffers,decode_buffers](size_t tid, size_t i) {
         Table<uint32_t> *thread_decode_buffers = decode_buffers->table[tid];
         Table<uint64_t> *thread_output = output->table[tid];
         Set<R> **thread_set_buffers = &set_buffers[PADDING*tid*query_depth];
@@ -98,7 +98,7 @@ class application{
         thread_output->tuple[0] = graph->id_map[i];  
         thread_set_buffers[1] = &A;
 
-        A.foreach([this,tid,query_depth,thread_decode_buffers,thread_set_buffers,thread_output] (uint32_t j){
+        A.foreach([this,tid,thread_decode_buffers,thread_set_buffers,thread_output] (uint32_t j){
           thread_output->tuple[1] = graph->id_map[j];  
           thread_output->cardinality += this->apply_function(j,2,thread_set_buffers,thread_decode_buffers,thread_output);
         });

@@ -13,20 +13,25 @@ class variant{
     static size_t build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length);
     static tuple<size_t,size_t,common::type> get_flattened_data(const uint8_t *set_data, const size_t cardinality);
 
+    template<typename F>
+    static void foreach(
+        F f,
+        const uint8_t *data_in,
+        const size_t cardinality,
+        const size_t number_of_bytes,
+        const common::type t);
+
+    template<typename F>
+    static void foreach_until(
+        F f,
+        const uint8_t *data_in,
+        const size_t cardinality,
+        const size_t number_of_bytes,
+        const common::type t);
+
     static uint32_t produce_deltas(const uint32_t *data_in, const size_t length, uint32_t *data, uint32_t prev); 
     static size_t encode(const uint32_t *data, size_t data_i, const size_t length, uint8_t *result, size_t result_i);
     static uint32_t decode(const uint8_t *data, size_t &data_i);
-
-    static void foreach_until(const std::function <bool (uint32_t)>& f,
-      const uint8_t *data_in, 
-      const size_t cardinality, 
-      const size_t number_of_bytes,
-      const common::type type);
-    static void foreach(const std::function <void (uint32_t)>& f,
-      const uint8_t *data_in, 
-      const size_t cardinality, 
-      const size_t number_of_bytes,
-      const common::type type);
 };
 
 inline common::type variant::get_type(){
@@ -123,11 +128,13 @@ inline tuple<size_t,size_t,common::type> variant::get_flattened_data(const uint8
 }
 
 //Iterates over set applying a lambda.
-inline void variant::foreach_until(const std::function <bool (uint32_t)>& f, 
-  const uint8_t *A_in, 
-  const size_t cardinality, 
-  const size_t number_of_bytes, 
-  const common::type type){
+template<typename F>
+inline void variant::foreach_until(
+    F f,
+    const uint8_t *A_in,
+    const size_t cardinality,
+    const size_t number_of_bytes,
+    const common::type type) {
   (void) number_of_bytes; (void) type;
 
   if(cardinality != 0){
@@ -152,11 +159,13 @@ inline void variant::foreach_until(const std::function <bool (uint32_t)>& f,
 }
 
 //Iterates over set applying a lambda.
-inline void variant::foreach(const std::function <void (uint32_t)>& f, 
-  const uint8_t *A_in, 
-  const size_t cardinality, 
-  const size_t number_of_bytes, 
-  const common::type type){
+template<typename F>
+inline void variant::foreach(
+    F f,
+    const uint8_t *A_in,
+    const size_t cardinality,
+    const size_t number_of_bytes,
+    const common::type type) {
   (void) number_of_bytes; (void) type;
 
   if(cardinality != 0){

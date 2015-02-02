@@ -27,6 +27,9 @@ def tadpole_counting():
 def barbell_counting():
   `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), uedge(x, z), uedge(x, a), uedge(a, b), uedge(b, c), uedge(a, c), a != y, a != z, y < z, b < c, x < a.`
 
+def fish_counting():
+  `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), uedge(x, z), y < z, uedge(x, w), w != y, w != z, uedge(w, a), a != x, a != y, a!= z, uedge(a, b), uedge(x, b), b < w, b != z, b != y.`
+
 def benchmark_query(name, fn, num_runs):
   print
 
@@ -75,7 +78,8 @@ if __name__ == '__main__':
       "cycle_counting": cycle_counting,
       "lollipop_counting": lollipop_counting,
       "tadpole_counting": tadpole_counting,
-      "barbell_counting": barbell_counting }
+      "barbell_counting": barbell_counting,
+      "fish_counting": fish_counting }
 
   query = sys.argv[3]
   benchmark_query(query, queries[query], num_runs)

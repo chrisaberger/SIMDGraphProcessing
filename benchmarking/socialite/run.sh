@@ -11,5 +11,5 @@ else
   ${SOCIALITE_HOME}/bin/socialite -t$3 all_apps_undirected.py $2 $1 cycle_counting
   ${SOCIALITE_HOME}/bin/socialite -t$3 all_apps_undirected.py $2 $1 lollipop_counting
   ${SOCIALITE_HOME}/bin/socialite -t$3 all_apps_undirected.py $2 $1 tadpole_counting
-  ${SOCIALITE_HOME}/bin/socialite -t$3 all_apps_undirected.py $2 $1 barbell_counting
+  ${SOCIALITE_HOME}/bin/socialite -t$3 all_apps_undirected.py $2 $1 fish_counting
 fi

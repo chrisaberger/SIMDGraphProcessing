@@ -1,4 +1,5 @@
-// class templates
+#define WRITE_VECTOR 1
+
 #include "SparseMatrix.hpp"
 #include "MutableGraph.hpp"
 #include "pcm_helper.hpp"

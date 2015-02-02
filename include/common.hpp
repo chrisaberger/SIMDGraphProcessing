@@ -37,10 +37,9 @@
 #define REALLOC_THRESHOLD 0.9
 
 //Needed for parallelization, prevents false sharing of cache lines
-#define PADDING 300 
+#define PADDING 300
 
 //#define ATTRIBUTES
-#define WRITE_VECTOR 0
 #define WRITE_TABLE 0
 
 #define COMPRESSION 0

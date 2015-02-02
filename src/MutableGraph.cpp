@@ -164,7 +164,7 @@ void MutableGraph::reorder_by_shingles() {
     }
   }
 
-  auto cmp_nodes = [&shingles](uint32_t a, uint32_t b) {
+  auto cmp_nodes = [&shingles](uint32_t a, uint32_t b) -> bool {
     for(size_t i = 0; i < num_orderings; i++) {
       uint32_t a_val = shingles.at(i).at(a);
       uint32_t b_val = shingles.at(i).at(b);

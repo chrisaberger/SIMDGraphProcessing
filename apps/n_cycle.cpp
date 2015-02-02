@@ -1,4 +1,5 @@
-// class templates
+#define WRITE_VECTOR 0
+
 #include "SparseMatrix.hpp"
 #include "pcm_helper.hpp"
 #include "Table.hpp"

@@ -129,7 +129,14 @@ namespace ops{
 
       assert(lenRare <= lenFreq);
       const uint32_t *matchOrig = matchOut;
-      if (lenFreq == 0 || lenRare == 0) return 0;
+      if (lenFreq == 0 || lenRare == 0){
+        const size_t density = 0.0;
+        C_in->cardinality = 0;
+        C_in->number_of_bytes = (0)*sizeof(uint32_t);
+        C_in->density = density;
+        C_in->type= common::UINTEGER;
+        return C_in;
+      }
 
       const uint64_t kFreqSpace = 2 * 4 * (0 + 1) - 1;
       const uint64_t kRareSpace = 0;
@@ -244,8 +251,14 @@ namespace ops{
       const size_t lenFreq = B_in->cardinality;
       uint32_t *out = (uint32_t*)C_in->data;
 
-      if (lenFreq == 0 || lenRare == 0)
-          return 0;
+      if (lenFreq == 0 || lenRare == 0){
+        const size_t density = 0.0;
+        C_in->cardinality = 0;
+        C_in->number_of_bytes = (0)*sizeof(uint32_t);
+        C_in->density = density;
+        C_in->type= common::UINTEGER;
+        return C_in;
+      }
       assert(lenRare <= lenFreq);
       const uint32_t *const initout(out);
       typedef __m128i vec;
@@ -383,8 +396,14 @@ namespace ops{
       const size_t lenFreq = B_in->cardinality;
       uint32_t *out = (uint32_t*)C_in->data;
 
-      if (lenFreq == 0 || lenRare == 0)
-          return 0;
+      if (lenFreq == 0 || lenRare == 0){
+        const size_t density = 0.0;
+        C_in->cardinality = 0;
+        C_in->number_of_bytes = (0)*sizeof(uint32_t);
+        C_in->density = density;
+        C_in->type= common::UINTEGER;
+        return C_in;
+      }
       assert(lenRare <= lenFreq);
       const uint32_t *const initout(out);
       typedef __m128i vec;

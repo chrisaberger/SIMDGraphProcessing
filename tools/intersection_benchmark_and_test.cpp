@@ -1,3 +1,5 @@
+#define WRITE_VECTOR 0
+
 #include "SparseMatrix.hpp"
 #include "common.hpp"
 
@@ -99,6 +101,36 @@ uint64_t c_str_to_uint64_t(char* str) {
   return result;
 }
 
+vector<uint32_t> gen_set(uint64_t len, double density) {
+  set<uint32_t> result;
+
+  const uint64_t max_offset = len * 0.1;
+  const uint32_t min_v = rand() % max_offset;
+  const uint32_t max_v = min_v + len / density;
+
+  uint32_t v = min_v;
+  while(result.size() < len - 1) {
+    while(result.find(v) != result.end()) {
+      v = rand() % (max_v - min_v - 1) + min_v + 1;
+    }
+    result.insert(v);
+  }
+
+  result.insert(max_v);
+
+  return vector<uint32_t>(result.begin(), result.end());
+}
+
+void vector_to_file(string file, vector<uint32_t>& v) {
+  ofstream out_file;
+  out_file.open(file);
+
+  for(auto n : v)
+    out_file << n << endl;
+
+  out_file.close();
+}
+
 int main(int argc, char* argv[]) {
   ops::prepare_shuffling_dictionary16();
 
@@ -133,66 +165,42 @@ int main(int argc, char* argv[]) {
   myfileB.close();
 
 #else
-  if(argc != 4) {
-    std::cout << "Expected 3 arguments: Size Range, density a, density b" << std::endl;
+  if(argc != 5) {
+    std::cout << "Expected 4 arguments: len a, len b, density a, density b" << std::endl;
     return -1;
   }
   srand(time(NULL));
 
-  const uint64_t n = c_str_to_uint64_t(argv[1]);
-  double densityA = std::stod(argv[2]);
-  double densityB = std::stod(argv[3]);
-  const uint64_t max_offset = n*0.1;
+  const uint64_t len_a = atoi(argv[1]);
+  const uint64_t len_b = atoi(argv[2]);
+  double density_a = std::stod(argv[3]);
+  double density_b = std::stod(argv[4]);
 
-  uint32_t a_v = rand() % max_offset;
-  uint32_t b_v = rand() % max_offset;
-
-  const uint32_t a_e = n+a_v;
-  const uint32_t b_e = n+b_v;
-
-  const uint32_t len_a = (densityA*n);
-  const uint32_t len_b = (densityB*n);
-
-  uint32_t* a = new uint32_t[n];
-  uint32_t* b = new uint32_t[n];
+  vector<uint32_t> vec_a = gen_set(len_a, density_a);
+  vector<uint32_t> vec_b = gen_set(len_b, density_b);
+  uint32_t* a = vec_a.data();
+  uint32_t* b = vec_b.data();
 
 #ifdef DEBUG
-  ofstream myfileA;
-  myfileA.open("input_a");
-  myfileA << len_a << endl;
-  ofstream myfileB;
-  myfileB.open("input_b");
-  myfileB << len_b << endl;
+  vector_to_file("input_a", vec_a);
+  vector_to_file("input_b", vec_b);
 #endif
 
-  for(uint64_t i = 0; i < len_a; i++) {
-#ifdef DEBUG
-    myfileA << a_v << endl;
-#endif
-    a[i] = a_v;
-    a_v += (rand() % ((a_e-a_v)/(len_a-i)))+1;
-  }
-  for(uint64_t i = 0; i < len_b; i++) {
-#ifdef DEBUG
-    myfileB << b_v << endl;
-#endif
-    b[i] = b_v;
-    b_v += (rand() % (b_e-b_v)/(len_b-i))+1;
-  }
 #endif
 
-  double denA = (double)len_a / (a[len_a-1]-a[0]);
-  double denB = (double)len_b / (b[len_b-1]-b[0]);
+  uint32_t *in1 = (len_a <= len_b) ? a : b;
+  uint32_t *in2 = (len_a <= len_b) ? b : a;
+  const size_t len1 = min(len_a, len_b);
+  const size_t len2 = max(len_a, len_b);
 
-  uint32_t *in1 = (denA < denB) ? a:b;
-  uint32_t *in2 = (denA < denB) ? b:a;
-  const size_t len1 = (denA < denB) ? len_a:len_b;
-  const size_t len2 = (denA < denB) ? len_b:len_a;
+  double den1 = (double)len1 / (in1[len1-1]-a[0]);
+  double den2 = (double)len2 / (in2[len2-1]-b[0]);
 
-  cout << "Density A: " << min(denA,denB) << endl;
-  cout << "Density B: " << max(denA,denB) << endl;
+  cout << "Len A: " << len1 << endl;
+  cout << "Len B: " << len2 << endl;
+  cout << "Density A: " << den1 << endl;
+  cout << "Density B: " << den2 << endl;
 
-  /*
   cout << endl << "UINTEGER_UINTEGER_IBM" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_ibm",IBM);
 
@@ -213,8 +221,7 @@ int main(int argc, char* argv[]) {
 
   cout << endl << "BITSET_BITSET" << endl;
   intersect<bitset,bitset,bitset,bitset,bitset>(len1, len2, in1, in2, "bitset_bitset",STANDARD);
-  */
-  
+
   cout << endl << "UINTEGER_PSHORT" << endl;
   intersect<pshort,pshort,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_pshort",STANDARD);
 
@@ -224,8 +231,10 @@ int main(int argc, char* argv[]) {
   cout << endl << "PSHORT_BITSET" << endl;
   intersect<pshort,pshort,bitset,bitset,pshort>(len1, len2, in1, in2, "pshort_bitset",STANDARD);
 
+  /*
   cout << endl << "HYBRID" << endl;
   intersect<hybrid,hybrid,hybrid,hybrid,hybrid>(len1, len2, in1, in2, "hybrid",STANDARD);
+  */
 
 
   return 0;

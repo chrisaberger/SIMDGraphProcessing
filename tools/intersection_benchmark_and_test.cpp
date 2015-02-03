@@ -142,7 +142,7 @@ int main(int argc, char* argv[]) {
   const uint64_t n = c_str_to_uint64_t(argv[1]);
   double densityA = std::stod(argv[2]);
   double densityB = std::stod(argv[3]);
-  const uint64_t max_offset = n*0.1;
+  const uint64_t max_offset = 100;//n*0.1;
 
   uint32_t a_v = rand() % max_offset;
   uint32_t b_v = rand() % max_offset;
@@ -184,15 +184,14 @@ int main(int argc, char* argv[]) {
   double denA = (double)len_a / (a[len_a-1]-a[0]);
   double denB = (double)len_b / (b[len_b-1]-b[0]);
 
-  uint32_t *in1 = (denA < denB) ? a:b;
-  uint32_t *in2 = (denA < denB) ? b:a;
-  const size_t len1 = (denA < denB) ? len_a:len_b;
-  const size_t len2 = (denA < denB) ? len_b:len_a;
+  uint32_t *in1 = a;
+  uint32_t *in2 = b;
+  const size_t len1 = len_a;
+  const size_t len2 = len_b;
 
   cout << "Density A: " << min(denA,denB) << endl;
   cout << "Density B: " << max(denA,denB) << endl;
 
-  /*
   cout << endl << "UINTEGER_UINTEGER_IBM" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_ibm",IBM);
 
@@ -213,7 +212,6 @@ int main(int argc, char* argv[]) {
 
   cout << endl << "BITSET_BITSET" << endl;
   intersect<bitset,bitset,bitset,bitset,bitset>(len1, len2, in1, in2, "bitset_bitset",STANDARD);
-  */
   
   cout << endl << "UINTEGER_PSHORT" << endl;
   intersect<uinteger,uinteger,pshort,pshort,uinteger>(len1, len2, in1, in2, "uinteger_pshort",STANDARD);

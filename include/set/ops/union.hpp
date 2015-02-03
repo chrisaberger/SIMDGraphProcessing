@@ -73,12 +73,12 @@ namespace ops{
 
     B_in->foreach( [&A,start_index] (uint32_t cur){
       const size_t word_index = bitset::word_index(cur);
-
 #ifdef ENABLE_ATOMIC_UNION
       __sync_fetch_and_or(&A[word_index-start_index], ((uint64_t) 1 << (cur % BITS_PER_WORD)));
 #else
       A[word_index-start_index] |= ((uint64_t) 1 << (cur % BITS_PER_WORD));
 #endif
+      cout << A[word_index-start_index] << " " << start_index << " " << word_index << endl;
     });
   }
   inline void set_union(Set<uinteger> *A_in,Set<bitset> *B_in){

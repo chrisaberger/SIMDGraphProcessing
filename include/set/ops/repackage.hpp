@@ -43,6 +43,7 @@ namespace ops{
   }
   template <class T>
   inline Set<bitset> repackage_as_bitset(Set<T> *cur, uint8_t *new_data){
+    cout <<  "Bitset repackage" << endl;
     size_t count = 0;
     size_t word = 0;
     size_t cleared_word_index = 0;

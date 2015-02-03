@@ -1350,6 +1350,9 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       return C_in;
     }
 
+    const Set<hybrid> *rare = (A_in->cardinality > B_in->cardinality) ? B_in:A_in;
+    const Set<hybrid> *freq = (A_in->cardinality > B_in->cardinality) ? A_in:B_in;
+
     switch (A_in->type) {
         case common::UINTEGER:
           switch (B_in->type) {
@@ -1357,10 +1360,10 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
               #ifdef STATS
               common::num_uint_uint++;
               #endif
-              if((A_in->density > 0.00032 && B_in->density < 0.00016) || (B_in->density > 0.00032 && A_in->density < 0.00016) )
-                return (Set<hybrid>*)set_intersect_v3((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
+              if((freq->density-rare->density) > 0.00032)
+                return (Set<hybrid>*)set_intersect_v3((Set<uinteger>*)C_in,(const Set<uinteger>*)rare,(const Set<uinteger>*)freq);
               else
-                return (Set<hybrid>*)set_intersect_ibm((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
+                return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)rare,(const Set<uinteger>*)freq);
             break;
             case common::PSHORT:
               #ifdef STATS

@@ -39,7 +39,8 @@ class application{
     }
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
       (void) attribute;
-      return nbr < node;
+      return true;
+      //return nbr < node;
     }
     #endif
 
@@ -80,9 +81,7 @@ class application{
 
            A.foreach([this, i, &A, &C, &dst_buffer, &t_num_triangles] (uint32_t j){
              Set<R> B = this->graph->get_decoded_row(j,dst_buffer);
-             //cout << "src: " << i << " dst: " << j << endl;
              const size_t tmp_count = ops::set_intersect(&C,&A,&B)->cardinality;
-             //cout << "COUNT: " << tmp_count << endl;
              t_num_triangles += tmp_count;
            });
 

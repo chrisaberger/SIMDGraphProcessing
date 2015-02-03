@@ -28,8 +28,6 @@ namespace ops{
       const uint32_t end_index = ((a_index[0]+s_a) > (b_index[0]+s_b)) ? (b_index[0]+s_b):(a_index[0]+s_a);
       const uint32_t total_size = (start_index > end_index) ? 0:(end_index-start_index);
 
-      cout << "TOTAL SIZE: " << total_size << endl;
-
       //16 uint16_ts
       //8 ints
       //4 longs
@@ -41,7 +39,7 @@ namespace ops{
         
         __m256 r = _mm256_andnot_ps(a2, a1);
 
-        _mm256_store_ps((float*)&C[i-c_index[0]], r);
+        _mm256_storeu_ps((float*)&C[i-c_index[0]], r);
         const size_t old_count = count;
         count += _mm_popcnt_u64(C[i-c_index[0]]);
         count += _mm_popcnt_u64(C[i-c_index[0]+1]);

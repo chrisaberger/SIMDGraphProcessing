@@ -82,9 +82,9 @@ class application{
       //frontier.par_foreach(num_threads,
       frontier.foreach(//num_threads,
         [this, &visited] (/*size_t tid,*/ uint32_t n){
-          cout << "Frontier: " << this->graph->id_map[n] << endl;
-           Set<T> outnbrs = this->graph->get_row(n);
-           ops::set_union(&visited,&outnbrs);
+          //cout << "Frontier: " << this->graph->id_map[n] << endl;
+          Set<T> outnbrs = this->graph->get_row(n);
+          ops::set_union(&visited,&outnbrs);
       });
       //}
       //common::stopClock("union time",union_time);

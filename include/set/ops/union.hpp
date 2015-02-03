@@ -78,7 +78,6 @@ namespace ops{
 #else
       A[word_index-start_index] |= ((uint64_t) 1 << (cur % BITS_PER_WORD));
 #endif
-      cout << A[word_index-start_index] << " " << start_index << " " << word_index << endl;
     });
   }
   inline void set_union(Set<uinteger> *A_in,Set<bitset> *B_in){

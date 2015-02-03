@@ -1,7 +1,7 @@
 #include "SparseMatrix.hpp"
 #include "common.hpp"
 
-#define DEBUG
+//#define DEBUG
 //#define FROM_FILE
 
 #define BUF_SIZE 1024L * 1024L * 1024L
@@ -216,7 +216,7 @@ int main(int argc, char* argv[]) {
   */
   
   cout << endl << "UINTEGER_PSHORT" << endl;
-  intersect<pshort,pshort,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_pshort",STANDARD);
+  intersect<uinteger,uinteger,pshort,pshort,uinteger>(len1, len2, in1, in2, "uinteger_pshort",STANDARD);
 
   cout << endl << "UINTEGER_BITSET" << endl;
   intersect<uinteger,uinteger,bitset,bitset,uinteger>(len1, len2, in1, in2, "uinteger_bitset",STANDARD);

@@ -8,7 +8,7 @@ namespace ops{
     if(A_in->number_of_bytes > 0 && B_in->number_of_bytes > 0){
       const uint32_t *a_index = (uint32_t*) A_in->data;
       const uint32_t *b_index = (uint32_t*) B_in->data;
-      uint32_t *c_index = (uint32_t*) B_in->data;
+      uint32_t *c_index = (uint32_t*) C_in->data;
 
       uint64_t * const C = (uint64_t*)(C_in->data+sizeof(uint32_t));
       const uint64_t * const A = (uint64_t*)(A_in->data+sizeof(uint32_t));
@@ -32,6 +32,7 @@ namespace ops{
       //8 ints
       //4 longs
       size_t i = 0;
+      size_t last_word_written = 0;
       #if VECTORIZE == 1
       while((i+3) < total_size){
         __m256 a1 = _mm256_loadu_ps((const float*)&A[i+a_start_index]);
@@ -39,16 +40,24 @@ namespace ops{
         
         __m256 r = _mm256_andnot_ps(a2, a1);
 
-        _mm256_storeu_ps((float*)&C[i-c_index[0]], r);
         const size_t old_count = count;
-        count += _mm_popcnt_u64(C[i-c_index[0]]);
-        count += _mm_popcnt_u64(C[i-c_index[0]+1]);
-        count += _mm_popcnt_u64(C[i-c_index[0]]+2);
-        count += _mm_popcnt_u64(C[i-c_index[0]]+3);
-        if(old_count == 0 && count != 0)
-          c_index[0] = i;
 
-        i += 32;
+        uint64_t tmp[4];
+        _mm256_storeu_ps((float*)&tmp, r);
+
+        count += _mm_popcnt_u64(tmp[0]);
+        count += _mm_popcnt_u64(tmp[1]);
+        count += _mm_popcnt_u64(tmp[2]);
+        count += _mm_popcnt_u64(tmp[3]);
+
+        if(old_count == 0 && count != 0){
+          c_index[0] = i;
+        } 
+        if(old_count != count)
+          last_word_written = i+4;
+        _mm256_storeu_ps((float*)&C[i-c_index[0]], r);
+
+        i += 4;
       }
       #endif
 
@@ -57,8 +66,11 @@ namespace ops{
         const size_t old_count = count;
         count += _mm_popcnt_u64(result);
 
-        if(old_count == 0 && count != 0)
+        if(old_count == 0 && count != 0){
           c_index[0] = i;
+        }
+        if(old_count != count)
+          last_word_written = i+1;
         C[i-c_index[0]] = result;
       }
 
@@ -68,13 +80,15 @@ namespace ops{
         count += _mm_popcnt_u64(result);
         if(old_count == 0 && count != 0)
           c_index[0] = i;
+        if(old_count != count)
+          last_word_written = i+1;
         C[i-c_index[0]] = result;
       }
       
       const double density = 0.0;//(count > 0) ? (double)count/(8*small_length) : 0.0;
 
       C_in->cardinality = count;
-      C_in->number_of_bytes = (i-c_index[0])*sizeof(uint64_t) + sizeof(uint32_t);
+      C_in->number_of_bytes = (last_word_written-c_index[0])*sizeof(uint64_t) + sizeof(uint32_t);
       C_in->density = density;
       C_in->type = common::BITSET;
     }

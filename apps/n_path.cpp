@@ -73,25 +73,24 @@ class application{
     size_t path_length = 0;
     while(true){
       cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << frontier.density << endl;
-      //double start_time = common::startClock();
 
-      //double copy_time = common::startClock();
+      double copy_time = common::startClock();
       old_visited.copy_from(visited);
-      //common::stopClock("copy time",copy_time);
+      common::stopClock("copy time",copy_time);
 
+      double union_time = common::startClock();
       //frontier.par_foreach(num_threads,
       frontier.foreach(//num_threads,
         [this, &visited] (/*size_t tid,*/ uint32_t n){
-          //cout << "Frontier: " << this->graph->id_map[n] << endl;
           Set<T> outnbrs = this->graph->get_row(n);
           ops::set_union(&visited,&outnbrs);
       });
       //}
-      //common::stopClock("union time",union_time);
+      common::stopClock("union time",union_time);
 
-      //double diff_time = common::startClock();
+      double diff_time = common::startClock();
       frontier = *ops::set_difference(&next_frontier,&visited,&old_visited);
-      //common::stopClock("difference",diff_time);
+      common::stopClock("difference",diff_time);
 
       if(frontier.cardinality == 0 || path_length >= depth)
         break;
@@ -114,7 +113,7 @@ class application{
       internal_start = graph->get_max_row_id();
     else
       internal_start = graph->get_internal_id(start_node);
-    cout << "Start node - External: " << graph->id_map[internal_start] << " External: " << internal_start << endl;
+    cout << "Start node - External: " << graph->id_map[internal_start] << " Internal: " << internal_start << endl;
 
     if(pcm_init() < 0)
       return;

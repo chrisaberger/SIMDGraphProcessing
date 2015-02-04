@@ -122,18 +122,6 @@ class Set{
     static size_t flatten_from_array(uint8_t *set_data, const uint32_t * const array_data, const size_t data_size);
 };
 
-/*
-///////////////////////////////////////////////////////////////////////////////
-// Apply a function to each element in the set in parallel
-///////////////////////////////////////////////////////////////////////////////
-template <class T>
-inline void Set<T>::par_foreach(
-      const size_t num_threads,
-      const std::function <void (size_t, uint32_t)>& f) {
-  T::par_foreach(num_threads, f, data, cardinality, number_of_bytes, type);
-}
-*/
-
 ///////////////////////////////////////////////////////////////////////////////
 //Copy Data from one set into another
 ///////////////////////////////////////////////////////////////////////////////

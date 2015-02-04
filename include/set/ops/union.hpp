@@ -24,24 +24,21 @@ namespace ops{
       //8 ints
       //4 longs
       size_t i = 0;
-      
       #if VECTORIZE == 1
       while((i+3) < total_size){
         const __m256 a1 = _mm256_loadu_ps((const float*)&A[i+a_start_index]);
         const __m256 a2 = _mm256_loadu_ps((const float*)&B[i+b_start_index]);
         const __m256 r = _mm256_or_ps(a2, a1);
 
-        __m128i r_half = _mm256_extractf128_si256(_mm256_cvtps_epi32(r),0);
-        uint64_t l = _mm_extract_epi64(r_half,0);
-        uint64_t l2 = _mm_extract_epi64(r_half,1);
-        __sync_fetch_and_or((uint64_t*)&A[i],l);
-        __sync_fetch_and_or((uint64_t*)&A[i+1],l2);
+        uint64_t tmp[4];
+        _mm256_storeu_ps((float*)&tmp, r);
 
-        r_half = _mm256_extractf128_si256(_mm256_cvtps_epi32(r),1);
-        l = _mm_extract_epi64(r_half,0);
-        l2 = _mm_extract_epi64(r_half,1);
-        __sync_fetch_and_or((uint64_t*)&A[i+2],l);
-        __sync_fetch_and_or((uint64_t*)&A[i+3],l2);
+        for(size_t j = 0 ; j < 4; j++){
+          if(A[i+j] != tmp[j]){
+            const uint64_t old = __sync_fetch_and_or((uint64_t*)&A[i+j],tmp[j]);
+            A_in->cardinality += (_mm_popcnt_u64(tmp[j]) - _mm_popcnt_u64(old));
+          }
+        }
 
         i += 4;
       }
@@ -49,7 +46,8 @@ namespace ops{
 
       for(; i < total_size; i++){
         const uint64_t result = A[i+a_start_index] | B[i+b_start_index];
-        __sync_fetch_and_or((uint64_t*)&A[i],result);
+        const uint64_t old = __sync_fetch_and_or((uint64_t*)&A[i],result);
+        A_in->cardinality += _mm_popcnt_u64(result) - _mm_popcnt_u64(old);
       }
     }
   }
@@ -58,9 +56,12 @@ namespace ops{
     const uint32_t * const s_index_p = (uint32_t*)A_in->data;
     const uint32_t start_index = (A_in->number_of_bytes > 0) ? s_index_p[0]:0;
 
-    B_in->foreach( [&A,start_index] (uint32_t cur){
+    B_in->foreach( [&A_in,&A,start_index] (uint32_t cur){
       const size_t word_index = bitset::word_index(cur);
-      __sync_fetch_and_or(&A[word_index-start_index],((uint64_t) 1 << (cur % BITS_PER_WORD)));
+      const uint64_t old_value = A[word_index-start_index];
+      if(!(old_value & ((uint64_t)1 << (cur % BITS_PER_WORD))))
+        __sync_fetch_and_or(&A[word_index-start_index],((uint64_t) 1 << (cur % BITS_PER_WORD)));
+      A_in->cardinality += (A[word_index-start_index]!=old_value);
     });
   }
   inline void set_union(Set<pshort> *A_in, Set<bitset> *B_in){
@@ -80,7 +81,7 @@ namespace ops{
 #else
       A[word_index-start_index] |= ((uint64_t) 1 << (cur % BITS_PER_WORD));
 #endif
-      A_in->cardinality += (A[word_index-start_index]==old_value);
+      A_in->cardinality += (A[word_index-start_index]!=old_value);
     });
   }
   inline void set_union(Set<uinteger> *A_in,Set<bitset> *B_in){
@@ -91,9 +92,12 @@ namespace ops{
     const uint32_t * const s_index_p = (uint32_t*)A_in->data;
     const uint32_t start_index = (A_in->number_of_bytes > 0) ? s_index_p[0]:0;
 
-    B_in->foreach( [&A,start_index] (uint32_t cur){
+    B_in->foreach( [&A_in,&A,start_index] (uint32_t cur){
       const size_t word_index = bitset::word_index(cur);
-      __sync_fetch_and_or(&A[word_index-start_index],((uint64_t) 1 << (cur % BITS_PER_WORD)));
+      const uint64_t old_value = A[word_index-start_index];
+      if(!(old_value & ((uint64_t)1 << (cur % BITS_PER_WORD))))
+        __sync_fetch_and_or(&A[word_index-start_index],((uint64_t) 1 << (cur % BITS_PER_WORD)));
+      A_in->cardinality += (A[word_index-start_index]!=old_value);
     });
   }
   inline void set_union(Set<variant> *A_in,Set<bitset> *B_in){
@@ -104,9 +108,12 @@ namespace ops{
     const uint32_t * const s_index_p = (uint32_t*)A_in->data;
     const uint32_t start_index = (A_in->number_of_bytes > 0) ? s_index_p[0]:0;
 
-    B_in->foreach( [&A,start_index] (uint32_t cur){
+    B_in->foreach( [&A_in,&A,start_index] (uint32_t cur){
       const size_t word_index = bitset::word_index(cur);
-      __sync_fetch_and_or(&A[word_index-start_index],((uint64_t) 1 << (cur % BITS_PER_WORD)));
+      const uint64_t old_value = A[word_index-start_index];
+      if(!(old_value & ((uint64_t)1 << (cur % BITS_PER_WORD))))
+        __sync_fetch_and_or(&A[word_index-start_index],((uint64_t) 1 << (cur % BITS_PER_WORD)));
+      A_in->cardinality += (A[word_index-start_index]!=old_value);
     });
   }
   inline void set_union(Set<bitpacked> *A_in,Set<bitset> *B_in){

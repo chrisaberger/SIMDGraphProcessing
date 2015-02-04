@@ -58,37 +58,61 @@ class application{
     start_array[0] = start_node;
     cout << "Start node: " << start_node << endl;
 
-    const size_t bs_size = (((graph->matrix_size + 64) / 64) * 8) + 4;
+    const size_t bs_size = (((graph->matrix_size + 64) / 64) * 8) + 8;
 
     //allocate a new visited array and set the start node
     Set<bitset> visited(bs_size);
     Set<bitset> old_visited(bs_size);
 
     bitset::set(start_node,(uint64_t*)(visited.data+sizeof(uint64_t)),0);
-
     Set<uinteger> frontier = Set<uinteger>::from_array(f_data,start_array,1);
+    bool dense_frontier = false;
 
     size_t path_length = 0;
     while(true){
-      cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << frontier.density << endl;
+      cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << dense_frontier << endl;
 
       double copy_time = common::startClock();
       old_visited.copy_from(visited);
       common::stopClock("copy time",copy_time);
 
       double union_time = common::startClock();
-      frontier.par_foreach(num_threads,
-        [this, &visited] (size_t tid,uint32_t n){
-          (void) tid;
-          Set<T> outnbrs = this->graph->get_row(n);
-          ops::set_union(&visited,&outnbrs);
-      });
+      if(dense_frontier){
+        common::par_for_range(num_threads, 0, graph->matrix_size, 4096,
+          [this, &visited, &old_visited, &frontier](size_t tid, size_t i) {
+             (void) tid;
+            if(!bitset::is_set(i,(uint64_t*)(visited.data+sizeof(uint64_t)),0)) {
+               Set<T> innbrs = this->graph->get_column(i);
+               innbrs.foreach_until([i,&visited, &old_visited] (uint32_t nbr) {
+                if(bitset::is_set(nbr,(uint64_t*)(old_visited.data+sizeof(uint64_t)),0)){
+                  bitset::set(i,(uint64_t*)(visited.data+sizeof(uint64_t)),0);
+                  visited.cardinality++;
+                  return true;
+                }
+                return false;
+               });
+             }
+          }
+        );
+      } else{
+        frontier.par_foreach(num_threads,
+          [this, &visited] (size_t tid,uint32_t n){
+            (void) tid;
+            Set<T> outnbrs = this->graph->get_row(n);
+            ops::set_union(&visited,&outnbrs);
+        });
+      }
 
       common::stopClock("union time",union_time);
 
-      double diff_time = common::startClock();
-      frontier = *ops::set_difference(&frontier,&visited,&old_visited);
-      common::stopClock("difference",diff_time);
+      frontier.cardinality = visited.cardinality-old_visited.cardinality;
+      cout << "Density: " << ((double)frontier.cardinality / graph->matrix_size) << endl;
+      dense_frontier = ((double)frontier.cardinality / graph->matrix_size) > 0.08;
+      if(!dense_frontier){
+        double diff_time = common::startClock();
+        frontier = *ops::set_difference(&frontier,&visited,&old_visited);
+        common::stopClock("difference",diff_time);
+      }
 
       if(frontier.cardinality == 0 || path_length >= depth)
         break;

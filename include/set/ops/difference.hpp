@@ -14,7 +14,6 @@ namespace ops{
       const size_t s_a = ((A_in->number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t));
       const size_t s_b = ((B_in->number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t));
 
-
       const bool a_big = a_index[0] > b_index[0];
       const uint32_t start_index = (a_big) ? a_index[0] : b_index[0];
 

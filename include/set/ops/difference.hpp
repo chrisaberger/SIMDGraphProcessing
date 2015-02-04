@@ -5,8 +5,8 @@ namespace ops{
   inline Set<uinteger>* set_difference(Set<uinteger> *C_in, const Set<bitset> *A_in, const Set<bitset> *B_in){
     long count = 0l;
     if(A_in->number_of_bytes > 0 && B_in->number_of_bytes > 0){
-      const uint32_t *a_index = (uint32_t*) A_in->data;
-      const uint32_t *b_index = (uint32_t*) B_in->data;
+      const uint64_t *a_index = (uint64_t*) A_in->data;
+      const uint64_t *b_index = (uint64_t*) B_in->data;
 
       uint32_t * const C = (uint32_t*)C_in->data;
       const uint64_t * const A = (uint64_t*)(A_in->data+sizeof(uint64_t));
@@ -15,13 +15,13 @@ namespace ops{
       const size_t s_b = ((B_in->number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t));
 
       const bool a_big = a_index[0] > b_index[0];
-      const uint32_t start_index = (a_big) ? a_index[0] : b_index[0];
+      const uint64_t start_index = (a_big) ? a_index[0] : b_index[0];
 
-      const uint32_t a_start_index = (a_big) ? 0:(b_index[0]-a_index[0]);
-      const uint32_t b_start_index = (a_big) ? (a_index[0]-b_index[0]):0;
+      const uint64_t a_start_index = (a_big) ? 0:(b_index[0]-a_index[0]);
+      const uint64_t b_start_index = (a_big) ? (a_index[0]-b_index[0]):0;
 
-      const uint32_t end_index = ((a_index[0]+s_a) > (b_index[0]+s_b)) ? (b_index[0]+s_b):(a_index[0]+s_a);
-      const uint32_t total_size = (start_index > end_index) ? 0:(end_index-start_index);
+      const uint64_t end_index = ((a_index[0]+s_a) > (b_index[0]+s_b)) ? (b_index[0]+s_b):(a_index[0]+s_a);
+      const uint64_t total_size = (start_index > end_index) ? 0:(end_index-start_index);
 
       //16 uint16_ts
       //8 ints

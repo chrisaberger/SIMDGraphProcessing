@@ -877,26 +877,26 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     C_in->number_of_bytes = 0;
 
     if(A_in->number_of_bytes > 0 && B_in->number_of_bytes > 0){
-      const uint32_t *a_index = (uint32_t*) A_in->data;
-      const uint32_t *b_index = (uint32_t*) B_in->data;
+      const uint64_t *a_index = (uint64_t*) A_in->data;
+      const uint64_t *b_index = (uint64_t*) B_in->data;
 
-      uint64_t * const C = (uint64_t*)(C_in->data+sizeof(uint32_t));
-      const uint64_t * const A = (uint64_t*)(A_in->data+sizeof(uint32_t));
-      const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint32_t));
-      const size_t s_a = ((A_in->number_of_bytes-sizeof(uint32_t))/sizeof(uint64_t));
-      const size_t s_b = ((B_in->number_of_bytes-sizeof(uint32_t))/sizeof(uint64_t));
+      uint64_t * const C = (uint64_t*)(C_in->data+sizeof(uint64_t));
+      const uint64_t * const A = (uint64_t*)(A_in->data+sizeof(uint64_t));
+      const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint64_t));
+      const size_t s_a = ((A_in->number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t));
+      const size_t s_b = ((B_in->number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t));
 
       #if WRITE_VECTOR == 0
       (void) C;
       #endif
 
       const bool a_big = a_index[0] > b_index[0];
-      const uint32_t start_index = (a_big) ? a_index[0] : b_index[0];
-      const uint32_t a_start_index = (a_big) ? 0:(b_index[0]-a_index[0]);
-      const uint32_t b_start_index = (a_big) ? (a_index[0]-b_index[0]):0;
+      const uint64_t start_index = (a_big) ? a_index[0] : b_index[0];
+      const uint64_t a_start_index = (a_big) ? 0:(b_index[0]-a_index[0]);
+      const uint64_t b_start_index = (a_big) ? (a_index[0]-b_index[0]):0;
 
-      const uint32_t end_index = ((a_index[0]+s_a) > (b_index[0]+s_b)) ? (b_index[0]+s_b):(a_index[0]+s_a);
-      const uint32_t total_size = (start_index > end_index) ? 0:(end_index-start_index);
+      const uint64_t end_index = ((a_index[0]+s_a) > (b_index[0]+s_b)) ? (b_index[0]+s_b):(a_index[0]+s_a);
+      const uint64_t total_size = (start_index > end_index) ? 0:(end_index-start_index);
 
       //16 uint16_ts
       //8 ints
@@ -904,7 +904,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       size_t i = 0;
 
       #if WRITE_VECTOR == 1
-      uint32_t *c_index = (uint32_t*) C_in->data;
+      uint64_t *c_index = (uint64_t*) C_in->data;
       c_index[0] = start_index;
       #endif
 
@@ -952,12 +952,12 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
   inline Set<pshort>* set_intersect(Set<pshort> *C_in, const Set<pshort> *A_in, const Set<bitset> *B_in){
     uint16_t * const C = (uint16_t*)C_in->data;
     const uint16_t * const A = (uint16_t*)A_in->data;
-    const uint32_t * const s_index_p = (uint32_t*)B_in->data;
-    const uint32_t start_index = (B_in->number_of_bytes > 0) ? s_index_p[0]:0;
+    const uint64_t * const s_index_p = (uint64_t*)B_in->data;
+    const uint64_t start_index = (B_in->number_of_bytes > 0) ? s_index_p[0]:0;
 
-    const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint32_t));
+    const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint64_t));
     const size_t s_a = A_in->number_of_bytes / sizeof(uint16_t);
-    const size_t s_b = (B_in->number_of_bytes > 0) ? (B_in->number_of_bytes-sizeof(uint32_t))/sizeof(uint64_t):0;
+    const size_t s_b = (B_in->number_of_bytes > 0) ? (B_in->number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t):0;
 
     #if WRITE_VECTOR == 0
     (void) C;
@@ -1016,12 +1016,12 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     uint32_t * const C = (uint32_t*)C_in->data;
     const uint32_t * const A = (uint32_t*)A_in->data;
     const size_t s_a = A_in->cardinality;
-    const size_t s_b = (B_in->number_of_bytes > 0) ? (B_in->number_of_bytes-sizeof(uint32_t))/sizeof(uint64_t):0;
+    const size_t s_b = (B_in->number_of_bytes > 0) ? (B_in->number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t):0;
 
-    const uint32_t * const s_index_p = (uint32_t*)B_in->data;
-    const uint32_t start_index = (B_in->number_of_bytes > 0) ? s_index_p[0]:0;
+    const uint64_t * const s_index_p = (uint64_t*)B_in->data;
+    const uint64_t start_index = (B_in->number_of_bytes > 0) ? s_index_p[0]:0;
 
-    const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint32_t));
+    const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint64_t));
 
     #if WRITE_VECTOR == 0
     (void) C;

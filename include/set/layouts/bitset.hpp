@@ -13,8 +13,8 @@ THIS CLASS IMPLEMENTS THE FUNCTIONS ASSOCIATED WITH THE BITSET LAYOUT.
 class bitset{
   public:
     static size_t word_index(const uint32_t bit_index);
-    static bool is_set(const uint32_t index, const uint64_t *in_array, const uint32_t start_index);
-    static void set(const uint32_t index, uint64_t *in_array, const uint32_t start_index);
+    static bool is_set(const uint32_t index, const uint64_t *in_array, const uint64_t start_index);
+    static void set(const uint32_t index, uint64_t *in_array, const uint64_t start_index);
 
     static common::type get_type();
     static size_t build(uint8_t *r_in, const uint32_t *data, const size_t length);
@@ -51,11 +51,11 @@ inline size_t bitset::word_index(const uint32_t bit_index){
   return bit_index >> ADDRESS_BITS_PER_WORD;
 }
 //check if a bit is set
-inline bool bitset::is_set(const uint32_t index, const uint64_t * const in_array, const uint32_t start_index){
+inline bool bitset::is_set(const uint32_t index, const uint64_t * const in_array, const uint64_t start_index){
   return (in_array)[word_index(index)-start_index] & ((uint64_t) 1 << (index%BITS_PER_WORD));
 }
 //check if a bit is set
-inline void bitset::set(const uint32_t index, uint64_t * const in_array, const uint32_t start_index){
+inline void bitset::set(const uint32_t index, uint64_t * const in_array, const uint64_t start_index){
   *(in_array + ((index >> ADDRESS_BITS_PER_WORD)-start_index)) |= ((uint64_t)1 << (index & 0x3F));
 }
 inline common::type bitset::get_type(){
@@ -63,8 +63,8 @@ inline common::type bitset::get_type(){
 }
 //Copies data from input array of ints to our set data r_in
 inline size_t bitset::build(uint8_t *R, const uint32_t *A, const size_t s_a){
-  uint32_t* offset = (uint32_t*) R; 
-  uint64_t* R64 = (uint64_t*)(R+sizeof(uint32_t));
+  uint64_t* offset = (uint64_t*) R; 
+  uint64_t* R64 = (uint64_t*)(R+sizeof(uint64_t));
   size_t word = 0;
   size_t i = 0;
   size_t cleared_word_index = 0;
@@ -72,7 +72,7 @@ inline size_t bitset::build(uint8_t *R, const uint32_t *A, const size_t s_a){
   offset[0] = s_a > 0 ? word_index(A[0]):0;
   size_t off_bytes = 0;
   while(i < s_a){
-    off_bytes = sizeof(uint32_t);
+    off_bytes = sizeof(uint64_t);
     uint32_t cur = A[i];
     //std::cout << cur << std::endl;
     word = word_index(cur);
@@ -131,10 +131,9 @@ inline void bitset::foreach_until(
   (void) cardinality; (void) type;
 
   if(number_of_bytes > 0){
-    const size_t num_data_words = ((number_of_bytes-sizeof(uint32_t))/sizeof(uint64_t));
-    const uint32_t *offset_pointer = (uint32_t*) A;
-    const uint32_t offset = offset_pointer[0];
-    const uint64_t* A64 = (uint64_t*)(A+sizeof(uint32_t));
+    const size_t num_data_words = ((number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t));
+    const uint64_t offset = ((uint64_t*)A)[0];
+    const uint64_t* A64 = (uint64_t*)(A+sizeof(uint64_t));
     for(size_t i = 0; i < num_data_words; i++){
       const uint64_t cur_word = A64[i];
       for(size_t j = 0; j < BITS_PER_WORD; j++){
@@ -158,10 +157,9 @@ inline void bitset::foreach(
   (void) cardinality; (void) type;
 
   if(number_of_bytes > 0){
-    const size_t num_data_words = ((number_of_bytes-sizeof(uint32_t))/sizeof(uint64_t));
-    const uint32_t *offset_pointer = (uint32_t*) A;
-    const uint32_t offset = offset_pointer[0];
-    const uint64_t* A64 = (uint64_t*)(A+sizeof(uint32_t));
+    const size_t num_data_words = ((number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t));
+    const uint64_t offset = ((uint64_t*)A)[0];
+    const uint64_t* A64 = (uint64_t*)(A+sizeof(uint64_t));
 
     for(size_t i = 0; i < num_data_words; i++){
       const uint64_t cur_word = A64[i];
@@ -188,10 +186,9 @@ inline void bitset::par_foreach(
    (void) number_of_bytes; (void) t; (void) cardinality;
 
   if(number_of_bytes > 0){
-    const size_t num_data_words = ((number_of_bytes-sizeof(uint32_t))/sizeof(uint64_t));
-    const uint32_t *offset_pointer = (uint32_t*) A;
-    const uint32_t offset = offset_pointer[0];
-    const uint64_t* A64 = (uint64_t*)(A+sizeof(uint32_t));
+    const size_t num_data_words = ((number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t));
+    const uint64_t offset = ((uint64_t*)A)[0];
+    const uint64_t* A64 = (uint64_t*)(A+sizeof(uint64_t));
     common::par_for_range(num_threads, 0, num_data_words, 512,
            [&f, &A64, cardinality,offset](size_t tid, size_t i) {
               const uint64_t cur_word = A64[i];

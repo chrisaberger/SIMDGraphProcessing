@@ -30,7 +30,15 @@ class uinteger{
         const size_t number_of_bytes,
         const common::type t);
 
-    static void par_foreach(const size_t num_threads, const std::function <void (size_t, uint32_t)>& f, const uint8_t *data_in, const size_t cardinality, const size_t number_of_bytes, const common::type t);
+    template<typename F>
+    static void par_foreach(
+      F f,
+      const size_t num_threads, 
+      const uint8_t *data_in, 
+      const size_t cardinality, 
+      const size_t number_of_bytes, 
+      const common::type t);
+
     static tuple<size_t,size_t,common::type> intersect(uint8_t *C_in, const uint8_t *A_in, const uint8_t *B_in, const size_t A_cardinality, const size_t B_cardinality, const size_t A_num_bytes, const size_t B_num_bytes, const common::type a_t, const common::type b_t);
 };
 
@@ -89,9 +97,10 @@ inline void uinteger::foreach_until(
 }
 
 // Iterates over set applying a lambda in parallel.
+template<typename F>
 inline void uinteger::par_foreach(
+      F f,
       const size_t num_threads,
-      const std::function <void (size_t, uint32_t)>& f,
       const uint8_t *data_in,
       const size_t cardinality,
       const size_t number_of_bytes,

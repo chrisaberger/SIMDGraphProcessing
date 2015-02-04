@@ -2,25 +2,21 @@
 #define _DIFFERENCE_H_
 
 namespace ops{
-  inline Set<bitset>* set_difference(Set<bitset> *C_in, const Set<bitset> *A_in, const Set<bitset> *B_in){
+  inline Set<uinteger>* set_difference(Set<uinteger> *C_in, const Set<bitset> *A_in, const Set<bitset> *B_in){
     long count = 0l;
-    C_in->number_of_bytes = 0;
     if(A_in->number_of_bytes > 0 && B_in->number_of_bytes > 0){
       const uint32_t *a_index = (uint32_t*) A_in->data;
       const uint32_t *b_index = (uint32_t*) B_in->data;
-      uint32_t *c_index = (uint32_t*) C_in->data;
 
-      uint64_t * const C = (uint64_t*)(C_in->data+sizeof(uint32_t));
-      const uint64_t * const A = (uint64_t*)(A_in->data+sizeof(uint32_t));
-      const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint32_t));
-      const size_t s_a = ((A_in->number_of_bytes-sizeof(uint32_t))/sizeof(uint64_t));
-      const size_t s_b = ((B_in->number_of_bytes-sizeof(uint32_t))/sizeof(uint64_t));
+      uint32_t * const C = (uint32_t*)C_in->data;
+      const uint64_t * const A = (uint64_t*)(A_in->data+sizeof(uint64_t));
+      const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint64_t));
+      const size_t s_a = ((A_in->number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t));
+      const size_t s_b = ((B_in->number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t));
 
 
       const bool a_big = a_index[0] > b_index[0];
-      
       const uint32_t start_index = (a_big) ? a_index[0] : b_index[0];
-      c_index[0] = start_index;
 
       const uint32_t a_start_index = (a_big) ? 0:(b_index[0]-a_index[0]);
       const uint32_t b_start_index = (a_big) ? (a_index[0]-b_index[0]):0;
@@ -32,65 +28,56 @@ namespace ops{
       //8 ints
       //4 longs
       size_t i = 0;
-      size_t last_word_written = 0;
       #if VECTORIZE == 1
       while((i+3) < total_size){
-        __m256 a1 = _mm256_loadu_ps((const float*)&A[i+a_start_index]);
-        __m256 a2 = _mm256_loadu_ps((const float*)&B[i+b_start_index]);
-        
-        __m256 r = _mm256_andnot_ps(a2, a1);
-
-        const size_t old_count = count;
+        const __m256 a1 = _mm256_loadu_ps((const float*)&A[i+a_start_index]);
+        const __m256 a2 = _mm256_loadu_ps((const float*)&B[i+b_start_index]);
+        const __m256 r = _mm256_andnot_ps(a2, a1);
 
         uint64_t tmp[4];
         _mm256_storeu_ps((float*)&tmp, r);
 
-        count += _mm_popcnt_u64(tmp[0]);
-        count += _mm_popcnt_u64(tmp[1]);
-        count += _mm_popcnt_u64(tmp[2]);
-        count += _mm_popcnt_u64(tmp[3]);
-
-        if(old_count == 0 && count != 0){
-          c_index[0] = i;
-        } 
-        if(old_count != count)
-          last_word_written = i+4;
-        _mm256_storeu_ps((float*)&C[i-c_index[0]], r);
-
+        for(size_t offset = 0; offset < 4; offset++){
+          if(_mm_popcnt_u64(tmp[offset])){
+            for(size_t j = 0; j < BITS_PER_WORD; j++){
+              if((tmp[offset] >> j) % 2){
+                C[count++] = (BITS_PER_WORD*(start_index+i+offset) + j);
+              }
+            }
+          }
+        }
         i += 4;
       }
       #endif
 
       for(; i < total_size; i++){
         const uint64_t result = A[i+a_start_index] & ~(B[i+b_start_index]);
-        const size_t old_count = count;
-        count += _mm_popcnt_u64(result);
-
-        if(old_count == 0 && count != 0){
-          c_index[0] = i;
+        if(_mm_popcnt_u64(result)){
+          for(size_t j = 0; j < BITS_PER_WORD; j++){
+            if((result >> j) % 2){
+              C[count++] = (BITS_PER_WORD*(start_index+i) + j);
+            }
+          }
         }
-        if(old_count != count)
-          last_word_written = i+1;
-        C[i-c_index[0]] = result;
       }
 
       for(; i < (s_a+a_index[0]); i++){
         const uint64_t result = A[i+a_start_index];
-        const size_t old_count = count;
-        count += _mm_popcnt_u64(result);
-        if(old_count == 0 && count != 0)
-          c_index[0] = i;
-        if(old_count != count)
-          last_word_written = i+1;
-        C[i-c_index[0]] = result;
+        if(_mm_popcnt_u64(result)){
+          for(size_t j = 0; j < BITS_PER_WORD; j++){
+            if((result >> j) % 2){
+              C[count++] = (BITS_PER_WORD*(start_index+i) + j);
+            }
+          }
+        }
       }
       
       const double density = 0.0;//(count > 0) ? (double)count/(8*small_length) : 0.0;
 
       C_in->cardinality = count;
-      C_in->number_of_bytes = (last_word_written-c_index[0])*sizeof(uint64_t) + sizeof(uint32_t);
+      C_in->number_of_bytes = count*sizeof(uint32_t);
       C_in->density = density;
-      C_in->type = common::BITSET;
+      C_in->type = common::UINTEGER;
     }
     return C_in;
   }

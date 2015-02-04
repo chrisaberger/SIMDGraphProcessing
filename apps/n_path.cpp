@@ -53,7 +53,7 @@ class application{
     }
 
   inline void queryOver(uint32_t start_node){
-    uint8_t *f_data = new uint8_t[graph->matrix_size*sizeof(uint32_t)];
+    uint8_t *f_data = new uint8_t[graph->matrix_size*sizeof(uint64_t)];
     uint32_t *start_array = new uint32_t[1];
     start_array[0] = start_node;
     cout << "Start node: " << start_node << endl;
@@ -64,11 +64,9 @@ class application{
     Set<bitset> visited(bs_size);
     Set<bitset> old_visited(bs_size);
 
-    bitset::set(start_node,(uint64_t*)(visited.data+sizeof(uint32_t)),0);
+    bitset::set(start_node,(uint64_t*)(visited.data+sizeof(uint64_t)),0);
 
-    Set<hybrid> frontier = Set<uinteger>::from_array(f_data,start_array,1);
-    Set<bitset> next_frontier(bs_size);
-    Set<bitset> notV(bs_size);
+    Set<uinteger> frontier = Set<uinteger>::from_array(f_data,start_array,1);
 
     size_t path_length = 0;
     while(true){
@@ -79,17 +77,17 @@ class application{
       common::stopClock("copy time",copy_time);
 
       double union_time = common::startClock();
-      //frontier.par_foreach(num_threads,
-      frontier.foreach(//num_threads,
-        [this, &visited] (/*size_t tid,*/ uint32_t n){
+      frontier.par_foreach(num_threads,
+        [this, &visited] (size_t tid,uint32_t n){
+          (void) tid;
           Set<T> outnbrs = this->graph->get_row(n);
           ops::set_union(&visited,&outnbrs);
       });
-      //}
+
       common::stopClock("union time",union_time);
 
       double diff_time = common::startClock();
-      frontier = *ops::set_difference(&next_frontier,&visited,&old_visited);
+      frontier = *ops::set_difference(&frontier,&visited,&old_visited);
       common::stopClock("difference",diff_time);
 
       if(frontier.cardinality == 0 || path_length >= depth)

@@ -108,7 +108,11 @@ class Set{
       T::foreach_until(f,data,cardinality,number_of_bytes,type);
     }
 
-    void par_foreach(const size_t num_threads, const std::function <void (size_t, uint32_t)>& f);
+    template<typename F>
+    void par_foreach(const size_t num_threads, F f) const {
+      T::par_foreach(f, num_threads, data, cardinality, number_of_bytes, type);
+    }
+
     Set<uinteger> decode(uint32_t *buffer);
     void copy_from(Set<T> src);
 
@@ -118,6 +122,7 @@ class Set{
     static size_t flatten_from_array(uint8_t *set_data, const uint32_t * const array_data, const size_t data_size);
 };
 
+/*
 ///////////////////////////////////////////////////////////////////////////////
 // Apply a function to each element in the set in parallel
 ///////////////////////////////////////////////////////////////////////////////
@@ -127,6 +132,7 @@ inline void Set<T>::par_foreach(
       const std::function <void (size_t, uint32_t)>& f) {
   T::par_foreach(num_threads, f, data, cardinality, number_of_bytes, type);
 }
+*/
 
 ///////////////////////////////////////////////////////////////////////////////
 //Copy Data from one set into another

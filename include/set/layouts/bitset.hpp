@@ -36,10 +36,11 @@ class bitset{
         const size_t cardinality,
         const size_t number_of_bytes,
         const common::type t);
-
+    
+    template<typename F>
     static void par_foreach(
+      F f,
       const size_t num_threads,
-      const std::function <void (size_t, uint32_t)>& f,
       const uint8_t* A,
       const size_t cardinality,
       const size_t number_of_bytes,
@@ -176,9 +177,10 @@ inline void bitset::foreach(
 }
 
 // Iterates over set applying a lambda in parallel.
+template<typename F>
 inline void bitset::par_foreach(
+      F f,
       const size_t num_threads,
-      const std::function <void (size_t, uint32_t)>& f,
       const uint8_t* A,
       const size_t cardinality,
       const size_t number_of_bytes,

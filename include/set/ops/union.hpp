@@ -67,17 +67,20 @@ namespace ops{
     set_union(B_in,A_in);
   }
   inline void set_union(Set<bitset> *A_in,Set<uinteger> *B_in){
-    uint64_t* A = (uint64_t*)(A_in->data+sizeof(uint32_t));
+    uint64_t* A = (uint64_t*)(A_in->data+sizeof(uint64_t));
     const uint32_t * const s_index_p = (uint32_t*)A_in->data;
     const uint32_t start_index = (A_in->number_of_bytes > 0) ? s_index_p[0]:0;
 
-    B_in->foreach( [&A,start_index] (uint32_t cur){
+    B_in->foreach( [&A_in,&A,start_index] (uint32_t cur){
       const size_t word_index = bitset::word_index(cur);
+      const uint64_t old_value = A[word_index-start_index];
 #ifdef ENABLE_ATOMIC_UNION
-      __sync_fetch_and_or(&A[word_index-start_index], ((uint64_t) 1 << (cur % BITS_PER_WORD)));
+      if(!(old_value & ((uint64_t)1 << (cur % BITS_PER_WORD))))
+        __sync_fetch_and_or(&A[word_index-start_index], ((uint64_t) 1 << (cur % BITS_PER_WORD)));
 #else
       A[word_index-start_index] |= ((uint64_t) 1 << (cur % BITS_PER_WORD));
 #endif
+      A_in->cardinality += (A[word_index-start_index]==old_value);
     });
   }
   inline void set_union(Set<uinteger> *A_in,Set<bitset> *B_in){

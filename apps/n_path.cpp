@@ -72,13 +72,13 @@ class application{
     while(true){
       cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << dense_frontier << endl;
 
-      //double copy_time = common::startClock();
+      double copy_time = common::startClock();
       old_visited.copy_from(visited);
-      //common::stopClock("copy time",copy_time);
+      common::stopClock("copy time",copy_time);
 
       double union_time = common::startClock();
       if(dense_frontier){
-        common::par_for_range(num_threads, 0, graph->matrix_size, 4096,
+        common::par_for_range(num_threads, 0, graph->matrix_size, 2048,
           [this, &visited, &old_visited, &frontier](size_t tid, size_t i) {
              (void) tid;
             if(!bitset::is_set(i,(uint64_t*)(visited.data+sizeof(uint64_t)),0)) {
@@ -105,14 +105,12 @@ class application{
 
       common::stopClock("union time",union_time);
 
-      frontier.cardinality = visited.cardinality-old_visited.cardinality;
-      //cout << "Density: " << ((double)frontier.cardinality / graph->matrix_size) << endl;
+      double diff_time = common::startClock();
+      frontier = *ops::set_difference(&frontier,&visited,&old_visited);
+      common::stopClock("difference",diff_time);
+
+      //TO TURN BEAMER OFF COMMENT OUT THIS LINE
       dense_frontier = ((double)frontier.cardinality / graph->matrix_size) > 0.08;
-      if(!dense_frontier){
-        //double diff_time = common::startClock();
-        frontier = *ops::set_difference(&frontier,&visited,&old_visited);
-        //common::stopClock("difference",diff_time);
-      }
 
       if(frontier.cardinality == 0 || path_length >= depth)
         break;

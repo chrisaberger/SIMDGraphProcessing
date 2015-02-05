@@ -2,6 +2,7 @@
 #define _UNION_H_
 
 namespace ops{
+  //this method is untested as of right now....
  inline void set_union(Set<bitset> *A_in, Set<bitset> *B_in){
     if(A_in->number_of_bytes > 0 && B_in->number_of_bytes > 0){
       const uint32_t *a_index = (uint32_t*) A_in->data;
@@ -58,10 +59,8 @@ namespace ops{
 
     B_in->foreach( [&A_in,&A,start_index] (uint32_t cur){
       const size_t word_index = bitset::word_index(cur);
-      const uint64_t old_value = A[word_index-start_index];
-      if(!(old_value & ((uint64_t)1 << (cur % BITS_PER_WORD))))
+      if(!(A[word_index-start_index] & ((uint64_t)1 << (cur % BITS_PER_WORD))))
         __sync_fetch_and_or(&A[word_index-start_index],((uint64_t) 1 << (cur % BITS_PER_WORD)));
-      A_in->cardinality += (A[word_index-start_index]!=old_value);
     });
   }
   inline void set_union(Set<pshort> *A_in, Set<bitset> *B_in){
@@ -69,19 +68,18 @@ namespace ops{
   }
   inline void set_union(Set<bitset> *A_in,Set<uinteger> *B_in){
     uint64_t* A = (uint64_t*)(A_in->data+sizeof(uint64_t));
+
     const uint32_t * const s_index_p = (uint32_t*)A_in->data;
     const uint32_t start_index = (A_in->number_of_bytes > 0) ? s_index_p[0]:0;
-
-    B_in->foreach( [&A_in,&A,start_index] (uint32_t cur){
+    size_t new_count = 0;
+    B_in->foreach( [&A_in,&A,start_index,&new_count] (uint32_t cur){
       const size_t word_index = bitset::word_index(cur);
-      const uint64_t old_value = A[word_index-start_index];
 #ifdef ENABLE_ATOMIC_UNION
-      if(!(old_value & ((uint64_t)1 << (cur % BITS_PER_WORD))))
+      if(!(A[word_index-start_index] & ((uint64_t)1 << (cur % BITS_PER_WORD))))
         __sync_fetch_and_or(&A[word_index-start_index], ((uint64_t) 1 << (cur % BITS_PER_WORD)));
 #else
       A[word_index-start_index] |= ((uint64_t) 1 << (cur % BITS_PER_WORD));
 #endif
-      A_in->cardinality += (A[word_index-start_index]!=old_value);
     });
   }
   inline void set_union(Set<uinteger> *A_in,Set<bitset> *B_in){
@@ -94,10 +92,8 @@ namespace ops{
 
     B_in->foreach( [&A_in,&A,start_index] (uint32_t cur){
       const size_t word_index = bitset::word_index(cur);
-      const uint64_t old_value = A[word_index-start_index];
-      if(!(old_value & ((uint64_t)1 << (cur % BITS_PER_WORD))))
+      if(!(A[word_index-start_index] & ((uint64_t)1 << (cur % BITS_PER_WORD))))
         __sync_fetch_and_or(&A[word_index-start_index],((uint64_t) 1 << (cur % BITS_PER_WORD)));
-      A_in->cardinality += (A[word_index-start_index]!=old_value);
     });
   }
   inline void set_union(Set<variant> *A_in,Set<bitset> *B_in){

@@ -68,6 +68,12 @@ class application{
     Set<uinteger> frontier = Set<uinteger>::from_array(f_data,start_array,1);
     bool dense_frontier = false;
 
+    Set<bitset> **vis_bufs = new Set<bitset>*[num_threads];
+    for(size_t i = 0; i < num_threads; i ++){
+      vis_bufs[i] = new Set<bitset>(bs_size);
+    }
+
+
     size_t path_length = 0;
     while(true){
       cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << dense_frontier << endl;
@@ -96,11 +102,13 @@ class application{
         );
       } else{
         frontier.par_foreach(num_threads,
-          [this, &visited] (size_t tid,uint32_t n){
-            (void) tid;
+          [this, &vis_bufs] (size_t tid,uint32_t n){
             Set<T> outnbrs = this->graph->get_row(n);
-            ops::set_union(&visited,&outnbrs);
+            ops::set_union(vis_bufs[tid],&outnbrs);
         });
+      }
+      for(size_t i = 0; i < num_threads; i++){
+        ops::set_union(&visited,vis_bufs[i]);
       }
 
       common::stopClock("union time",union_time);

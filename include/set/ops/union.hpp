@@ -32,23 +32,14 @@ namespace ops{
         const __m256 r = _mm256_or_ps(a2, a1);
 
         uint64_t tmp[4];
-        _mm256_storeu_ps((float*)&tmp, r);
-
-        for(size_t j = 0 ; j < 4; j++){
-          if(A[i+j] != tmp[j]){
-            const uint64_t old = __sync_fetch_and_or((uint64_t*)&A[i+j],tmp[j]);
-            A_in->cardinality += (_mm_popcnt_u64(tmp[j]) - _mm_popcnt_u64(old));
-          }
-        }
+        _mm256_storeu_ps((float*)&A[i+a_start_index], r);
 
         i += 4;
       }
       #endif
 
       for(; i < total_size; i++){
-        const uint64_t result = A[i+a_start_index] | B[i+b_start_index];
-        const uint64_t old = __sync_fetch_and_or((uint64_t*)&A[i],result);
-        A_in->cardinality += _mm_popcnt_u64(result) - _mm_popcnt_u64(old);
+        A[i+a_start_index] |= B[i+b_start_index];
       }
     }
   }
@@ -74,12 +65,7 @@ namespace ops{
     size_t new_count = 0;
     B_in->foreach( [&A_in,&A,start_index,&new_count] (uint32_t cur){
       const size_t word_index = bitset::word_index(cur);
-#ifdef ENABLE_ATOMIC_UNION
-      if(!(A[word_index-start_index] & ((uint64_t)1 << (cur % BITS_PER_WORD))))
-        __sync_fetch_and_or(&A[word_index-start_index], ((uint64_t) 1 << (cur % BITS_PER_WORD)));
-#else
       A[word_index-start_index] |= ((uint64_t) 1 << (cur % BITS_PER_WORD));
-#endif
     });
   }
   inline void set_union(Set<uinteger> *A_in,Set<bitset> *B_in){

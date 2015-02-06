@@ -56,29 +56,29 @@ class application{
       system_counter_state_t before_sstate = pcm_get_counter_state();
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
-      ParallelBuffer<uint32_t> *y_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size * 4);
-      ParallelBuffer<uint32_t> *z_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size * 4);
-      ParallelBuffer<uint8_t> *r_buffers = new ParallelBuffer<uint8_t>(num_threads,graph->max_nbrhood_size*sizeof(uint32_t) * 4);
+      ParallelBuffer<uint32_t> y_buffers(num_threads,graph->max_nbrhood_size * 4);
+      ParallelBuffer<uint32_t> z_buffers(num_threads,graph->max_nbrhood_size * 4);
+      ParallelBuffer<uint8_t> r_buffers(num_threads,graph->max_nbrhood_size*sizeof(uint32_t) * 4);
 
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
 
-      common::par_for_range(num_threads, 0, matrix_size, 100,
+      common::par_for_range(num_threads, 0, matrix_size, 5,
         [&](size_t tid){
-          y_buffers->allocate(tid);
-          z_buffers->allocate(tid);
-          r_buffers->allocate(tid);
+          y_buffers.allocate(tid);
+          z_buffers.allocate(tid);
+          r_buffers.allocate(tid);
           t_count[tid*PADDING] = 0;
         },
         ////////////////////////////////////////////////////
         [&](size_t tid, size_t x) {
            long t_num_lollipops = 0;
-           uint32_t* y_buffer = y_buffers->data[tid];
-           uint32_t* z_buffer = z_buffers->data[tid];
+           uint32_t* y_buffer = y_buffers.data[tid];
+           uint32_t* z_buffer = z_buffers.data[tid];
 
            Set<R> ys = this->graph->get_decoded_row(x, y_buffer);
            ys.foreach([&](uint32_t y) {
-             Set<R> rs(r_buffers->data[tid]);
+             Set<R> rs(r_buffers.data[tid]);
              Set<R> zs = this->graph->get_decoded_row(y, z_buffer);
              ops::set_intersect(&rs, &ys, &zs);
 

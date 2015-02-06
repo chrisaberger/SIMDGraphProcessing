@@ -85,14 +85,14 @@ class application{
       double union_time = common::startClock();
       if(dense_frontier){
         common::par_for_range(num_threads, 0, graph->matrix_size, 2048,
-          [this, &visited, &old_visited, &frontier](size_t tid, size_t i) {
-             (void) tid;
-            if(!bitset::is_set(i,(uint64_t*)(visited.data+sizeof(uint64_t)),0)) {
+          [this, &old_visited, &vis_bufs, &frontier](size_t tid, size_t i) {
+            Set<bitset> visitedT = vis_bufs[tid];
+            if(!bitset::is_set(i,(uint64_t*)(old_visited.data+sizeof(uint64_t)),0)) {
                Set<T> innbrs = this->graph->get_column(i);
-               innbrs.foreach_until([i,&visited, &old_visited] (uint32_t nbr) {
+               innbrs.foreach_until([i,&visitedT, &old_visited] (uint32_t nbr) {
                 if(bitset::is_set(nbr,(uint64_t*)(old_visited.data+sizeof(uint64_t)),0)){
-                  bitset::set(i,(uint64_t*)(visited.data+sizeof(uint64_t)),0);
-                  visited.cardinality++;
+                  bitset::set(i,(uint64_t*)(visitedT.data+sizeof(uint64_t)),0);
+                  visitedT.cardinality++;
                   return true;
                 }
                 return false;
@@ -118,7 +118,7 @@ class application{
       common::stopClock("difference",diff_time);
 
       //TO TURN BEAMER OFF COMMENT OUT THIS LINE
-      dense_frontier = ((double)frontier.cardinality / graph->matrix_size) > 0.08;
+      dense_frontier = ((double)frontier.cardinality / graph->matrix_size) > 0.06;
 
       if(frontier.cardinality == 0 || path_length >= depth)
         break;
@@ -135,7 +135,6 @@ class application{
     produceSubgraph();
     common::stopClock("Selections",selection_time);
 
-    //graph->print_data("graph.txt");
     uint32_t internal_start;
     if(start_node == -1)
       internal_start = graph->get_max_row_id();

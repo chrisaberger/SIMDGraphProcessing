@@ -15,7 +15,7 @@ namespace ops{
 
       const bool a_big = a_index[0] > b_index[0];
 
-      assert(a_index[0] < b_index[0]);
+      assert(a_index[0] <= b_index[0]);
 
       const uint64_t start_index = (a_big) ? a_index[0] : b_index[0];
       const uint64_t a_start_index = (a_big) ? 0:(b_index[0]-a_index[0]);

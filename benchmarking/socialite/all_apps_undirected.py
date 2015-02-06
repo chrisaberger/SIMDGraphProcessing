@@ -16,7 +16,7 @@ def clique_counting():
   `total(0, $sum(1L)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), edge(x, z), edge(y, w).`
 
 def cycle_counting():
-  `total(0, $sum(1L)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), x != z.`
+  `total(0, $sum(1L)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), x != z, w != y.`
 
 def lollipop_counting():
   `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), uedge(x, z), y < z, uedge(x, w), w != y, w != z.`

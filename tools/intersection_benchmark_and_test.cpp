@@ -104,7 +104,7 @@ uint64_t c_str_to_uint64_t(char* str) {
 vector<uint32_t> gen_set(uint64_t len, double density) {
   set<uint32_t> result;
 
-  const uint64_t max_offset = len * 0.1;
+  const uint64_t max_offset = (uint64_t)(max(1.0, len * 0.1));
   const uint32_t min_v = rand() % max_offset;
   const uint32_t max_v = min_v + len / density;
 

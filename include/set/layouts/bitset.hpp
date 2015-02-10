@@ -63,39 +63,36 @@ inline common::type bitset::get_type(){
 }
 //Copies data from input array of ints to our set data r_in
 inline size_t bitset::build(uint8_t *R, const uint32_t *A, const size_t s_a){
-  uint64_t* offset = (uint64_t*) R; 
-  uint64_t* R64 = (uint64_t*)(R+sizeof(uint64_t));
-  size_t word = 0;
-  size_t i = 0;
-  size_t cleared_word_index = 0;
+  if(s_a > 0){
+    const uint64_t offset = word_index(A[0]);
+    ((uint64_t*)R)[0] = offset; 
 
-  offset[0] = s_a > 0 ? word_index(A[0]):0;
-  size_t off_bytes = 0;
-  while(i < s_a){
-    off_bytes = sizeof(uint64_t);
-    uint32_t cur = A[i];
-    //std::cout << cur << std::endl;
-    word = word_index(cur);
-    while(cleared_word_index < word){
-      R64[cleared_word_index++] = 0;
-      cleared_word_index++;
-    }
-    cleared_word_index = word+1;
+    uint64_t* R64 = (uint64_t*)(R+sizeof(uint64_t));
+    size_t word = 0;
+    size_t i = 0;
+    size_t num_words_to_clear = word_index(A[s_a-1])-offset;
+    memset(R64,(uint8_t)0,num_words_to_clear*sizeof(uint64_t));
 
-    uint64_t set_value = (uint64_t) 1 << (cur % BITS_PER_WORD);
-    bool same_word = true;
-    ++i;
-    while(i<s_a && same_word){
-      if(word_index(A[i])==word){
-        cur = A[i];
-        set_value |= ((uint64_t) 1 << (cur%BITS_PER_WORD));
-        ++i;
-      } else same_word = false;
+    while(i < s_a){
+      uint32_t cur = A[i];
+      //std::cout << cur << std::endl;
+      word = word_index(cur);
+      uint64_t set_value = (uint64_t) 1 << (cur % BITS_PER_WORD);
+      bool same_word = true;
+      ++i;
+      while(i<s_a && same_word){
+        if(word_index(A[i])==word){
+          cur = A[i];
+          set_value |= ((uint64_t) 1 << (cur%BITS_PER_WORD));
+          ++i;
+        } else same_word = false;
+      }
+      R64[word-offset] = set_value;
+      word++;
     }
-    R64[word-offset[0]] = set_value;
-    word++;
+    return ((word-offset) * BYTES_PER_WORD) + sizeof(uint64_t);
   }
-  return ((word-offset[0]) * BYTES_PER_WORD) + off_bytes;
+  return 0;
 }
 //Nothing is different about build flattened here. The number of bytes
 //can be infered from the type. This gives us back a true CSR representation.

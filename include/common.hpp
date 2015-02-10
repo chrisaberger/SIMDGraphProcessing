@@ -46,7 +46,7 @@
 #define PERFORMANCE 1
 #define VECTORIZE 1
 
-//#define STATS
+#define STATS
 
 //CONSTANTS THAT SHOULD NOT CHANGE
 #define SHORTS_PER_REG 8
@@ -80,6 +80,10 @@ namespace common{
     return omp_get_wtime();
   }
 
+  static double stopClock(double t_in){
+    double t2=omp_get_wtime();
+    return t2 - t_in;
+  }
   static double stopClock(string in,double t_in){
     double t2=omp_get_wtime();
     std::cout << "Time["+in+"]: " << t2-t_in << " s" << std::endl;

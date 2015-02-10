@@ -39,8 +39,8 @@ class application{
     }
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
       (void) attribute;
-      return true;
-      //return nbr < node;
+      //return true;
+      return nbr < node;
     }
     #endif
 
@@ -67,6 +67,13 @@ class application{
 
       double total_min = 0.0;
 
+      size_t num_uint = 0;
+      size_t num_pshort = 0;
+      size_t num_bs = 0;
+      size_t num_uint_ps = 0;
+      size_t num_uint_bs = 0;
+      size_t num_ps_bs = 0;
+
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
       common::par_for_range(num_threads, 0, matrix_size, 100,
@@ -79,7 +86,7 @@ class application{
           t_count[tid*PADDING] = 0;
         },
         ////////////////////////////////////////////////////
-        [this,src_buffers_ps, src_buffers_bs, dst_buffers_ps,dst_buffers_bs,buffers,t_count, &total_min](size_t tid, size_t i) {
+        [&](size_t tid, size_t i) {
            long t_num_triangles = 0;
            uint8_t *src_buffer_ps = src_buffers_ps->data[tid];
            uint8_t *src_buffer_bs = src_buffers_bs->data[tid];
@@ -95,7 +102,7 @@ class application{
 
            Set<R> C(buffers->data[tid]);
 
-           AA.foreach([this, i, &AA, &A_uint, &A_ps, &A_bs, &C, &dst_buffer_ps, &dst_buffer_bs, &t_num_triangles, &total_min] (uint32_t j){
+           AA.foreach([&] (uint32_t j){
             Set<R> BB = this->graph->get_row(j);
             Set<uinteger> B_uint = BB;
             Set<pshort> B_ps = Set<pshort>::from_array(dst_buffer_ps,(uint32_t*)BB.data,BB.cardinality);
@@ -135,13 +142,50 @@ class application{
             tmp_count = ops::set_intersect((Set<uinteger>*)&C,&A_bs_in,&B_uint_in)->cardinality;
             start_time_6 = common::stopClock(start_time_6);
 
-            double min_12 = min(start_time_1,start_time_2);
-            double min_34 = min(start_time_3,start_time_4);
-            double min_56 = min(start_time_5,start_time_6);
-
-            double min_1234 = min(min_12,min_34);
-            double min_3456 = min(min_34,min_56);
-            total_min += min(min_1234,min_3456);
+            if(start_time_1 <= start_time_1 &&
+              start_time_1 <= start_time_2 &&  
+              start_time_1 <= start_time_3 && 
+              start_time_1 <= start_time_4 && 
+              start_time_1 <= start_time_5 && 
+              start_time_1 <= start_time_6){
+              num_uint++;
+              total_min += start_time_1;
+            } else if(start_time_2 <= start_time_1 &&
+              start_time_2 <= start_time_2 &&  
+              start_time_2 <= start_time_3 && 
+              start_time_2 <= start_time_4 && 
+              start_time_2 <= start_time_5 && 
+              start_time_2 <= start_time_6){
+              num_pshort++;
+              total_min += start_time_2;
+            } else if(start_time_3 <= start_time_1 &&
+              start_time_3 <= start_time_2 &&  
+              start_time_3 <= start_time_3 && 
+              start_time_3 <= start_time_4 && 
+              start_time_3 <= start_time_5 && 
+              start_time_3 <= start_time_6){
+              num_bs++;
+              total_min += start_time_3;
+            } else if(start_time_4 <= start_time_1 &&
+              start_time_4 <= start_time_2 &&  
+              start_time_4 <= start_time_3 && 
+              start_time_4 <= start_time_4 && 
+              start_time_4 <= start_time_5 && 
+              start_time_4 <= start_time_6){
+              num_uint_ps++;
+              total_min += start_time_4;
+            } else if(start_time_5 <= start_time_1 &&
+              start_time_5 <= start_time_2 &&  
+              start_time_5 <= start_time_3 && 
+              start_time_5 <= start_time_4 && 
+              start_time_5 <= start_time_5 && 
+              start_time_5 <= start_time_6){
+              num_ps_bs++;
+              total_min += start_time_5;
+            } else {
+              num_uint_bs++;
+              total_min += start_time_6;
+            }
 
             t_num_triangles += tmp_count;
            });
@@ -155,6 +199,12 @@ class application{
       );
 
     cout << "Best cost time: " << total_min << endl;
+    cout << "Uint: " << num_uint << endl;
+    cout << "Pshort: " << num_pshort << endl;
+    cout << "Bs: " << num_bs << endl;
+    cout << "Uint/pshort: " << num_uint_ps << endl;
+    cout << "PS/BS: " << num_ps_bs << endl;
+    cout << "UINT/BS: " << num_uint_bs << endl;  
 
     server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();
     pcm_print_uncore_power_state(before_uncstate, after_uncstate);

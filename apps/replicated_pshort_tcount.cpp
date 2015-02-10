@@ -86,11 +86,8 @@ class application{
            AA.foreach([this, i, &A, &AA, &C, &t_num_triangles,&intersect_time] (uint32_t j){
               size_t tmp_count = 0;
               Set<R> B = this->graph->get_row(j);
-              if( A.cardinality > 30 && 
-                ((double)A.cardinality/this->graph->matrix_size) < 0.03 &&
-                abs(B.cardinality-A.cardinality) < 1000){
-                //A.density > 0.003 && A.density < 0.03 && 
-                //this->graph->row_lengths[j] > 100 && A.cardinality > 10){
+              if( A.density > 0.0004 && A.density < 0.02048
+                  && B.density > 0.0004 && B.density < 0.02048){
                 Set<pshort> BB = this->ps_graph->get_row(j);
                 double timez = common::startClock();
                 tmp_count = ops::set_intersect((Set<pshort>*)&C,&AA,&BB)->cardinality;

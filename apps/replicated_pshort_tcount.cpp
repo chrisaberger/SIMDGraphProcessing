@@ -64,6 +64,7 @@ class application{
       ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,graph->max_nbrhood_size*sizeof(uint32_t));
 
       double intersect_time = 0.0;
+      size_t num_pshort = 0;
 
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
@@ -75,7 +76,7 @@ class application{
           t_count[tid*PADDING] = 0;
         },
         ////////////////////////////////////////////////////
-        [this,src_buffers,dst_buffers,buffers,t_count,&intersect_time](size_t tid, size_t i) {
+        [&](size_t tid, size_t i) {
            long t_num_triangles = 0;
 
            Set<R> A = this->graph->get_row(i);
@@ -83,11 +84,11 @@ class application{
 
            Set<R> C(buffers->data[tid]);
 
-           AA.foreach([this, i, &A, &AA, &C, &t_num_triangles,&intersect_time] (uint32_t j){
+           AA.foreach([&] (uint32_t j){
               size_t tmp_count = 0;
               Set<R> B = this->graph->get_row(j);
-              if( A.density > 0.0004 && A.density < 0.02048
-                  && B.density > 0.0004 && B.density < 0.02048){
+              if(A.cardinality > 150 && B.cardinality > 150 && abs(A.cardinality-B.cardinality) < 10000){
+                num_pshort++;
                 Set<pshort> BB = this->ps_graph->get_row(j);
                 double timez = common::startClock();
                 tmp_count = ops::set_intersect((Set<pshort>*)&C,&AA,&BB)->cardinality;
@@ -108,6 +109,7 @@ class application{
         }
       );
 
+    common::num_pshort_pshort = num_pshort;
     cout << "Intersection time: " << intersect_time << endl;
 
     server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();

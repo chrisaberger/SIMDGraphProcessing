@@ -109,13 +109,14 @@ class application{
             Set<bitset> B_bs = Set<bitset>::from_array(dst_buffer_bs,(uint32_t*)BB.data,BB.cardinality);
 
             size_t tmp_count = 0;
+
             double start_time_1 = common::startClock();
             tmp_count = ops::set_intersect((Set<uinteger>*)&C,&A_uint,&B_uint)->cardinality;
-            common::stopClock(start_time_1);
+            start_time_1 = common::stopClock(start_time_1);
 
             double start_time_2 = common::startClock();
             tmp_count = ops::set_intersect((Set<pshort>*)&C,&A_ps,&B_ps)->cardinality;
-            common::stopClock(start_time_2);
+            start_time_2 = common::stopClock(start_time_2);
 
             double start_time_3 = common::startClock();
             tmp_count = ops::set_intersect((Set<bitset>*)&C,&A_bs,&B_bs)->cardinality;

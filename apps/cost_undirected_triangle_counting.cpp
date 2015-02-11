@@ -40,7 +40,8 @@ class application{
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
       (void) attribute;
       //return true;
-      return nbr < node;
+      //return nbr < node;
+      return true;
     }
     #endif
 
@@ -74,6 +75,25 @@ class application{
       size_t num_uint_bs = 0;
       size_t num_ps_bs = 0;
 
+      struct set_stats {
+        size_t num_uint;
+        size_t num_pshort;
+        size_t num_bitset;
+        size_t card;
+        int64_t min_val;
+        int64_t max_val;
+      };
+
+      vector<set_stats> stats(graph->matrix_size);
+      for(size_t i = 0; i < graph->matrix_size; i++) {
+        stats[i].num_uint = 0;
+        stats[i].num_pshort = 0;
+        stats[i].num_bitset = 0;
+        stats[i].card = 0;
+        stats[i].min_val = -1;
+        stats[i].max_val = -1;
+      }
+
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
       common::par_for_range(num_threads, 0, matrix_size, 100,
@@ -99,10 +119,14 @@ class application{
            Set<uinteger> A_uint = AA;
            Set<pshort> A_ps = Set<pshort>::from_array(src_buffer_ps,(uint32_t*)AA.data,AA.cardinality);
            Set<bitset> A_bs = Set<bitset>::from_array(src_buffer_bs,(uint32_t*)AA.data,AA.cardinality);
+           stats[i].card = AA.cardinality;
 
            Set<R> C(buffers->data[tid]);
 
            AA.foreach([&] (uint32_t j){
+            stats[i].min_val = (stats[i].min_val == -1) ? j : min(stats[i].min_val, (int64_t) j);
+            stats[i].max_val = (stats[i].max_val == -1) ? j : max(stats[i].max_val, (int64_t) j);
+
             Set<R> BB = this->graph->get_row(j);
             Set<uinteger> B_uint = BB;
             Set<pshort> B_ps = Set<pshort>::from_array(dst_buffer_ps,(uint32_t*)BB.data,BB.cardinality);
@@ -151,6 +175,8 @@ class application{
               start_time_1 <= start_time_6){
               num_uint++;
               total_min += start_time_1;
+              stats[i].num_uint++;
+              stats[j].num_uint++;
             } else if(start_time_2 <= start_time_1 &&
               start_time_2 <= start_time_2 &&  
               start_time_2 <= start_time_3 && 
@@ -159,6 +185,8 @@ class application{
               start_time_2 <= start_time_6){
               num_pshort++;
               total_min += start_time_2;
+              stats[i].num_pshort++;
+              stats[j].num_pshort++;
             } else if(start_time_3 <= start_time_1 &&
               start_time_3 <= start_time_2 &&  
               start_time_3 <= start_time_3 && 
@@ -167,6 +195,8 @@ class application{
               start_time_3 <= start_time_6){
               num_bs++;
               total_min += start_time_3;
+              stats[i].num_bitset++;
+              stats[j].num_bitset++;
             } else if(start_time_4 <= start_time_1 &&
               start_time_4 <= start_time_2 &&  
               start_time_4 <= start_time_3 && 
@@ -175,6 +205,13 @@ class application{
               start_time_4 <= start_time_6){
               num_uint_ps++;
               total_min += start_time_4;
+              if(AA.cardinality < BB.cardinality) {
+                stats[i].num_uint++;
+                stats[j].num_pshort++;
+              } else {
+                stats[j].num_uint++;
+                stats[i].num_pshort++;
+              }
             } else if(start_time_5 <= start_time_1 &&
               start_time_5 <= start_time_2 &&  
               start_time_5 <= start_time_3 && 
@@ -183,9 +220,23 @@ class application{
               start_time_5 <= start_time_6){
               num_ps_bs++;
               total_min += start_time_5;
+              if(AA.cardinality < BB.cardinality) {
+                stats[i].num_pshort++;
+                stats[j].num_bitset++;
+              } else {
+                stats[j].num_pshort++;
+                stats[i].num_bitset++;
+              }
             } else {
               num_uint_bs++;
               total_min += start_time_6;
+              if(AA.cardinality < BB.cardinality) {
+                stats[i].num_uint++;
+                stats[j].num_bitset++;
+              } else {
+                stats[j].num_uint++;
+                stats[i].num_bitset++;
+              }
             }
 
             t_num_triangles += tmp_count;
@@ -205,7 +256,19 @@ class application{
     cout << "Bs: " << num_bs << endl;
     cout << "Uint/pshort: " << num_uint_ps << endl;
     cout << "PS/BS: " << num_ps_bs << endl;
-    cout << "UINT/BS: " << num_uint_bs << endl;  
+    cout << "UINT/BS: " << num_uint_bs << endl;
+
+    ofstream stats_file;
+    stats_file.open("stats.csv");
+    stats_file << "id,card,range,num_uint,num_pshort,num_bitset" << std::endl;
+    for(size_t i = 0; i < graph->matrix_size; i++) {
+      stats_file << i << ",";
+      stats_file << stats[i].card << ",";
+      stats_file << (stats[i].max_val - stats[i].min_val) << ",";
+      stats_file << stats[i].num_uint << ",";
+      stats_file << stats[i].num_pshort << ",";
+      stats_file << stats[i].num_bitset << std::endl;
+    }
 
     server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();
     pcm_print_uncore_power_state(before_uncstate, after_uncstate);

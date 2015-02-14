@@ -133,28 +133,34 @@ int main(int argc, char* argv[]) {
   myfileB.close();
 
 #else
-  if(argc != 4) {
-    std::cout << "Expected 3 arguments: Size Range, density a, density b" << std::endl;
+  if(argc != 7) {
+    std::cout << "Expected 6 arguments: <Size Range A> <Size Range B> <Len A> <Len B> <Skew A> <Skew B>" << std::endl;
     return -1;
   }
   srand(time(NULL));
 
-  const uint64_t n = c_str_to_uint64_t(argv[1]);
-  double densityA = std::stod(argv[2]);
-  double densityB = std::stod(argv[3]);
-  const uint64_t max_offset = 100;//n*0.1;
+  const uint64_t rangeA = c_str_to_uint64_t(argv[1]);
+  const uint64_t rangeB = c_str_to_uint64_t(argv[2]);
 
-  uint32_t a_v = rand() % max_offset;
-  uint32_t b_v = rand() % max_offset;
+  const uint64_t len_a = c_str_to_uint64_t(argv[3]);
+  const uint64_t len_b = c_str_to_uint64_t(argv[4]);
 
-  const uint32_t a_e = n+a_v;
-  const uint32_t b_e = n+b_v;
+  const double skew_a = stod(argv[5]);
+  const double skew_b = stod(argv[6]);
 
-  const uint32_t len_a = (densityA*n);
-  const uint32_t len_b = (densityB*n);
+  assert(rangeA > len_a);
+  assert(rangeB > len_b);
 
-  uint32_t* a = new uint32_t[n];
-  uint32_t* b = new uint32_t[n];
+  size_t offset = 10000;
+
+  uint32_t a_v = rand() % offset;
+  uint32_t b_v = rand() % offset;
+
+  const uint32_t a_e = rangeA+a_v;
+  const uint32_t b_e = rangeB+b_v;
+
+  uint32_t* a = new uint32_t[len_a];
+  uint32_t* b = new uint32_t[len_b];
 
 #ifdef DEBUG
   ofstream myfileA;
@@ -165,32 +171,43 @@ int main(int argc, char* argv[]) {
   myfileB << len_b << endl;
 #endif
 
-  for(uint64_t i = 0; i < len_a; i++) {
+  size_t run_len_a = (len_a * skew_a)+1;
+  size_t run_len_b = (len_b * skew_b)+1;
+
+  for(uint64_t i = 0; i < len_a; ) {
+    a_v += (i != 0) ? (rand() % ((a_e-a_v)/(len_a-i)))+1 : 0;
 #ifdef DEBUG
     myfileA << a_v << endl;
 #endif
-    a[i] = a_v;
-    a_v += (rand() % ((a_e-a_v)/(len_a-i)))+1;
+    size_t run = 0;
+    while(run++ < run_len_a && i < len_a){
+      a[i++] = a_v++;
+    }
   }
-  for(uint64_t i = 0; i < len_b; i++) {
+  for(uint64_t i = 0; i < len_b; ) {
+    b_v += (i != 0) ? (rand() % ((b_e-b_v)/(len_b-i)))+1: 0;
 #ifdef DEBUG
     myfileB << b_v << endl;
 #endif
-    b[i] = b_v;
-    b_v += (rand() % (b_e-b_v)/(len_b-i))+1;
+    size_t run = 0;
+    while(run++ < run_len_b && i < len_b){
+      b[i++] = b_v++;
+    }
   }
 #endif
 
-  double denA = (double)len_a / (a[len_a-1]-a[0]);
-  double denB = (double)len_b / (b[len_b-1]-b[0]);
+  double denA = (double)len_a/(a[len_a-1]-a[0]);
+  double denB = (double)len_b/(b[len_b-1]-b[0]);
 
   uint32_t *in1 = a;
   uint32_t *in2 = b;
   const size_t len1 = len_a;
   const size_t len2 = len_b;
 
-  cout << "Density A: " << min(denA,denB) << endl;
-  cout << "Density B: " << max(denA,denB) << endl;
+  cout << "A start: " << a[0] << " A end: " << a[len_a-1] << endl;
+  cout << "B start: " << b[0] << " B end: " << b[len_b-1] << endl;
+  cout << "Density A: " << denA << endl;
+  cout << "Density B: " << denB << endl;
 
   cout << endl << "UINTEGER_UINTEGER_IBM" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_ibm",IBM);

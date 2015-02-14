@@ -1,5 +1,6 @@
 #!/bin/bash
 
+GALOIS_HOME="/afs/cs.stanford.edu/u/caberger/Galois-2.2.1/"
 snode=`cat ${2}/largest_degree_external_id.txt`
 
 for i in `seq 1 ${1}`; do

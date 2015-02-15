@@ -1,0 +1,8 @@
+starttimer
+addblock '
+  count[] = value <- agg<<value = count()>> uedge(x, y), uedge(y, z), uedge(z, w), uedge(x, w), x < z, y < w.
+  count2[] = value <- agg<<value = count()>> uedge(x, y).
+'
+elapsedtime
+
+print count

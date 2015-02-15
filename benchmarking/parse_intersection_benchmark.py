@@ -28,94 +28,76 @@ def parseInput():
 def parse_file(f):
   times = []
   encoding_times = []
-  mem = []
+
   for line in f:
     matchObj = re.match(r'Time\[intersect.*: (.*) s', line, re.M|re.I)
     if matchObj:
-      times.append(matchObj.group(1))
+      times.append(float(matchObj.group(1)))
 
     matchObj = re.match(r'Time\[encoding.*: (.*) s', line, re.M|re.I)
     if matchObj:
-      encoding_times.append(matchObj.group(1))
+      encoding_times.append(float(matchObj.group(1)))
 
-    matchObj = re.match(r'Size: (.*)', line, re.M|re.I)
-    if matchObj:
-      mem.append(int(matchObj.group(1)))
-
-  return times, encoding_times, mem
+  return times, encoding_times
 
 def main():
-  options = parseInput();
-  f_perf = open('intersection_perf.csv', 'w')
-  f_mem = open('intersection_mem.csv', 'w')
-  f_constr = open('intersection_constr.csv', 'w')
+  intersections = ["UINTEGER_UINTEGER_IBM", "UINTEGER_UINTEGER_STANDARD", "UINTEGER_UINTEGER_V3", "UINTEGER_UINTEGER_V1", "UINTEGER_UINTEGER_GALLOP", "PSHORT_PSHORT", "BITSET_BITSET", "UINTEGER_PSHORT", "UINTEGER_BITSET", "PSHORT_BITSET"]
 
-  results = dict()
-  mem_results = dict()
-  constr_results = dict()
+  options = parseInput()
+
+  lens = set()
+  sweep_lens = set()
+  ranges = set()
+  sweep_ranges = set()
+  results_lens = dict()
+  results_ranges = dict()
   for filename in os.listdir(options.folder):
-    matchObj = re.match(r'(.*)_(.*)_(.*).log', filename, re.M | re.I)
+    matchObj = re.match(r'lens_(.*)_(.*)_(.*).log', filename, re.M | re.I)
     if matchObj:
-      density = float(matchObj.group(1))
-      comp = float(matchObj.group(2))
-
+      len_sets = int(matchObj.group(1))
+      range_sets = int(matchObj.group(2))
       abs_filename = os.path.join(options.folder, filename)
-      times, encoding_times, mem = parse_file(open(abs_filename))
+      times, _ = parse_file(open(abs_filename))
+      ranges.add(range_sets)
+      sweep_lens.add(len_sets)
 
-      if (density, comp) in results:
-        [ts.append(t) for ts, t in zip(results[density, comp], times)]
-        [ts.append(t) for ts, t in zip(constr_results[density, comp], encoding_times)]
+      if (len_sets, range_sets) in results_lens:
+        [ts.append(t) for ts, t in zip(results_lens[len_sets, range_sets], times)]
       else:
-        results[density, comp] = [[t] for t in times]
-        constr_results[density, comp] = [[t] for t in encoding_times]
-        mem_results[density, comp] = mem
+        results_lens[len_sets, range_sets] = [[t] for t in times]
 
-  densities_set = set()
-  comps_set = set()
-  for k, times in results.iteritems():
-    results[k] = [average_runs(t) for t in times]
-    constr_results[k] = [average_runs(t) for t in times]
-    densities_set.add(k[0])
-    comps_set.add(k[1])
+    matchObj = re.match(r'range_(.*)_(.*)_(.*).log', filename, re.M | re.I)
+    if matchObj:
+      len_sets = int(matchObj.group(1))
+      range_sets = int(matchObj.group(2))
+      abs_filename = os.path.join(options.folder, filename)
+      times, _ = parse_file(open(abs_filename))
+      lens.add(len_sets)
+      sweep_ranges.add(range_sets)
 
-  densities = sorted(list(densities_set))
-  comps = sorted(list(comps_set))
-  f_perf.write("\t" + "\t".join([str(x) for x in comps]) + "\n")
-  for density in densities:
-    line = [density]
-    for comp in comps:
-      result = results[density, comp]
-      if result == []:
-        line.append("-1")
+      if (len_sets, range_sets) in results_ranges:
+        [ts.append(t) for ts, t in zip(results_ranges[len_sets, range_sets], times)]
       else:
-        line.append(np.argmin(result))
-    f_perf.write("\t".join([str(x) for x in line]) + "\n")
+        results_ranges[len_sets, range_sets] = [[t] for t in times]
 
-  f_mem.write("\t" + "\t".join([str(x) for x in comps]) + "\n")
-  for density in densities:
-    line = [density]
-    for comp in comps:
-      result = mem_results[density, comp]
-      if result == []:
-        line.append("-1")
-      else:
-        line.append(np.argmin(result))
-    f_mem.write("\t".join([str(x) for x in line]) + "\n")
+  for k in results_lens:
+    results_lens[k] = [np.average(t) for t in results_lens[k]]
 
-  f_constr.write("\t" + "\t".join([str(x) for x in comps]) + "\n")
-  for density in densities:
-    line = [density]
-    for comp in comps:
-      result = constr_results[density, comp]
-      if result == []:
-        line.append("-1")
-      else:
-        line.append(np.argmin(result))
-    f_constr.write("\t".join([str(x) for x in line]) + "\n")
+  for k in results_ranges:
+    results_ranges[k] = [np.average(t) for t in results_ranges[k]]
 
-  f_perf.close()
-  f_mem.close()
-  f_constr.close()
+  for l in sorted(lens):
+    with open('results_len_' + str(l), 'w') as f:
+      f.write("Range" + "\t" + "\t".join(intersections) + "\n")
+      for r in sorted(sweep_ranges):
+        f.write(str(r) + "\t" + "\t".join([str(x) for x in results_ranges[l, r]]) + "\n")
+
+
+  for r in sorted(ranges):
+    with open('results_range_' + str(r), 'w') as f:
+      f.write("Length" + "\t" + "\t".join(intersections) + "\n")
+      for l in sorted(sweep_lens):
+        f.write(str(l) + "\t" + "\t".join([str(x) for x in results_lens[l, r]]) + "\n")
 
 
 if __name__ == "__main__":

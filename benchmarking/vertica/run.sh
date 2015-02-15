@@ -1,10 +1,17 @@
 #!/bin/bash
 
 if [ -f $1/attributes.txt ]; then
-   ${VERTICA_HOME}/bin/vsql -v num_threads=$2 -v attributes=\'$1/attributes.txt\' -v edgelist=\'$1/glab_undirected/data.txt\' -d benchmarking -f selections_undirected.sql dbadmin
-   ${VERTICA_HOME}/bin/vsql -v num_threads=$2 -v attributes=\'$1/attributes.txt\' -v edgelist=\'$1/edgelist/data.txt\' -d benchmarking -f selections_directed.sql dbadmin
+  echo "Attributes currently not supported"
 else
-   ${VERTICA_HOME}/bin/vsql -v num_threads=$2 -v file=\'$1/glab_undirected/data.txt\' -d benchmarking -f undirected.sql dbadmin
-   ${VERTICA_HOME}/bin/vsql -v num_threads=$2 -v file=\'$1/edgelist/data.txt\' -d benchmarking -f directed.sql dbadmin
+  for i in `seq 1 ${1}`; do
+    echo "triangle"
+    timeout 9000 ${VERTICA_HOME}/bin/vsql -v num_threads=$3 -v file=\'$2/glab_undirected/data.txt\' -d benchmarking -f triangle.sql noetzli
+    echo "cycle"
+    timeout 9000 ${VERTICA_HOME}/bin/vsql -v num_threads=$3 -v file=\'$2/glab_undirected/data.txt\' -d benchmarking -f cycle.sql noetzli
+    echo "clique"
+    timeout 9000 ${VERTICA_HOME}/bin/vsql -v num_threads=$3 -v file=\'$2/glab_undirected/data.txt\' -d benchmarking -f clique.sql noetzli
+    echo "lollipop"
+    timeout 9000 ${VERTICA_HOME}/bin/vsql -v num_threads=$3 -v file=\'$2/glab_undirected/data.txt\' -d benchmarking -f lollipop.sql noetzli
+  done
 fi
 

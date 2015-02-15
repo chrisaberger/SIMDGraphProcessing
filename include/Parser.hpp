@@ -123,7 +123,7 @@ namespace input_parser{
     if(num_threads == 0 || graph_path == NULL || input_type == NULL || help || layout_type == NULL){
       printUsage(app);
     }
-    
+
     if(n == -1){
       if(app.compare("n_clique") == 0 || app.compare("n_cycle") == 0){
         n = 4; //default is 4
@@ -131,6 +131,12 @@ namespace input_parser{
         n = 0xeffffff;
       }
     }
+
+#if VECTORIZE == 1
+    std::cout << "VECTORIZE = 1" << std::endl;
+#else
+    std::cout << "VECTORIZE = 0" << std::endl;
+#endif
 
     MutableGraph *inputGraph;
     if(app.compare("n_path") == 0){

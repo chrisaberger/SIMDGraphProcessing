@@ -90,6 +90,10 @@ class application{
         size_t num_hybrid_uint_pshort;
         size_t num_hybrid_pshort_bitset;
         size_t num_hybrid_uint_bitset;
+        size_t num_bs_instead_of_ps_psbs;
+        size_t num_ubs_instead_of_ups;
+        size_t num_bsbs_instead_of_ups;
+        size_t num_uu_instead_of_ups;
         double t_time;
         common::type my_type;
       };
@@ -103,6 +107,20 @@ class application{
         stats[i].min_val = -1;
         stats[i].max_val = -1;
       }
+
+      size_t lens_ubs_instead_of_ups = 0;
+      size_t lens_u_ubs_instead_of_ups = 0;
+      size_t num_ubs_instead_of_ups = 0;
+      size_t bytes_ubs_instead_of_ups = 0;
+      size_t lens_bsbs_instead_of_psbs = 0;
+      size_t lens_bs_bsbs_instead_of_psbs = 0;
+      size_t num_bsbs_instead_of_psbs = 0;
+      size_t bytes_bsbs_instead_of_psbs = 0;
+      double time_bad_ups = 0.0;
+      double time_bad_ups_if_ubs = 0.0;
+      double time_bad_psbs = 0.0;
+      double time_bad_psbs_if_bsbs = 0.0;
+      double total_hybrid_time = 0.0;
 
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
@@ -180,6 +198,10 @@ class application{
 
             double min_time = 0.0;
 
+            bool bs_bs_best = false;
+            bool u_bs_best = false;
+            bool u_u_best = false;
+
             if(start_time_1 <= start_time_1 &&
               start_time_1 <= start_time_2 &&  
               start_time_1 <= start_time_3 && 
@@ -193,6 +215,7 @@ class application{
               stats[j].t_time += min_time;
               stats[i].num_uint++;
               stats[j].num_uint++;
+              u_u_best = true;
             } else if(start_time_2 <= start_time_1 &&
               start_time_2 <= start_time_2 &&  
               start_time_2 <= start_time_3 && 
@@ -219,6 +242,7 @@ class application{
               stats[j].t_time += min_time;
               stats[i].num_bitset++;
               stats[j].num_bitset++;
+              bs_bs_best = true;
             } else if(start_time_4 <= start_time_1 &&
               start_time_4 <= start_time_2 &&  
               start_time_4 <= start_time_3 && 
@@ -270,6 +294,7 @@ class application{
               stats[j].t_time += min_time;
               stats[i].num_uint_bs++;
               stats[j].num_uint_bs++;
+              u_bs_best = true;
               /*
               if(AA.cardinality < BB.cardinality) {
                 stats[i].num_uint++;
@@ -312,6 +337,26 @@ class application{
                 if((hybrid_intersection_time/min_time) > min_ratio){
                     stats[i].num_hybrid_uint_pshort++;
                     stats[j].num_hybrid_uint_pshort++;
+
+                    if(u_bs_best) {
+                      stats[i].num_ubs_instead_of_ups++;
+                      stats[j].num_ubs_instead_of_ups++;
+                      lens_ubs_instead_of_ups += (a_type == common::PSHORT) ? AA.cardinality : BB.cardinality;
+                      lens_u_ubs_instead_of_ups += (a_type == common::PSHORT) ? BB.cardinality : AA.cardinality;
+                      num_ubs_instead_of_ups++;
+
+                      time_bad_ups += start_time_4;
+                      time_bad_ups_if_ubs += min_time;
+                      bytes_ubs_instead_of_ups += (a_type == common::PSHORT) ? A_bs.number_of_bytes : B_bs.number_of_bytes;
+                    }
+                    else if(bs_bs_best) {
+                      stats[i].num_bsbs_instead_of_ups++;
+                      stats[j].num_bsbs_instead_of_ups++;
+                    }
+                    else if(u_u_best) {
+                      stats[i].num_uu_instead_of_ups++;
+                      stats[j].num_uu_instead_of_ups++;
+                    }
                 }
               }  else if( (a_type == common::BITSET && b_type == common::PSHORT) ||
                 (a_type == common::PSHORT && b_type == common::BITSET)){
@@ -319,6 +364,18 @@ class application{
                 if((hybrid_intersection_time/min_time) > min_ratio){
                     stats[i].num_hybrid_pshort_bitset++;
                     stats[j].num_hybrid_pshort_bitset++;
+
+                    if(bs_bs_best) {
+                      stats[i].num_bs_instead_of_ps_psbs++;
+                      stats[j].num_bs_instead_of_ps_psbs++;
+                      lens_bsbs_instead_of_psbs += (a_type == common::PSHORT) ? AA.cardinality : BB.cardinality;
+                      lens_bs_bsbs_instead_of_psbs += (a_type == common::PSHORT) ? BB.cardinality : AA.cardinality;
+                      num_bsbs_instead_of_psbs++;
+
+                      time_bad_psbs += start_time_5;
+                      time_bad_psbs_if_bsbs += min_time;
+                      bytes_bsbs_instead_of_psbs += (a_type == common::PSHORT) ? A_bs.number_of_bytes : B_bs.number_of_bytes;
+                    }
                 }
               }  else if((a_type == common::UINTEGER && b_type == common::BITSET) ||
                 (a_type == common::BITSET && b_type == common::UINTEGER)){
@@ -327,9 +384,11 @@ class application{
                     stats[i].num_hybrid_uint_bitset++;
                     stats[j].num_hybrid_uint_bitset++;
                 }
-              } 
+              }
+
+              total_hybrid_time += hybrid_intersection_time;
             }
-    
+
             t_num_triangles += tmp_count;
            });
 
@@ -342,16 +401,27 @@ class application{
       );
 
     cout << "Best cost time: " << total_min << endl;
+    cout << "Hybrid time: " << total_hybrid_time << endl;
     cout << "Uint: " << num_uint << endl;
     cout << "Pshort: " << num_pshort << endl;
     cout << "Bs: " << num_bs << endl;
     cout << "Uint/pshort: " << num_uint_ps << endl;
     cout << "PS/BS: " << num_ps_bs << endl;
     cout << "UINT/BS: " << num_uint_bs << endl;
+    cout << "Avg. PS card when BSBS instead of PSBS: " << (lens_bsbs_instead_of_psbs / num_bsbs_instead_of_psbs) << endl;
+    cout << "Avg. BS card when BSBS instead of PSBS: " << (lens_bs_bsbs_instead_of_psbs / num_bsbs_instead_of_psbs) << endl;
+    cout << "Avg. PS card when UBS instead of UPS: " << (lens_ubs_instead_of_ups / num_ubs_instead_of_ups) << endl;
+    cout << "Avg. U card when UBS instead of UPS: " << (lens_u_ubs_instead_of_ups / num_ubs_instead_of_ups) << endl;
+    cout << "Avg. bytes BS when BSBS instead of PSBS: " << (bytes_bsbs_instead_of_psbs / num_bsbs_instead_of_psbs) << endl;
+    cout << "Avg. bytes BS when UBS instead of UBS: " << (bytes_ubs_instead_of_ups / num_ubs_instead_of_ups) << endl;
+    cout << "Time UPS when UBS better than UPS: " << time_bad_ups << endl;
+    cout << "Time UBS when UBS better than UPS: " << time_bad_ups_if_ubs << endl;
+    cout << "Time PSBS when BSBS better than PSBS: " << time_bad_psbs << endl;
+    cout << "Time BSBS when BSBS better than PSBS: " << time_bad_psbs_if_bsbs << endl;
 
     ofstream stats_file;
     stats_file.open("stats.csv");
-    stats_file << "id,card,range,uint/uint,pshort/pshort,bitset/bitset,u/ps,ps/bs,u/bs,,eh uint/uint,eh pshort/pshort,eh bitset/bitset,eh u/ps,eh ps/bs,eh u/bs,percent time,ehtype" << std::endl;
+    stats_file << "id,card,range,uint/uint,pshort/pshort,bitset/bitset,u/ps,ps/bs,u/bs,,eh uint/uint,eh pshort/pshort,eh bitset/bitset,eh u/ps,eh ps/bs,eh u/bs,percent time,ehtype,num_bs_instead_of_ps_psbs,num_ubs_instead_of_ups,num_bsbs_instead_of_ups,num_uu_instead_of_ups" << std::endl;
     for(size_t i = 0; i < graph->matrix_size; i++) {
       stats_file << i << ",";
       stats_file << stats[i].card << ",";
@@ -370,12 +440,16 @@ class application{
       stats_file << stats[i].num_hybrid_uint_bitset << ",";
       stats_file << ((double)stats[i].t_time/total_min) << ",";
       if(stats[i].my_type == common::BITSET)
-        stats_file << "bitset" <<std::endl;
+        stats_file << "bitset,";
       else if(stats[i].my_type == common::PSHORT)
-        stats_file << "pshort" <<std::endl;
+        stats_file << "pshort,";
       else 
-        stats_file << "uint" <<std::endl;
-
+        stats_file << "uint,";
+      stats_file << stats[i].num_bs_instead_of_ps_psbs << ",";
+      stats_file << stats[i].num_ubs_instead_of_ups << ",";
+      stats_file << stats[i].num_bsbs_instead_of_ups << ",";
+      stats_file << stats[i].num_uu_instead_of_ups;
+      stats_file << std::endl;
     }
 
     server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();
@@ -402,13 +476,13 @@ class application{
 
     common::dump_stats();
 
-    
     pcm_cleanup();
   }
 };
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
-int main (int argc, char* argv[]) { 
+int main (int argc, char* argv[]) {
+
   Parser input_data = input_parser::parse(argc,argv,"undirected_triangle_counting");
 
   application<uinteger,uinteger> myapp(input_data);

@@ -39,8 +39,8 @@ class application{
     }
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
       (void) attribute;
-      return true;
-      //return nbr < node;
+      //(void) nbr; (void) node; return true;
+      return nbr < node;
     }
     #endif
 
@@ -61,6 +61,8 @@ class application{
       ParallelBuffer<uint32_t> *dst_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size);
       ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,graph->max_nbrhood_size*sizeof(uint32_t));
 
+      double intersect_time = 0.0;
+
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
       common::par_for_range(num_threads, 0, matrix_size, 100,
@@ -71,7 +73,7 @@ class application{
           t_count[tid*PADDING] = 0;
         },
         ////////////////////////////////////////////////////
-        [this,src_buffers,dst_buffers,buffers,t_count](size_t tid, size_t i) {
+        [this,src_buffers,dst_buffers,buffers,t_count,&intersect_time](size_t tid, size_t i) {
            long t_num_triangles = 0;
            uint32_t *src_buffer = src_buffers->data[tid];
            uint32_t *dst_buffer = dst_buffers->data[tid];
@@ -79,9 +81,15 @@ class application{
            Set<R> A = this->graph->get_decoded_row(i,src_buffer);
            Set<R> C(buffers->data[tid]);
 
-           A.foreach([this, i, &A, &C, &dst_buffer, &t_num_triangles] (uint32_t j){
+           A.foreach([this, i, &A, &C, &dst_buffer, &t_num_triangles, &intersect_time] (uint32_t j){
              Set<R> B = this->graph->get_decoded_row(j,dst_buffer);
-             const size_t tmp_count = ops::set_intersect(&C,&A,&B)->cardinality;
+             
+             //ops::set_intersect(&C,&A,&B)->cardinality;
+            
+            //double timez = common::startClock();
+            const size_t tmp_count = ops::set_intersect(&C,&A,&B)->cardinality;
+            //intersect_time += common::stopClock(timez);
+
              t_num_triangles += tmp_count;
            });
 
@@ -92,6 +100,8 @@ class application{
           num_triangles += t_count[tid*PADDING];
         }
       );
+
+    //cout << "Intersect time: " << intersect_time << endl;
 
     server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();
     pcm_print_uncore_power_state(before_uncstate, after_uncstate);

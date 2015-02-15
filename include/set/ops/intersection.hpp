@@ -1360,10 +1360,10 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
               #ifdef STATS
               common::num_uint_uint++;
               #endif
-              //if((freq->density-rare->density) > 0.00032)
-              //  return (Set<hybrid>*)set_intersect_v3((Set<uinteger>*)C_in,(const Set<uinteger>*)rare,(const Set<uinteger>*)freq);
-              //else
-                return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)rare,(const Set<uinteger>*)freq);
+              if(std::max(A_in->cardinality,B_in->cardinality)/std::min(A_in->cardinality,B_in->cardinality) > 20)
+                return (Set<hybrid>*)set_intersect_v3((Set<uinteger>*)C_in,(const Set<uinteger>*)rare,(const Set<uinteger>*)freq);
+              else
+                return (Set<hybrid>*)set_intersect_ibm((Set<uinteger>*)C_in,(const Set<uinteger>*)rare,(const Set<uinteger>*)freq);
             break;
             case common::PSHORT:
               #ifdef STATS

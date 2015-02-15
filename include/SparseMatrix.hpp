@@ -20,12 +20,14 @@ class SparseMatrix{
     */
     uint32_t *row_lengths; 
     uint8_t **row_arrays;
+    uint32_t *row_ranges;
 
     /*
     Stores in neighbors.
     */
     uint32_t *column_lengths;
     uint8_t **column_arrays;
+    uint32_t *column_ranges;
 
     uint64_t *id_map;
     uint32_t *node_attributes;
@@ -39,9 +41,11 @@ class SparseMatrix{
       size_t max_nbrhood_size_in,
       bool symmetric_in, 
       uint32_t *row_lengths_in,
-      uint8_t **row_arrays_in, 
+      uint8_t **row_arrays_in,
+      uint32_t *row_range_data_in, 
       uint32_t *column_lengths_in, 
       uint8_t **column_arrays_in, 
+      uint32_t *column_range_data_in,
       uint64_t *id_map_in,
       uint32_t *node_attributes_in,
       vector< vector<uint32_t>*  > *out_edge_attributes_in,
@@ -54,8 +58,10 @@ class SparseMatrix{
         symmetric(symmetric_in),
         row_lengths(row_lengths_in),
         row_arrays(row_arrays_in),
+        row_ranges(row_range_data_in),
         column_lengths(column_lengths_in),
         column_arrays(column_arrays_in),
+        column_ranges(column_range_data_in),
         id_map(id_map_in),
         node_attributes(node_attributes_in),
         out_edge_attributes(out_edge_attributes_in),
@@ -239,7 +245,8 @@ inline pair<size_t,size_t> pack_data(const uint32_t i,
   const vector<uint32_t> * const neighborhood, uint32_t * const selected_neighborhood, 
   uint8_t * const data, size_t index,
   const std::function<bool(uint32_t,uint32_t)> node_selection,
-  const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection){
+  const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
+  uint32_t *range_data){
 
   size_t new_size = 0;
   for(size_t j = 0; j < neighborhood->size(); ++j) {
@@ -247,6 +254,7 @@ inline pair<size_t,size_t> pack_data(const uint32_t i,
       selected_neighborhood[new_size++] = neighborhood->at(j);
     } 
   }
+  range_data[i] = selected_neighborhood[new_size-1]-selected_neighborhood[0];
   index += Set<T>::flatten_from_array(data+index,selected_neighborhood,new_size);
   return make_pair(index,new_size);
 }
@@ -369,7 +377,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_attribute_graph(MutableGrap
 
   return new SparseMatrix(new_num_nodes,new_cardinality,
     total_bytes_used,0,inputGraph->max_nbrhood_size,true,
-    row_lengths_in,row_arrays_in,row_lengths_in,row_arrays_in,new_imap,
+    row_lengths_in,row_arrays_in,NULL,row_lengths_in,row_arrays_in,NULL,new_imap,
     node_attributes_in,edge_attributes_in,edge_attributes_in);
 }
 //Constructors
@@ -387,6 +395,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_noattribute_graph(MutableGr
 
   uint8_t **row_arrays_in = new uint8_t*[matrix_size_in];
   uint32_t *row_lengths_in = new uint32_t[matrix_size_in];
+  uint32_t *row_range_data = new uint32_t[matrix_size_in];
 
   size_t new_cardinality = 0;
   size_t total_bytes_used = 0;
@@ -412,14 +421,14 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_noattribute_graph(MutableGr
       tid_alloc_size[tid * m] = 0;
     },
     /////////////////////////////////////////////////////////////
-    [alloc_size,tid_alloc_size,cardinalities,row_data_buffer,selected_data_buffer,row_arrays_in,indices,row_lengths_in,inputGraph,node_selection,edge_selection]
+    [&row_range_data,alloc_size,tid_alloc_size,cardinalities,row_data_buffer,selected_data_buffer,row_arrays_in,indices,row_lengths_in,inputGraph,node_selection,edge_selection]
     (size_t tid, size_t i) {
       uint8_t * const row_data_in = row_data_buffer->data[tid];
       uint32_t * const selected_data = selected_data_buffer->data[tid];
 
       row_arrays_in[i] = &row_data_in[tid_alloc_size[tid*m]];
       const pair<size_t,size_t> index_size = pack_data<T>(i,inputGraph->out_neighborhoods->at(i),
-        selected_data,row_data_in,tid_alloc_size[tid*m],node_selection,edge_selection); 
+        selected_data,row_data_in,tid_alloc_size[tid*m],node_selection,edge_selection,row_range_data); 
       indices[tid * m] += (index_size.first-tid_alloc_size[tid*m]);
       tid_alloc_size[tid*m] = index_size.first;
       row_lengths_in[i] = index_size.second;
@@ -452,8 +461,8 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_noattribute_graph(MutableGr
 
   return new SparseMatrix(matrix_size_in,new_cardinality,total_bytes_used,
     0,inputGraph->max_nbrhood_size,true,
-    row_lengths_in,row_arrays_in,
-    row_lengths_in,row_arrays_in,
+    row_lengths_in,row_arrays_in,row_range_data,
+    row_lengths_in,row_arrays_in,row_range_data,
     inputGraph->id_map->data(),NULL,NULL,NULL);
 }
 
@@ -602,8 +611,8 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_attribute_graph(MutableGra
 
   return new SparseMatrix(new_num_nodes,new_cardinality,row_total_bytes_used,
     col_total_bytes_used,inputGraph->max_nbrhood_size,false,
-    row_lengths_in,row_arrays_in,
-    col_lengths_in,col_arrays_in,
+    row_lengths_in,row_arrays_in,NULL,
+    col_lengths_in,col_arrays_in,NULL,
     new_imap,node_attributes_in,out_edge_attributes_in,in_edge_attributes_in);
 }
 
@@ -622,6 +631,8 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_noattribute_graph(MutableG
   uint32_t *row_lengths_in = new uint32_t[matrix_size_in];
   uint8_t **col_arrays_in = new uint8_t*[matrix_size_in];
   uint32_t *col_lengths_in = new uint32_t[matrix_size_in];
+  uint32_t *row_range_data = new uint32_t[matrix_size_in];
+  uint32_t *col_range_data = new uint32_t[matrix_size_in];
 
   size_t new_cardinality = 0;
   size_t row_total_bytes_used = 0;
@@ -657,14 +668,14 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_noattribute_graph(MutableG
       &row_arrays_in,&col_arrays_in,
       &row_indices,&col_indices,
       &row_lengths_in,&col_lengths_in,
-      &inputGraph,&node_selection,&edge_selection]
+      &inputGraph,&node_selection,&edge_selection,&row_range_data,&col_range_data]
     (size_t tid, size_t i) {
       uint32_t * const selected_data = selected_data_buffer->data[tid];
       uint8_t * const row_data_in = row_data_buffer->data[tid];
 
       row_arrays_in[i] = &row_data_in[row_tid_alloc_size[tid*m]];  
       pair<size_t,size_t> index_size = pack_data<T>(i,inputGraph->out_neighborhoods->at(i),
-        selected_data,row_data_in,row_tid_alloc_size[tid*m],node_selection,edge_selection); 
+        selected_data,row_data_in,row_tid_alloc_size[tid*m],node_selection,edge_selection,row_range_data); 
       //cout << index_size.first << endl;
       row_indices[tid * m] += (index_size.first-row_tid_alloc_size[tid*m]);
       row_tid_alloc_size[tid*m] = index_size.first;
@@ -682,7 +693,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_noattribute_graph(MutableG
       uint8_t * const col_data_in = col_data_buffer->data[tid];
       col_arrays_in[i] = &col_data_in[col_tid_alloc_size[tid*m]];  
       index_size = pack_data<T>(i,inputGraph->in_neighborhoods->at(i),
-        selected_data,col_data_in,col_tid_alloc_size[tid*m],node_selection,edge_selection); 
+        selected_data,col_data_in,col_tid_alloc_size[tid*m],node_selection,edge_selection,col_range_data); 
       col_indices[tid * m] += (index_size.first-col_tid_alloc_size[tid*m]);
       col_tid_alloc_size[tid*m] = index_size.first;
       col_lengths_in[i] = index_size.second;
@@ -716,8 +727,8 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_noattribute_graph(MutableG
 
   return new SparseMatrix(matrix_size_in,new_cardinality,row_total_bytes_used,
     col_total_bytes_used,inputGraph->max_nbrhood_size,false,
-    row_lengths_in,row_arrays_in,
-    col_lengths_in,col_arrays_in,
+    row_lengths_in,row_arrays_in,row_range_data,
+    col_lengths_in,col_arrays_in,col_range_data,
     inputGraph->id_map->data(),NULL,NULL,NULL);
 }
 #endif

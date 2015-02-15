@@ -39,9 +39,8 @@ class application{
     }
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
       (void) attribute;
+      return nbr < node;
       //return true;
-      //return nbr < node;
-      return true;
     }
     #endif
 
@@ -79,9 +78,20 @@ class application{
         size_t num_uint;
         size_t num_pshort;
         size_t num_bitset;
+        size_t num_uint_ps;
+        size_t num_uint_bs;
+        size_t num_ps_bs;
         size_t card;
         int64_t min_val;
         int64_t max_val;
+        size_t num_hybrid_uint_uint;
+        size_t num_hybrid_pshort_pshort;
+        size_t num_hybrid_bitset_bitset;
+        size_t num_hybrid_uint_pshort;
+        size_t num_hybrid_pshort_bitset;
+        size_t num_hybrid_uint_bitset;
+        double t_time;
+        common::type my_type;
       };
 
       vector<set_stats> stats(graph->matrix_size);
@@ -128,6 +138,7 @@ class application{
             stats[i].max_val = (stats[i].max_val == -1) ? j : max(stats[i].max_val, (int64_t) j);
 
             Set<R> BB = this->graph->get_row(j);
+
             Set<uinteger> B_uint = BB;
             Set<pshort> B_ps = Set<pshort>::from_array(dst_buffer_ps,(uint32_t*)BB.data,BB.cardinality);
             Set<bitset> B_bs = Set<bitset>::from_array(dst_buffer_bs,(uint32_t*)BB.data,BB.cardinality);
@@ -167,6 +178,8 @@ class application{
             tmp_count = ops::set_intersect((Set<uinteger>*)&C,&A_bs_in,&B_uint_in)->cardinality;
             start_time_6 = common::stopClock(start_time_6);
 
+            double min_time = 0.0;
+
             if(start_time_1 <= start_time_1 &&
               start_time_1 <= start_time_2 &&  
               start_time_1 <= start_time_3 && 
@@ -175,6 +188,9 @@ class application{
               start_time_1 <= start_time_6){
               num_uint++;
               total_min += start_time_1;
+              min_time = start_time_1;
+              stats[i].t_time += min_time;
+              stats[j].t_time += min_time;
               stats[i].num_uint++;
               stats[j].num_uint++;
             } else if(start_time_2 <= start_time_1 &&
@@ -184,7 +200,10 @@ class application{
               start_time_2 <= start_time_5 && 
               start_time_2 <= start_time_6){
               num_pshort++;
+              min_time = start_time_2;
               total_min += start_time_2;
+              stats[i].t_time += min_time;
+              stats[j].t_time += min_time;
               stats[i].num_pshort++;
               stats[j].num_pshort++;
             } else if(start_time_3 <= start_time_1 &&
@@ -194,7 +213,10 @@ class application{
               start_time_3 <= start_time_5 && 
               start_time_3 <= start_time_6){
               num_bs++;
+              min_time = start_time_3;
               total_min += start_time_3;
+              stats[i].t_time += min_time;
+              stats[j].t_time += min_time;
               stats[i].num_bitset++;
               stats[j].num_bitset++;
             } else if(start_time_4 <= start_time_1 &&
@@ -204,7 +226,13 @@ class application{
               start_time_4 <= start_time_5 && 
               start_time_4 <= start_time_6){
               num_uint_ps++;
+              min_time = start_time_4;
+              stats[i].t_time += min_time;
+              stats[j].t_time += min_time;
               total_min += start_time_4;
+              stats[i].num_uint_ps++;
+              stats[j].num_uint_ps++;
+              /*
               if(AA.cardinality < BB.cardinality) {
                 stats[i].num_uint++;
                 stats[j].num_pshort++;
@@ -212,6 +240,7 @@ class application{
                 stats[j].num_uint++;
                 stats[i].num_pshort++;
               }
+              */
             } else if(start_time_5 <= start_time_1 &&
               start_time_5 <= start_time_2 &&  
               start_time_5 <= start_time_3 && 
@@ -219,17 +248,29 @@ class application{
               start_time_5 <= start_time_5 && 
               start_time_5 <= start_time_6){
               num_ps_bs++;
+              min_time = start_time_5;
+              stats[i].t_time += min_time;
+              stats[j].t_time += min_time;
               total_min += start_time_5;
+              stats[i].num_ps_bs++;
+              stats[j].num_ps_bs++;
+              /*
               if(AA.cardinality < BB.cardinality) {
                 stats[i].num_pshort++;
                 stats[j].num_bitset++;
               } else {
                 stats[j].num_pshort++;
                 stats[i].num_bitset++;
-              }
+              }*/
             } else {
               num_uint_bs++;
+              min_time = start_time_6;
               total_min += start_time_6;
+              stats[i].t_time += min_time;
+              stats[j].t_time += min_time;
+              stats[i].num_uint_bs++;
+              stats[j].num_uint_bs++;
+              /*
               if(AA.cardinality < BB.cardinality) {
                 stats[i].num_uint++;
                 stats[j].num_bitset++;
@@ -237,8 +278,58 @@ class application{
                 stats[j].num_uint++;
                 stats[i].num_bitset++;
               }
+              */
             }
 
+            double min_ratio = 2.0;
+            double hybrid_intersection_time = 0.0;
+            common::type a_type = hybrid::get_type((uint32_t*)AA.data,AA.cardinality);
+            common::type b_type = hybrid::get_type((uint32_t*)BB.data,BB.cardinality);
+            if(min_time > 0.0){
+              stats[i].my_type = a_type;
+              stats[j].my_type =b_type;
+              if(a_type == common::UINTEGER && b_type == common::UINTEGER){
+                hybrid_intersection_time = start_time_1;
+                if((hybrid_intersection_time/min_time) > min_ratio){
+                  stats[i].num_hybrid_uint_uint++;
+                  stats[j].num_hybrid_uint_uint++;
+                }
+              } else if(a_type == common::PSHORT && b_type == common::PSHORT){
+                hybrid_intersection_time = start_time_2;
+                if((hybrid_intersection_time/min_time) > min_ratio){
+                  stats[i].num_hybrid_pshort_pshort++;
+                  stats[j].num_hybrid_pshort_pshort++;
+                }
+              } else if(a_type == common::BITSET && b_type == common::BITSET){
+                hybrid_intersection_time = start_time_3;
+                if((hybrid_intersection_time/min_time) > min_ratio){
+                  stats[i].num_hybrid_bitset_bitset++;
+                  stats[j].num_hybrid_bitset_bitset++;
+                }
+              } else if( (a_type == common::UINTEGER && b_type == common::PSHORT) ||
+                (a_type == common::PSHORT && b_type == common::UINTEGER)){
+                hybrid_intersection_time = start_time_4;
+                if((hybrid_intersection_time/min_time) > min_ratio){
+                    stats[i].num_hybrid_uint_pshort++;
+                    stats[j].num_hybrid_uint_pshort++;
+                }
+              }  else if( (a_type == common::BITSET && b_type == common::PSHORT) ||
+                (a_type == common::PSHORT && b_type == common::BITSET)){
+                hybrid_intersection_time = start_time_5;
+                if((hybrid_intersection_time/min_time) > min_ratio){
+                    stats[i].num_hybrid_pshort_bitset++;
+                    stats[j].num_hybrid_pshort_bitset++;
+                }
+              }  else if((a_type == common::UINTEGER && b_type == common::BITSET) ||
+                (a_type == common::BITSET && b_type == common::UINTEGER)){
+                hybrid_intersection_time = start_time_6;
+                if((hybrid_intersection_time/min_time) > min_ratio){
+                    stats[i].num_hybrid_uint_bitset++;
+                    stats[j].num_hybrid_uint_bitset++;
+                }
+              } 
+            }
+    
             t_num_triangles += tmp_count;
            });
 
@@ -260,14 +351,31 @@ class application{
 
     ofstream stats_file;
     stats_file.open("stats.csv");
-    stats_file << "id,card,range,num_uint,num_pshort,num_bitset" << std::endl;
+    stats_file << "id,card,range,uint/uint,pshort/pshort,bitset/bitset,u/ps,ps/bs,u/bs,,eh uint/uint,eh pshort/pshort,eh bitset/bitset,eh u/ps,eh ps/bs,eh u/bs,percent time,ehtype" << std::endl;
     for(size_t i = 0; i < graph->matrix_size; i++) {
       stats_file << i << ",";
       stats_file << stats[i].card << ",";
       stats_file << (stats[i].max_val - stats[i].min_val) << ",";
       stats_file << stats[i].num_uint << ",";
       stats_file << stats[i].num_pshort << ",";
-      stats_file << stats[i].num_bitset << std::endl;
+      stats_file << stats[i].num_bitset << ",";
+      stats_file << stats[i].num_uint_ps << ",";
+      stats_file << stats[i].num_ps_bs << ",";
+      stats_file << stats[i].num_uint_bs << ",,";
+      stats_file << stats[i].num_hybrid_uint_uint << ",";
+      stats_file << stats[i].num_hybrid_pshort_pshort << ",";
+      stats_file << stats[i].num_hybrid_bitset_bitset << ",";
+      stats_file << stats[i].num_hybrid_uint_pshort << ",";
+      stats_file << stats[i].num_hybrid_pshort_bitset << ",";
+      stats_file << stats[i].num_hybrid_uint_bitset << ",";
+      stats_file << ((double)stats[i].t_time/total_min) << ",";
+      if(stats[i].my_type == common::BITSET)
+        stats_file << "bitset" <<std::endl;
+      else if(stats[i].my_type == common::PSHORT)
+        stats_file << "pshort" <<std::endl;
+      else 
+        stats_file << "uint" <<std::endl;
+
     }
 
     server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();

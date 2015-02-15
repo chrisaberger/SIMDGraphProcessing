@@ -40,8 +40,8 @@ class application{
     }
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
       (void) attribute;
-      //return true;
-      return nbr < node;
+      return true;
+      //return nbr < node;
     }
     #endif
 
@@ -87,7 +87,8 @@ class application{
            AA.foreach([&] (uint32_t j){
               size_t tmp_count = 0;
               Set<R> B = this->graph->get_row(j);
-              if(A.cardinality > 150 && B.cardinality > 150 && abs(A.cardinality-B.cardinality) < 10000){
+              if( (AA.type != common::BITSET && B.type == common::BITSET && AA.cardinality > B.cardinality) ||
+                (AA.type == common::BITSET && B.type != common::BITSET && B.cardinality > AA.cardinality)){
                 num_pshort++;
                 Set<pshort> BB = this->ps_graph->get_row(j);
                 double timez = common::startClock();

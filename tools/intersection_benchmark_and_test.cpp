@@ -101,12 +101,12 @@ uint64_t c_str_to_uint64_t(char* str) {
   return result;
 }
 
-vector<uint32_t> gen_set(uint64_t len, double density) {
+vector<uint32_t> gen_set(uint64_t len, uint64_t range) {
   set<uint32_t> result;
 
   const uint64_t max_offset = (uint64_t)(max(1.0, len * 0.1));
   const uint32_t min_v = rand() % max_offset;
-  const uint32_t max_v = min_v + len / density;
+  const uint32_t max_v = min_v + range;
 
   uint32_t v = min_v;
   while(result.size() < len - 1) {
@@ -166,18 +166,18 @@ int main(int argc, char* argv[]) {
 
 #else
   if(argc != 5) {
-    std::cout << "Expected 4 arguments: len a, len b, density a, density b" << std::endl;
+    std::cout << "Expected 4 arguments: len a, len b, range a, range b" << std::endl;
     return -1;
   }
   srand(time(NULL));
 
   const uint64_t len_a = atoi(argv[1]);
   const uint64_t len_b = atoi(argv[2]);
-  double density_a = std::stod(argv[3]);
-  double density_b = std::stod(argv[4]);
+  const uint64_t range_a = atoi(argv[3]);
+  const uint64_t range_b = atoi(argv[4]);
 
-  vector<uint32_t> vec_a = gen_set(len_a, density_a);
-  vector<uint32_t> vec_b = gen_set(len_b, density_b);
+  vector<uint32_t> vec_a = gen_set(len_a, range_a);
+  vector<uint32_t> vec_b = gen_set(len_b, range_b);
   uint32_t* a = vec_a.data();
   uint32_t* b = vec_b.data();
 

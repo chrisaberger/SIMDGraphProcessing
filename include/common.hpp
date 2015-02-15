@@ -44,7 +44,7 @@
 
 #define COMPRESSION 0
 #define PERFORMANCE 1
-#define VECTORIZE 1
+#define VECTORIZE 0
 
 //#define STATS
 

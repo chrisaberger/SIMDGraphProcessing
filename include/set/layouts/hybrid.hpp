@@ -70,13 +70,25 @@ inline double compressibility(const uint32_t* data, const size_t length) {
 
 #if PERFORMANCE == 1
 inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
-  
+  if(length < 2)
+    return common::UINTEGER;
+
+  double density = (double) length / (double) (data[length - 1] - data[0]);
+  if(density > 1.0 / 256.0) {
+    return common::BITSET;
+  } /*else if(density * 65536 > 8.0){
+    return common::PSHORT;
+  }*/
+  else {
+    return common::UINTEGER;
+  }
+/*
   if(length > 0) {
     double density = (double) length / (data[length - 1] - data[0]);
    // double c = compressibility(data, length);
-    if(density < 0.0004 || length < 3) {
+    if(density < 0.0001 || length < 20) {
       return common::UINTEGER;
-    } else if(density < 0.02048) {
+    } else if(density < 0.01) {
       return common::PSHORT;
     } else {
       return common::BITSET;
@@ -92,10 +104,10 @@ inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
     } else {
       return common::UINTEGER;
     }
-    */
+    
   } else{
     return common::UINTEGER;
-  }
+  }*/
   //return common::UINTEGER;
 }
 #endif

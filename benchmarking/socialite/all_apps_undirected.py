@@ -16,7 +16,7 @@ def clique_counting():
   `total(0, $sum(1L)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), edge(x, z), edge(y, w).`
 
 def cycle_counting():
-  `total(0, $sum(1L)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), x != z, w != y.`
+  `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), uedge(z, w), uedge(x, w), x < z, w < y.`
 
 def lollipop_counting():
   `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), uedge(x, z), y < z, uedge(x, w), w != y, w != z.`
@@ -60,9 +60,9 @@ if __name__ == '__main__':
   num_runs = int(sys.argv[2])
 
   print "Loading data (undirected)"
-  `edge(int a:0..20000000, (int b)) indexby a, sortby b.
-   uedge(int a:0..20000000, (int b)) indexby a, sortby b.
-   edgeRaw(int a:0..20000000, (int b)) indexby a, sortby b.
+  `edge(int a:0..50000000, (int b)) indexby a, sortby b.
+   uedge(int a:0..50000000, (int b)) indexby a, sortby b.
+   edgeRaw(int a:0..50000000, (int b)) indexby a, sortby b.
    total(int x:0..0, long s).
    edgeRaw(a, b) :- l = $read($filename), (v1,v2) = $split(l, " "), a = $toInt(v1), b = $toInt(v2).`
 

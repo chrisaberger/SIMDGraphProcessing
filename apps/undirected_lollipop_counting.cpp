@@ -56,14 +56,14 @@ class application{
       system_counter_state_t before_sstate = pcm_get_counter_state();
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
-      ParallelBuffer<uint32_t> y_buffers(num_threads,graph->max_nbrhood_size * 4);
-      ParallelBuffer<uint32_t> z_buffers(num_threads,graph->max_nbrhood_size * 4);
-      ParallelBuffer<uint8_t> r_buffers(num_threads,graph->max_nbrhood_size*sizeof(uint32_t) * 4);
+      ParallelBuffer<uint32_t> y_buffers(num_threads,graph->matrix_size);
+      ParallelBuffer<uint32_t> z_buffers(num_threads,graph->matrix_size);
+      ParallelBuffer<uint8_t> r_buffers(num_threads,graph->matrix_size*sizeof(uint32_t) * 4);
 
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
 
-      common::par_for_range(num_threads, 0, matrix_size, 5,
+      common::par_for_range(num_threads, 0, matrix_size, 1,
         [&](size_t tid){
           y_buffers.allocate(tid);
           z_buffers.allocate(tid);

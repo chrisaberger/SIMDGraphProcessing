@@ -952,8 +952,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
   inline Set<pshort>* set_intersect(Set<pshort> *C_in, const Set<pshort> *A_in, const Set<bitset> *B_in){
     uint16_t * const C = (uint16_t*)C_in->data;
     const uint16_t * const A = (uint16_t*)A_in->data;
-    const uint64_t * const s_index_p = (uint64_t*)B_in->data;
-    const uint64_t start_index = (B_in->number_of_bytes > 0) ? s_index_p[0]:0;
+    const uint64_t start_index = (B_in->number_of_bytes > 0) ? ((uint64_t*)B_in->data)[0]:0;
 
     const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint64_t));
     const size_t s_a = A_in->number_of_bytes / sizeof(uint16_t);
@@ -975,18 +974,25 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       write_pos += 2;
 
       const size_t part_end = i + size;
-      for(; i <= part_end; i++) {
-        const uint32_t cur = prefix | A[i];
-        const size_t cur_index = bitset::word_index(cur);
+      const size_t prefix_index = bitset::word_index(prefix);
+      //65536/64 = 1024, that is there are 1024 bitset indicies in one partition
+      if(prefix_index < (s_b+start_index) && (prefix_index+1024) >= start_index){
+        for(; i <= part_end; i++) {
+          const uint32_t cur = prefix | A[i];
+          const size_t cur_index = bitset::word_index(cur);
 
-        //Why not do bounds check in is_set?
-        if((cur_index < (s_b+start_index)) && (cur_index >= start_index) && bitset::is_set(cur,B,start_index)){
-          #if WRITE_VECTOR == 1
-          C[write_pos++] = A[i];
-          #endif
-          part_count++;
-          count++;
+          //Why not do bounds check in is_set?
+          if((cur_index < (s_b+start_index)) && (cur_index >= start_index) && bitset::is_set(cur,B,start_index)){
+            #if WRITE_VECTOR == 1
+            C[write_pos++] = A[i];
+            #endif
+            part_count++;
+            count++;
+          }
         }
+      } else if(prefix_index >= (s_b+start_index)){
+        write_pos -= 2;
+        break;
       }
 
       if(part_count == 0) {
@@ -1017,9 +1023,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     const uint32_t * const A = (uint32_t*)A_in->data;
     const size_t s_a = A_in->cardinality;
     const size_t s_b = (B_in->number_of_bytes > 0) ? (B_in->number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t):0;
-
-    const uint64_t * const s_index_p = (uint64_t*)B_in->data;
-    const uint64_t start_index = (B_in->number_of_bytes > 0) ? s_index_p[0]:0;
+    const uint64_t start_index = (B_in->number_of_bytes > 0) ? ((uint64_t*)B_in->data)[0]:0;
 
     const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint64_t));
 
@@ -1030,12 +1034,14 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       const uint32_t cur = A[i];
-      if((bitset::word_index(cur) < (s_b+start_index)) && (bitset::word_index(cur) >= start_index)
-       && bitset::is_set(cur,B,start_index)){
+      const size_t cur_index = bitset::word_index(cur);
+      if((cur_index < (s_b+start_index)) && (cur_index >= start_index) && bitset::is_set(cur,B,start_index)){
         #if WRITE_VECTOR == 1
         C[count] = cur;
         #endif
         count++;
+      } else if(cur_index >= (s_b+start_index)){
+        break;
       }
     }
     // XXX: Correct density computation
@@ -1051,6 +1057,119 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
   inline Set<uinteger>* set_intersect(Set<uinteger> *C_in,const Set<bitset> *A_in,const Set<uinteger> *B_in){
     return set_intersect(C_in,B_in,A_in);
   }
+  inline Set<uinteger>* set_intersect(Set<uinteger> *C_in,const Set<uinteger> *A_in,const Set<pshort> *B_in){
+    uint32_t * const C = (uint32_t*)C_in->data;
+    const uint32_t * const A = (uint32_t*)A_in->data;
+    const uint16_t * const B = (uint16_t*)B_in->data;
+    const size_t s_a = A_in->cardinality;
+    const size_t s_b = B_in->number_of_bytes/sizeof(uint16_t);
+
+    #if WRITE_VECTOR == 0
+    (void)C;
+    #endif
+
+    size_t a_i = 0;
+    size_t b_i = 0;
+    size_t count = 0;
+
+    bool not_finished = a_i < s_a && b_i < s_b;
+    while(not_finished){
+      uint32_t prefix = (B[b_i] << 16);
+      uint16_t b_inner_size = B[b_i+1]+1;
+      uint32_t cur_match = A[a_i];
+      size_t inner_end = b_i+b_inner_size+2;
+      //cout << endl;
+      //cout << "Bi: " << b_i << " Bsize: " << s_b << " InnerEnd: " << inner_end << endl;
+
+      if(prefix < (cur_match & 0xFFFF0000)){
+        //cout << "1" << endl;
+        b_i = inner_end;
+        not_finished = b_i < s_b;
+      } else if(prefix > cur_match){
+        //cout << prefix << " " << cur_match << endl;
+        //cout << "2" << endl;
+        a_i++;
+        not_finished = a_i < s_a;
+      } else{
+        //cout << "3" << endl;
+        b_i += 2;
+        size_t i_b = 0;
+
+        #if VECTORIZE == 1
+        bool a_continue = (a_i+SHORTS_PER_REG) < s_a && (A[a_i+SHORTS_PER_REG-1] & 0xFFFF0000) == prefix;
+        size_t st_b = (b_inner_size / SHORTS_PER_REG) * SHORTS_PER_REG;
+        while(a_continue && i_b < st_b) {
+          __m128i v_a_1_32 = _mm_loadu_si128((__m128i*)&A[a_i]);
+          __m128i v_a_2_32 = _mm_loadu_si128((__m128i*)&A[a_i+(SHORTS_PER_REG/2)]);
+
+          __m128i v_a_1 = _mm_shuffle_epi8(v_a_1_32,_mm_set_epi8(uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x0D),uint8_t(0x0C),uint8_t(0x09),uint8_t(0x08),uint8_t(0x05),uint8_t(0x04),uint8_t(0x01),uint8_t(0x0)));
+          __m128i v_a_2 = _mm_shuffle_epi8(v_a_2_32,_mm_set_epi8(uint8_t(0x0D),uint8_t(0x0C),uint8_t(0x09),uint8_t(0x08),uint8_t(0x05),uint8_t(0x04),uint8_t(0x01),uint8_t(0x0),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80),uint8_t(0x80)));
+          
+          __m128i v_a = _mm_or_si128(v_a_1,v_a_2);
+            
+          //uint16_t *t = (uint16_t*) &v_a;
+          //cout << "Data: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << " " << t[4] << " " << t[5] << " " << t[6] << " " << t[7] << endl;
+
+          __m128i v_b = _mm_loadu_si128((__m128i*)&B[b_i+i_b]);    
+
+          uint16_t a_max = _mm_extract_epi16(v_a, SHORTS_PER_REG-1);
+          uint16_t b_max = _mm_extract_epi16(v_b, SHORTS_PER_REG-1);
+          
+          __m128i res_v = _mm_cmpestrm(v_b, SHORTS_PER_REG, v_a, SHORTS_PER_REG,
+                  _SIDD_UWORD_OPS|_SIDD_CMP_EQUAL_ANY|_SIDD_BIT_MASK);
+          uint32_t r = _mm_extract_epi32(res_v, 0);
+
+          #if WRITE_VECTOR == 1
+          uint32_t r_lower = r & 0x0F;
+          uint32_t r_upper = (r & 0xF0) >> 4;
+          __m128i p = _mm_shuffle_epi8(v_a_1_32,shuffle_mask32[r_lower]);
+          _mm_storeu_si128((__m128i*)&C[count], p);
+          
+          //uint32_t *t = (uint32_t*) &p;
+          //cout << "Data: " << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << endl;
+
+          p = _mm_shuffle_epi8(v_a_2_32,shuffle_mask32[r_upper]);
+          _mm_storeu_si128((__m128i*)&C[count+_mm_popcnt_u32(r_lower)], p);
+          C[count] = A[a_i];
+          #endif
+
+          count += _mm_popcnt_u32(r);
+          a_i += (a_max <= b_max) * SHORTS_PER_REG;
+          a_continue = (a_i+SHORTS_PER_REG) < s_a && (A[a_i+SHORTS_PER_REG-1] & 0xFFFF0000) == prefix;
+          i_b += (a_max >= b_max) * SHORTS_PER_REG;
+        }
+        #endif
+
+        bool notFinished = a_i < s_a  && i_b < b_inner_size && (A[a_i] & 0xFFFF0000) == prefix;
+        while(notFinished){
+          while(notFinished && (uint32_t)(prefix | B[i_b+b_i]) < A[a_i]){
+            ++i_b;
+            notFinished = i_b < b_inner_size;
+          }
+          if(notFinished && A[a_i] == (uint32_t)(prefix | B[i_b+b_i])){
+            #if WRITE_VECTOR == 1
+            C[count] = A[a_i];
+            #endif
+            ++count;
+          }
+          ++a_i;
+          notFinished = notFinished && a_i < s_a && (A[a_i] & 0xFFFF0000) == prefix;
+        }
+        b_i = inner_end;
+        not_finished = a_i < s_a && b_i < s_b;
+      }
+    }
+    // XXX: Density computation is broken
+    const double density = 0.0;//((count > 0) ? ((double)count/(C[count]-C[0])) : 0.0);
+
+    C_in->cardinality = count;
+    C_in->number_of_bytes = count*sizeof(uint32_t);
+    C_in->density = density;
+    C_in->type= common::UINTEGER;
+
+    return C_in;
+  }
+  /*
   inline Set<uinteger>* set_intersect(Set<uinteger> *C_in,const Set<uinteger> *A_in,const Set<pshort> *B_in){
     uint32_t * const C = (uint32_t*)C_in->data;
     const uint32_t * const A = (uint32_t*)A_in->data;
@@ -1185,7 +1304,6 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
 
     return C_in;
   }
-  /*
   inline Set<uinteger>* set_intersect(Set<uinteger> *C_in,const Set<uinteger> *A_in,const Set<pshort> *B_in){
     uint32_t * const C = (uint32_t*)C_in->data;
     const uint32_t * const A = (uint32_t*)A_in->data;

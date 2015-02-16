@@ -7,6 +7,21 @@
 
 using namespace pcm_helper;
 
+template<class R> size_t count_partitions(Set<R> s) {
+  size_t result = 0;
+  uint32_t prefix = 0xFFFFFFFF;
+
+  s.foreach([&] (uint32_t x) {
+      uint32_t x_prefix = x >> 16;
+      if(prefix != x_prefix) {
+        result++;
+        prefix = x_prefix;
+      }
+      });
+
+  return result;
+}
+
 template<class T, class R>
 class application{
   public:
@@ -50,6 +65,7 @@ class application{
 
       graph = SparseMatrix<T,R>::from_symmetric_graph(inputGraph,node_selection,edge_selection,num_threads);
     }
+
 
     inline void queryOver(){
       //graph->print_data("graph.txt");
@@ -112,15 +128,24 @@ class application{
       size_t lens_u_ubs_instead_of_ups = 0;
       size_t num_ubs_instead_of_ups = 0;
       size_t bytes_ubs_instead_of_ups = 0;
+      size_t parts_ubs_instead_of_ups = 0;
       size_t lens_bsbs_instead_of_psbs = 0;
       size_t lens_bs_bsbs_instead_of_psbs = 0;
       size_t num_bsbs_instead_of_psbs = 0;
       size_t bytes_bsbs_instead_of_psbs = 0;
+      size_t parts_bsbs_instead_of_psbs = 0;
       double time_bad_ups = 0.0;
       double time_bad_ups_if_ubs = 0.0;
       double time_bad_psbs = 0.0;
       double time_bad_psbs_if_bsbs = 0.0;
       double total_hybrid_time = 0.0;
+
+      size_t parts_psbs = 0;
+      size_t num_psbs = 0;
+      size_t parts_ups = 0;
+      size_t num_ups = 0;
+
+      size_t num_uint_ints[5] = {0,0,0,0,0};
 
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
@@ -163,9 +188,34 @@ class application{
 
             size_t tmp_count = 0;
 
-            double start_time_1 = common::startClock();
-            tmp_count = ops::set_intersect((Set<uinteger>*)&C,&A_uint,&B_uint)->cardinality;
-            start_time_1 = common::stopClock(start_time_1);
+            Set<uinteger> A_uint_in = (AA.cardinality < BB.cardinality) ? A_uint : B_uint;
+            Set<uinteger> B_uint_in = (AA.cardinality < BB.cardinality) ? B_uint : A_uint;
+
+            double start_time_1s[5];
+            start_time_1s[0] = common::startClock();
+            tmp_count = ops::set_intersect_ibm((Set<uinteger>*)&C,&A_uint_in,&B_uint_in)->cardinality;
+            start_time_1s[0] = common::stopClock(start_time_1s[0]);
+            start_time_1s[1] = common::startClock();
+            tmp_count = ops::set_intersect_v1((Set<uinteger>*)&C,&A_uint_in,&B_uint_in)->cardinality;
+            start_time_1s[1] = common::stopClock(start_time_1s[1]);
+            start_time_1s[2] = common::startClock();
+            tmp_count = ops::set_intersect_v3((Set<uinteger>*)&C,&A_uint_in,&B_uint_in)->cardinality;
+            start_time_1s[2] = common::stopClock(start_time_1s[2]);
+            start_time_1s[3] = common::startClock();
+            tmp_count = ops::set_intersect_galloping((Set<uinteger>*)&C,&A_uint_in,&B_uint_in)->cardinality;
+            start_time_1s[3] = common::stopClock(start_time_1s[3]);
+            start_time_1s[4] = common::startClock();
+            tmp_count = ops::set_intersect((Set<uinteger>*)&C,&A_uint_in,&B_uint_in)->cardinality;
+            start_time_1s[4] = common::stopClock(start_time_1s[4]);
+
+            double start_time_1 = 1000.0;
+            int min_uint_int = 0;
+            for(size_t i = 0; i < 5; i++) {
+              if(start_time_1 > start_time_1s[i]) {
+                start_time_1 = start_time_1s[i];
+                min_uint_int = i;
+              }
+            }
 
             double start_time_2 = common::startClock();
             tmp_count = ops::set_intersect((Set<pshort>*)&C,&A_ps,&B_ps)->cardinality;
@@ -175,26 +225,38 @@ class application{
             tmp_count = ops::set_intersect((Set<bitset>*)&C,&A_bs,&B_bs)->cardinality;
             start_time_3 = common::stopClock(start_time_3);
 
-            Set<pshort> A_ps_in = (AA.cardinality > BB.cardinality) ? A_ps:B_ps;
-            Set<uinteger> B_uint_in = (AA.cardinality > BB.cardinality) ? B_uint:A_uint;
+            bool A_is_ps_in_ups = true;
+            double start_time_4_a = common::startClock();
+            tmp_count = ops::set_intersect((Set<uinteger>*)&C,&A_ps,&B_uint)->cardinality;
+            start_time_4_a = common::stopClock(start_time_4_a);
+            double start_time_4_b = common::startClock();
+            tmp_count = ops::set_intersect((Set<uinteger>*)&C,&B_ps,&A_uint)->cardinality;
+            start_time_4_b = common::stopClock(start_time_4_b);
+            double start_time_4 = min(start_time_4_a, start_time_4_b);
+            if(start_time_4_a > start_time_4_b)
+              A_is_ps_in_ups = false;
 
-            double start_time_4 = common::startClock();
-            tmp_count = ops::set_intersect((Set<uinteger>*)&C,&A_ps_in,&B_uint_in)->cardinality;
-            start_time_4 = common::stopClock(start_time_4);
+            bool A_is_ps_in_psbs = true;
+            double start_time_5_a = common::startClock();
+            tmp_count = ops::set_intersect((Set<pshort>*)&C,&A_ps,&B_bs)->cardinality;
+            start_time_5_a = common::stopClock(start_time_5_a);
+            double start_time_5_b = common::startClock();
+            tmp_count = ops::set_intersect((Set<pshort>*)&C,&B_ps,&A_bs)->cardinality;
+            start_time_5_b = common::stopClock(start_time_5_b);
+            double start_time_5 = min(start_time_5_a, start_time_5_b);
+            if(start_time_5_a > start_time_5_b)
+              A_is_ps_in_psbs = false;
 
-            A_ps_in = (AA.cardinality < BB.cardinality) ? A_ps:B_ps;
-            Set<bitset> B_bs_in = (AA.cardinality < BB.cardinality) ? B_bs:A_bs;
-
-            double start_time_5 = common::startClock();    
-            tmp_count = ops::set_intersect((Set<pshort>*)&C,&A_ps_in,&B_bs_in)->cardinality;
-            start_time_5 = common::stopClock(start_time_5);      
-
-            Set<bitset> A_bs_in = (AA.cardinality < BB.cardinality) ? B_bs:A_bs;
-            B_uint_in = (AA.cardinality < BB.cardinality) ? A_uint:B_uint;  
-
-            double start_time_6 = common::startClock();    
-            tmp_count = ops::set_intersect((Set<uinteger>*)&C,&A_bs_in,&B_uint_in)->cardinality;
-            start_time_6 = common::stopClock(start_time_6);
+            bool A_is_u_in_ubs = true;
+            double start_time_6_a = common::startClock();
+            tmp_count = ops::set_intersect((Set<uinteger>*)&C,&A_bs,&B_uint)->cardinality;
+            start_time_6_a = common::stopClock(start_time_6_a);
+            double start_time_6_b = common::startClock();
+            tmp_count = ops::set_intersect((Set<uinteger>*)&C,&B_bs,&A_uint)->cardinality;
+            start_time_6_b = common::stopClock(start_time_6_b);
+            double start_time_6 = min(start_time_6_a, start_time_6_b);
+            if(start_time_6_a > start_time_6_b)
+              A_is_u_in_ubs = false;
 
             double min_time = 0.0;
 
@@ -216,6 +278,7 @@ class application{
               stats[i].num_uint++;
               stats[j].num_uint++;
               u_u_best = true;
+              num_uint_ints[min_uint_int]++;
             } else if(start_time_2 <= start_time_1 &&
               start_time_2 <= start_time_2 &&  
               start_time_2 <= start_time_3 && 
@@ -256,6 +319,8 @@ class application{
               total_min += start_time_4;
               stats[i].num_uint_ps++;
               stats[j].num_uint_ps++;
+              num_ups++;
+              parts_ups += count_partitions((A_is_ps_in_ups) ? AA : BB);
               /*
               if(AA.cardinality < BB.cardinality) {
                 stats[i].num_uint++;
@@ -278,6 +343,8 @@ class application{
               total_min += start_time_5;
               stats[i].num_ps_bs++;
               stats[j].num_ps_bs++;
+              num_psbs++;
+              parts_psbs += count_partitions((A_is_ps_in_psbs) ? AA : BB);
               /*
               if(AA.cardinality < BB.cardinality) {
                 stats[i].num_pshort++;
@@ -348,6 +415,7 @@ class application{
                       time_bad_ups += start_time_4;
                       time_bad_ups_if_ubs += min_time;
                       bytes_ubs_instead_of_ups += (a_type == common::PSHORT) ? A_bs.number_of_bytes : B_bs.number_of_bytes;
+                      parts_ubs_instead_of_ups += count_partitions((a_type == common::PSHORT) ? AA : BB);
                     }
                     else if(bs_bs_best) {
                       stats[i].num_bsbs_instead_of_ups++;
@@ -375,6 +443,7 @@ class application{
                       time_bad_psbs += start_time_5;
                       time_bad_psbs_if_bsbs += min_time;
                       bytes_bsbs_instead_of_psbs += (a_type == common::PSHORT) ? A_bs.number_of_bytes : B_bs.number_of_bytes;
+                      parts_bsbs_instead_of_psbs += count_partitions((a_type == common::PSHORT) ? AA : BB);
                     }
                 }
               }  else if((a_type == common::UINTEGER && b_type == common::BITSET) ||
@@ -413,11 +482,18 @@ class application{
     cout << "Avg. PS card when UBS instead of UPS: " << (lens_ubs_instead_of_ups / num_ubs_instead_of_ups) << endl;
     cout << "Avg. U card when UBS instead of UPS: " << (lens_u_ubs_instead_of_ups / num_ubs_instead_of_ups) << endl;
     cout << "Avg. bytes BS when BSBS instead of PSBS: " << (bytes_bsbs_instead_of_psbs / num_bsbs_instead_of_psbs) << endl;
-    cout << "Avg. bytes BS when UBS instead of UBS: " << (bytes_ubs_instead_of_ups / num_ubs_instead_of_ups) << endl;
+    cout << "Avg. bytes BS when UBS instead of UPS: " << (bytes_ubs_instead_of_ups / num_ubs_instead_of_ups) << endl;
+    cout << "Avg. partitions PS when BSBS instead of PSBS: " << ((double) parts_bsbs_instead_of_psbs / num_bsbs_instead_of_psbs) << endl;
+    cout << "Avg. partitions PS when UBS instead of UPS: " << ((double) parts_ubs_instead_of_ups / num_ubs_instead_of_ups) << endl;
+    cout << "Avg. partitions PS when PSBS wins: " << ((double) parts_psbs / num_psbs) << endl;
+    cout << "Avg. partitions PS when UPS wins: " << ((double) parts_ups / num_ups) << endl;
     cout << "Time UPS when UBS better than UPS: " << time_bad_ups << endl;
     cout << "Time UBS when UBS better than UPS: " << time_bad_ups_if_ubs << endl;
     cout << "Time PSBS when BSBS better than PSBS: " << time_bad_psbs << endl;
     cout << "Time BSBS when BSBS better than PSBS: " << time_bad_psbs_if_bsbs << endl;
+    for(size_t i = 0; i < 5; i++) {
+      cout << "UINT int " << i << ": " << num_uint_ints[i] << endl;
+    }
 
     ofstream stats_file;
     stats_file.open("stats.csv");

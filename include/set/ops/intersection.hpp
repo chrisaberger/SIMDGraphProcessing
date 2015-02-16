@@ -1130,7 +1130,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
           if((A[i_a] & 0xFFFF0000) > prefix) goto FINISH_PARTITION;
         }
       }
-
+    
       while(inner_b_index < partition_size && i_a < s_a){
         uint32_t B_val = prefix | B[i_b + inner_b_index];
         while(A[i_a] < B_val){
@@ -1172,74 +1172,85 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       return C_in;
     }
 
-    static void* jump_table[3][3] = {
-      { &&BITSET_BITSET, &&BITSET_PSHORT, &&BITSET_UINT },
-      { &&PSHORT_BITSET, &&PSHORT_PSHORT, &&PSHORT_UINT },
-      { &&UINT_BITSET, &&UINT_PSHORT, &&UINT_UINT }
-    };
-    goto *jump_table[A_in->type][B_in->type];
-
-    UINT_UINT:
-      #ifdef STATS
-      common::num_uint_uint++;
-      #endif
-      //if((A_in->density / B_in->density > 2.0) || (B_in->density / A_in->density > 2.0)) //(A_in->density > 0.00032 && B_in->density < 0.00016) || (B_in->density > 0.00032 && A_in->density < 0.00016) )
-      //  return (Set<hybrid>*)set_intersect_v3((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
-      //else
-        //return (Set<hybrid>*)set_intersect_ibm((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
-      //if(A_in->cardinality < 20 || B_in->cardinality < 20)
-      //return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
-      //else
-      return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
-      //return (Set<hybrid>*)set_intersect_ibm((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
-
-    UINT_PSHORT:
-      #ifdef STATS
-      common::num_uint_pshort++;
-      #endif
-      return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<pshort>*)B_in);
-
-    UINT_BITSET:
-      #ifdef STATS
-      common::num_pshort_bs++;
-      #endif
-      return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<bitset>*)B_in);
-
-    PSHORT_UINT:
-      #ifdef STATS
-      common::num_uint_pshort++;
-      #endif
-      return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)B_in,(const Set<pshort>*)A_in);
-
-    PSHORT_PSHORT:
-      #ifdef STATS
-      common::num_pshort_pshort++;
-      #endif
-      return (Set<hybrid>*)set_intersect((Set<pshort>*)C_in,(const Set<pshort>*)A_in,(const Set<pshort>*)B_in);
-
-    PSHORT_BITSET:
-      #ifdef STATS
-      common::num_pshort_bs++;
-      #endif
-      return (Set<hybrid>*)set_intersect((Set<pshort>*)C_in,(const Set<pshort>*)A_in,(const Set<bitset>*)B_in);
-
-    BITSET_UINT:
-      #ifdef STATS
-      common::num_uint_bs++;
-      #endif
-      return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)B_in,(const Set<bitset>*)A_in);
-
-    BITSET_PSHORT:
-      #ifdef STATS
-      common::num_pshort_bs++;
-      #endif
-      return (Set<hybrid>*)set_intersect((Set<pshort>*)C_in,(const Set<pshort>*)B_in,(const Set<bitset>*)A_in);
-
-    BITSET_BITSET:
-      #ifdef STATS
-      common::num_bs_bs++;
-      #endif
-      return (Set<hybrid>*)set_intersect((Set<bitset>*)C_in,(const Set<bitset>*)A_in,(const Set<bitset>*)B_in);
+    switch (A_in->type) {
+        case common::UINTEGER:
+          switch (B_in->type) {
+            case common::UINTEGER:
+              #ifdef STATS
+              common::num_uint_uint++;
+              #endif
+              if((A_in->density > 0.00032 && B_in->density < 0.00016) || (B_in->density > 0.00032 && A_in->density < 0.00016) )
+                return (Set<hybrid>*)set_intersect_v3((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
+              else
+                return (Set<hybrid>*)set_intersect_ibm((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
+            break;
+            case common::PSHORT:
+              #ifdef STATS
+              common::num_uint_pshort++;
+              #endif
+              return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<pshort>*)B_in);
+            break;
+            case common::BITSET:
+              #ifdef STATS
+              common::num_pshort_bs++;
+              #endif
+              return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<bitset>*)B_in);
+            break;
+            default:
+            break;
+          }
+        break;
+        case common::PSHORT:
+          switch (B_in->type) {
+            case common::UINTEGER:
+              #ifdef STATS
+              common::num_uint_pshort++;
+              #endif
+              return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)B_in,(const Set<pshort>*)A_in);
+            break;
+            case common::PSHORT:
+              #ifdef STATS
+              common::num_pshort_pshort++;
+              #endif
+              return (Set<hybrid>*)set_intersect((Set<pshort>*)C_in,(const Set<pshort>*)A_in,(const Set<pshort>*)B_in);
+            break;
+            case common::BITSET:
+              #ifdef STATS
+              common::num_pshort_bs++;
+              #endif
+              return (Set<hybrid>*)set_intersect((Set<pshort>*)C_in,(const Set<pshort>*)A_in,(const Set<bitset>*)B_in);
+            break;
+            default:
+            break;
+          }
+        break;
+        case common::BITSET:
+          switch (B_in->type) {
+            case common::UINTEGER:
+              #ifdef STATS
+              common::num_uint_bs++;
+              #endif
+              return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)B_in,(const Set<bitset>*)A_in);
+            break;
+            case common::PSHORT:
+              #ifdef STATS
+              common::num_pshort_bs++;
+              #endif
+              return (Set<hybrid>*)set_intersect((Set<pshort>*)C_in,(const Set<pshort>*)B_in,(const Set<bitset>*)A_in);
+            break;
+            case common::BITSET:
+              #ifdef STATS
+              common::num_bs_bs++;
+              #endif
+              return (Set<hybrid>*)set_intersect((Set<bitset>*)C_in,(const Set<bitset>*)A_in,(const Set<bitset>*)B_in);
+            break;
+            default:
+            break;
+          }
+        break;
+        default:
+        break;
+    }
 
     cout << "ERROR" << endl;
     return C_in;

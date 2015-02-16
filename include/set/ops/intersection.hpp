@@ -971,12 +971,11 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
 
       const size_t part_header_pos = write_pos;
       size_t part_count = 0;
-      write_pos += 2;
-
       const size_t part_end = i + size;
       const size_t prefix_index = bitset::word_index(prefix);
       //65536/64 = 1024, that is there are 1024 bitset indicies in one partition
       if(prefix_index < (s_b+start_index) && (prefix_index+1024) >= start_index){
+        write_pos += 2;
         for(; i <= part_end; i++) {
           const uint32_t cur = prefix | A[i];
           const size_t cur_index = bitset::word_index(cur);
@@ -990,16 +989,14 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
             count++;
           }
         }
+        if(part_count != 0) {
+          write_pos -= 2;
+        } else{
+          C[part_header_pos] = (prefix >> 16);
+          C[part_header_pos + 1] = part_count - 1;
+        }
       } else if(prefix_index >= (s_b+start_index)){
-        write_pos -= 2;
         break;
-      }
-
-      if(part_count == 0) {
-        write_pos -= 2;
-      } else{
-        C[part_header_pos] = (prefix >> 16);
-        C[part_header_pos + 1] = part_count - 1;
       }
     }
 

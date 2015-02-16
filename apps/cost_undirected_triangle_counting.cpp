@@ -139,6 +139,7 @@ class application{
       double time_bad_psbs = 0.0;
       double time_bad_psbs_if_bsbs = 0.0;
       double total_hybrid_time = 0.0;
+      double total_uint_time = 0.0;
 
       size_t parts_psbs = 0;
       size_t num_psbs = 0;
@@ -146,6 +147,9 @@ class application{
       size_t num_ups = 0;
 
       size_t num_uint_ints[5] = {0,0,0,0,0};
+      double lost_times[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+      double better_than_uint[6] = {0,0,0,0,0,0};
 
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
@@ -217,6 +221,8 @@ class application{
               }
             }
 
+            total_uint_time += start_time_1;
+
             double start_time_2 = common::startClock();
             tmp_count = ops::set_intersect((Set<pshort>*)&C,&A_ps,&B_ps)->cardinality;
             start_time_2 = common::stopClock(start_time_2);
@@ -264,6 +270,8 @@ class application{
             bool u_bs_best = false;
             bool u_u_best = false;
 
+            int best = 0;
+
             if(start_time_1 <= start_time_1 &&
               start_time_1 <= start_time_2 &&  
               start_time_1 <= start_time_3 && 
@@ -279,6 +287,7 @@ class application{
               stats[j].num_uint++;
               u_u_best = true;
               num_uint_ints[min_uint_int]++;
+              best = 0;
             } else if(start_time_2 <= start_time_1 &&
               start_time_2 <= start_time_2 &&  
               start_time_2 <= start_time_3 && 
@@ -292,6 +301,7 @@ class application{
               stats[j].t_time += min_time;
               stats[i].num_pshort++;
               stats[j].num_pshort++;
+              best = 1;
             } else if(start_time_3 <= start_time_1 &&
               start_time_3 <= start_time_2 &&  
               start_time_3 <= start_time_3 && 
@@ -306,6 +316,7 @@ class application{
               stats[i].num_bitset++;
               stats[j].num_bitset++;
               bs_bs_best = true;
+              best = 2;
             } else if(start_time_4 <= start_time_1 &&
               start_time_4 <= start_time_2 &&  
               start_time_4 <= start_time_3 && 
@@ -330,6 +341,7 @@ class application{
                 stats[i].num_pshort++;
               }
               */
+              best = 3;
             } else if(start_time_5 <= start_time_1 &&
               start_time_5 <= start_time_2 &&  
               start_time_5 <= start_time_3 && 
@@ -353,6 +365,7 @@ class application{
                 stats[j].num_pshort++;
                 stats[i].num_bitset++;
               }*/
+              best = 4;
             } else {
               num_uint_bs++;
               min_time = start_time_6;
@@ -371,6 +384,7 @@ class application{
                 stats[i].num_bitset++;
               }
               */
+              best = 5;
             }
 
             double min_ratio = 2.0;
@@ -382,18 +396,22 @@ class application{
               stats[j].my_type =b_type;
               if(a_type == common::UINTEGER && b_type == common::UINTEGER){
                 hybrid_intersection_time = start_time_1;
+                lost_times[0] += hybrid_intersection_time - min_time;
+                better_than_uint[best] += hybrid_intersection_time - min_time;
                 if((hybrid_intersection_time/min_time) > min_ratio){
                   stats[i].num_hybrid_uint_uint++;
                   stats[j].num_hybrid_uint_uint++;
                 }
               } else if(a_type == common::PSHORT && b_type == common::PSHORT){
                 hybrid_intersection_time = start_time_2;
+                lost_times[1] += hybrid_intersection_time - min_time;
                 if((hybrid_intersection_time/min_time) > min_ratio){
                   stats[i].num_hybrid_pshort_pshort++;
                   stats[j].num_hybrid_pshort_pshort++;
                 }
               } else if(a_type == common::BITSET && b_type == common::BITSET){
                 hybrid_intersection_time = start_time_3;
+                lost_times[2] += hybrid_intersection_time - min_time;
                 if((hybrid_intersection_time/min_time) > min_ratio){
                   stats[i].num_hybrid_bitset_bitset++;
                   stats[j].num_hybrid_bitset_bitset++;
@@ -401,6 +419,7 @@ class application{
               } else if( (a_type == common::UINTEGER && b_type == common::PSHORT) ||
                 (a_type == common::PSHORT && b_type == common::UINTEGER)){
                 hybrid_intersection_time = start_time_4;
+                lost_times[3] += hybrid_intersection_time - min_time;
                 if((hybrid_intersection_time/min_time) > min_ratio){
                     stats[i].num_hybrid_uint_pshort++;
                     stats[j].num_hybrid_uint_pshort++;
@@ -429,6 +448,7 @@ class application{
               }  else if( (a_type == common::BITSET && b_type == common::PSHORT) ||
                 (a_type == common::PSHORT && b_type == common::BITSET)){
                 hybrid_intersection_time = start_time_5;
+                lost_times[4] += hybrid_intersection_time - min_time;
                 if((hybrid_intersection_time/min_time) > min_ratio){
                     stats[i].num_hybrid_pshort_bitset++;
                     stats[j].num_hybrid_pshort_bitset++;
@@ -449,6 +469,7 @@ class application{
               }  else if((a_type == common::UINTEGER && b_type == common::BITSET) ||
                 (a_type == common::BITSET && b_type == common::UINTEGER)){
                 hybrid_intersection_time = start_time_6;
+                lost_times[5] += hybrid_intersection_time - min_time;
                 if((hybrid_intersection_time/min_time) > min_ratio){
                     stats[i].num_hybrid_uint_bitset++;
                     stats[j].num_hybrid_uint_bitset++;
@@ -471,6 +492,7 @@ class application{
 
     cout << "Best cost time: " << total_min << endl;
     cout << "Hybrid time: " << total_hybrid_time << endl;
+    cout << "U-Int time: " << total_uint_time << endl;
     cout << "Uint: " << num_uint << endl;
     cout << "Pshort: " << num_pshort << endl;
     cout << "Bs: " << num_bs << endl;
@@ -493,6 +515,15 @@ class application{
     cout << "Time BSBS when BSBS better than PSBS: " << time_bad_psbs_if_bsbs << endl;
     for(size_t i = 0; i < 5; i++) {
       cout << "UINT int " << i << ": " << num_uint_ints[i] << endl;
+    }
+
+    string lost_names[] = {"U-Int/U-Int", "P-Short/P-Short", "Bitset/Bitset", "U-Int/P-Short", "P-Short/Bitset", "U-Int/Bitset"};
+    for(size_t i = 0; i < 6; i++) {
+      cout << "Lost time " << lost_names[i] << ": " << lost_times[i] << endl;
+    }
+
+    for(size_t i = 0; i < 6; i++) {
+      cout << "Replace U-Int/U-Int with " << lost_names[i] << ": " << better_than_uint[i] << endl;
     }
 
     ofstream stats_file;

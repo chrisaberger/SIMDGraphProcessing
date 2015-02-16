@@ -952,8 +952,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
   inline Set<pshort>* set_intersect(Set<pshort> *C_in, const Set<pshort> *A_in, const Set<bitset> *B_in){
     uint16_t * const C = (uint16_t*)C_in->data;
     const uint16_t * const A = (uint16_t*)A_in->data;
-    const uint64_t * const s_index_p = (uint64_t*)B_in->data;
-    const uint64_t start_index = (B_in->number_of_bytes > 0) ? s_index_p[0]:0;
+    const uint64_t start_index = (B_in->number_of_bytes > 0) ? ((uint64_t*)B_in->data)[0]:0;
 
     const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint64_t));
     const size_t s_a = A_in->number_of_bytes / sizeof(uint16_t);
@@ -975,18 +974,25 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       write_pos += 2;
 
       const size_t part_end = i + size;
-      for(; i <= part_end; i++) {
-        const uint32_t cur = prefix | A[i];
-        const size_t cur_index = bitset::word_index(cur);
+      const size_t prefix_index = bitset::word_index(prefix);
+      //65536/64 = 1024, that is there are 1024 bitset indicies in one partition
+      if(prefix_index < (s_b+start_index) && (prefix_index+1024) >= start_index){
+        for(; i <= part_end; i++) {
+          const uint32_t cur = prefix | A[i];
+          const size_t cur_index = bitset::word_index(cur);
 
-        //Why not do bounds check in is_set?
-        if((cur_index < (s_b+start_index)) && (cur_index >= start_index) && bitset::is_set(cur,B,start_index)){
-          #if WRITE_VECTOR == 1
-          C[write_pos++] = A[i];
-          #endif
-          part_count++;
-          count++;
+          //Why not do bounds check in is_set?
+          if((cur_index < (s_b+start_index)) && (cur_index >= start_index) && bitset::is_set(cur,B,start_index)){
+            #if WRITE_VECTOR == 1
+            C[write_pos++] = A[i];
+            #endif
+            part_count++;
+            count++;
+          }
         }
+      } else if(prefix_index >= (s_b+start_index)){
+        write_pos -= 2;
+        break;
       }
 
       if(part_count == 0) {
@@ -1017,9 +1023,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     const uint32_t * const A = (uint32_t*)A_in->data;
     const size_t s_a = A_in->cardinality;
     const size_t s_b = (B_in->number_of_bytes > 0) ? (B_in->number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t):0;
-
-    const uint64_t * const s_index_p = (uint64_t*)B_in->data;
-    const uint64_t start_index = (B_in->number_of_bytes > 0) ? s_index_p[0]:0;
+    const uint64_t start_index = (B_in->number_of_bytes > 0) ? ((uint64_t*)B_in->data)[0]:0;
 
     const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint64_t));
 
@@ -1030,12 +1034,14 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     size_t count = 0;
     for(size_t i = 0; i < s_a; i++){
       const uint32_t cur = A[i];
-      if((bitset::word_index(cur) < (s_b+start_index)) && (bitset::word_index(cur) >= start_index)
-       && bitset::is_set(cur,B,start_index)){
+      const size_t cur_index = bitset::word_index(cur);
+      if((cur_index < (s_b+start_index)) && (cur_index >= start_index) && bitset::is_set(cur,B,start_index)){
         #if WRITE_VECTOR == 1
         C[count] = cur;
         #endif
         count++;
+      } else if(cur_index >= (s_b+start_index)){
+        break;
       }
     }
     // XXX: Correct density computation

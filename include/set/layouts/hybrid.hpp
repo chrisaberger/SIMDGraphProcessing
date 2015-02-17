@@ -39,7 +39,7 @@ class hybrid{
         const common::type t);
 
     template<typename F>
-    static void par_foreach(
+    static size_t par_foreach(
       F f,
       const size_t num_threads,
       const uint8_t *data_in,
@@ -251,7 +251,7 @@ inline void hybrid::foreach(
 
 //Iterates over set applying a lambda.
 template<typename F>
-inline void hybrid::par_foreach(
+inline size_t hybrid::par_foreach(
       F f,
       const size_t num_threads,
       const uint8_t *data_in,
@@ -260,13 +260,13 @@ inline void hybrid::par_foreach(
       const common::type t) {
   switch(t){
     case common::UINTEGER :
-      uinteger::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::UINTEGER);
+      return uinteger::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::UINTEGER);
       break;
     case common::PSHORT :
-      pshort::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::PSHORT);
+      return pshort::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::PSHORT);
       break;
     case common::BITSET :
-      bitset::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::BITSET);
+      return bitset::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::BITSET);
       break;
     case common::VARIANT :
       std::cout << "Parallel foreach for VARIANT is not implemented" << std::endl;

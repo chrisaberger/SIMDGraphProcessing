@@ -29,7 +29,7 @@ class variant{
         const size_t number_of_bytes,
         const common::type t);
 
-    static uint32_t produce_deltas(const uint32_t *data_in, const size_t length, uint32_t *data, uint32_t prev); 
+    static uint32_t produce_deltas(const uint32_t *data_in, const size_t length, uint32_t *data, uint32_t prev);
     static size_t encode(const uint32_t *data, size_t data_i, const size_t length, uint8_t *result, size_t result_i);
     static uint32_t decode(const uint8_t *data, size_t &data_i);
 };

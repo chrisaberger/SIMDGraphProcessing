@@ -30,7 +30,7 @@ class pshort{
         const common::type t);
 
     template<typename F>
-    static void par_foreach(
+    static size_t par_foreach(
       F f,
       const size_t num_threads,
       const uint8_t *data_in,
@@ -190,7 +190,7 @@ class PShortDecoder {
 
 // Iterates over set applying a lambda in parallel.
 template<typename F>
-inline void pshort::par_foreach(
+inline size_t pshort::par_foreach(
     F f,
     const size_t num_threads,
     const uint8_t *data_in,
@@ -206,11 +206,13 @@ inline void pshort::par_foreach(
     decoders[i] = PShortDecoder(data);
   }
 
-  common::par_for_range(num_threads, 0, cardinality, 64,
+  size_t real_num_threads = common::par_for_range(num_threads, 0, cardinality, 64,
     [&f, &decoders](size_t tid, size_t i) {
       f(tid, decoders[tid].at(i));
     }
   );
 
   delete[] decoders;
+
+  return real_num_threads;
 }

@@ -23,38 +23,40 @@ namespace ops{
       const uint64_t end_index = ((a_index[0]+s_a) > (b_index[0]+s_b)) ? (b_index[0]+s_b):(a_index[0]+s_a);
       const uint64_t total_size = (start_index > end_index) ? 0:(end_index-start_index);
 
+      uint64_t tmp[4];
+
       //16 uint16_ts
       //8 ints
       //4 longs
       size_t i = 0;
       #if VECTORIZE == 1
-      while((i+3) < total_size){
+      for(; (i+3) < total_size; i += 4){
         const __m256 a1 = _mm256_loadu_ps((const float*)&A[i+a_start_index]);
         const __m256 a2 = _mm256_loadu_ps((const float*)&B[i+b_start_index]);
         const __m256 r = _mm256_andnot_ps(a2, a1);
 
-        uint64_t tmp[4];
         _mm256_storeu_ps((float*)&tmp, r);
 
         for(size_t offset = 0; offset < 4; offset++){
-          if(_mm_popcnt_u64(tmp[offset])){
+          if(tmp[offset] != 0){
             for(size_t j = 0; j < BITS_PER_WORD; j++){
               if((tmp[offset] >> j) % 2){
-                C[count++] = (BITS_PER_WORD*(start_index+i+offset) + j);
+                C[count] = (BITS_PER_WORD*(start_index+i+offset) + j);
+                count++;
               }
             }
           }
         }
-        i += 4;
       }
       #endif
 
       for(; i < total_size; i++){
         const uint64_t result = A[i+a_start_index] & ~(B[i+b_start_index]);
-        if(_mm_popcnt_u64(result)){
+        if(result != 0) {
           for(size_t j = 0; j < BITS_PER_WORD; j++){
             if((result >> j) % 2){
-              C[count++] = (BITS_PER_WORD*(start_index+i) + j);
+              C[count] = (BITS_PER_WORD*(start_index+i) + j);
+              count++;
             }
           }
         }
@@ -62,15 +64,16 @@ namespace ops{
 
       for(; i < (s_a+a_index[0]); i++){
         const uint64_t result = A[i+a_start_index];
-        if(_mm_popcnt_u64(result)){
+        if(result != 0){
           for(size_t j = 0; j < BITS_PER_WORD; j++){
             if((result >> j) % 2){
-              C[count++] = (BITS_PER_WORD*(start_index+i) + j);
+              C[count] = (BITS_PER_WORD*(start_index+i) + j);
+              count++;
             }
           }
         }
       }
-      
+
       const double density = 0.0;//(count > 0) ? (double)count/(8*small_length) : 0.0;
 
       C_in->cardinality = count;

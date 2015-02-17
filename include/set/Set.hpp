@@ -109,8 +109,8 @@ class Set{
     }
 
     template<typename F>
-    void par_foreach(const size_t num_threads, F f) const {
-      T::par_foreach(f, num_threads, data, cardinality, number_of_bytes, type);
+    size_t par_foreach(const size_t num_threads, F f) const {
+      return T::par_foreach(f, num_threads, data, cardinality, number_of_bytes, type);
     }
 
     Set<uinteger> decode(uint32_t *buffer);

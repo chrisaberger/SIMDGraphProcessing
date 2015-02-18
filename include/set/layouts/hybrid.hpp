@@ -77,9 +77,9 @@ inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
     if(range > 0){
       double density = (double) length / range;
      // double c = compressibility(data, length);
-      if(density > ((double)1/32)) {
+      if(density > 1.0 / 256.0) {
         return common::BITSET;
-      } else if(length/((range/65536)+1) > 8) {
+      } else if(length/((range/65536.0)+1) > 8) {
         return common::PSHORT;
       } else {
         return common::UINTEGER;

@@ -81,11 +81,12 @@ class application{
            Set<R> A = this->graph->get_decoded_row(i,src_buffer);
            Set<R> C(buffers->data[tid]);
 
+           //std::cout << A.type;
            A.foreach([this, i, &A, &C, &dst_buffer, &t_num_triangles, &intersect_time] (uint32_t j){
              Set<R> B = this->graph->get_decoded_row(j,dst_buffer);
-             
+
              //ops::set_intersect(&C,&A,&B)->cardinality;
-            
+
             //double timez = common::startClock();
             const size_t tmp_count = ops::set_intersect(&C,&A,&B)->cardinality;
             //intersect_time += common::stopClock(timez);

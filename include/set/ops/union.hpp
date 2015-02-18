@@ -94,26 +94,33 @@ namespace ops{
       A_in->cardinality += (A[word_index-start_index]!=old_value);
     });
   }
+
+  // Computes the union of a bitpacked set and a bitset.
   inline void set_union(Set<bitpacked> *A_in,Set<bitset> *B_in){
     return set_union(B_in,A_in);
   }
+
+  // Dynamically dispatches the union of a bitset and hybrid set.
   inline void set_union(Set<bitset> *A_in,Set<hybrid> *B_in){
     switch(B_in->type){
       case common::UINTEGER:
         set_union(A_in,(Set<uinteger>*)B_in);
-      break;
+        break;
       case common::PSHORT:
         set_union(A_in,(Set<pshort>*)B_in);
-      break;
+        break;
       case common::BITSET:
         set_union(A_in,(Set<bitset>*)B_in);
-      break;
+        break;
       case common::VARIANT:
         set_union(A_in,(Set<variant>*)B_in);
-      break;
+        break;
       case common::BITPACKED:
         set_union(A_in,(Set<bitpacked>*)B_in);
-      break;
+        break;
+      case common::HYBRID:
+        // There should never be a set where type is HYBRID.
+        assert(false);
     }
   }
 }

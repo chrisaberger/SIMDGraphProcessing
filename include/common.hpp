@@ -165,7 +165,8 @@ namespace common{
     PSHORT = 1,
     UINTEGER = 2,
     BITPACKED = 3,
-    VARIANT = 4
+    VARIANT = 4,
+    HYBRID = 5
   };
 
   static void dump_stats(){

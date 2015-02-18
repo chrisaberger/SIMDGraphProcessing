@@ -6,6 +6,7 @@
 #include <assert.h>
 
 #include "common.hpp"
+#include "set/layouts/hybrid.hpp"
 
 struct MutableGraph {
   size_t num_nodes;
@@ -66,6 +67,7 @@ struct MutableGraph {
       delete in_neighborhoods;
     }
   }
+
   static MutableGraph* directedFromAttributeList(const string path, const string node_path);
   static MutableGraph* undirectedFromAttributeList(const string path,const string node_path);
   static MutableGraph* syntheticUndirected(const size_t num_nodes, const size_t degree);
@@ -74,6 +76,65 @@ struct MutableGraph {
   static MutableGraph* directedFromEdgeList(const string path);
   static MutableGraph* undirectedFromEdgeList(const string path);
   static MutableGraph* undirectedFromAdjList(const string path,const int num_files);
+
+  template<typename F, typename G>
+  void prune_and_reorder_out_nbrs(F node_selection, G edge_selection) {
+    const size_t num_layouts = 3;
+
+    num_nodes = out_neighborhoods->size();
+
+    int64_t* old2new = new int64_t[num_nodes];
+    common::type* layouts = new common::type[num_nodes];
+    for(uint32_t i = 0; i < num_nodes; i++) {
+      old2new[i] = -1;
+    }
+
+    uint32_t next_id[] = {0, 0, 0};
+    vector<vector<vector<uint32_t>*>*> nodes(num_layouts);
+    for(size_t l = 0; l < num_layouts; l++) {
+      nodes[l] = new vector<vector<uint32_t>*>();
+    }
+
+    for(uint32_t n = 0; n < num_nodes; n++) {
+      if(node_selection(n, 0)) {
+        vector<uint32_t>* nbrs = out_neighborhoods->at(n);
+        vector<uint32_t>* new_nbrs = new vector<uint32_t>();
+        for(uint32_t i = 0; i < nbrs->size(); i++) {
+          uint32_t nbr = nbrs->at(i);
+          if(edge_selection(n, nbr, 0)) {
+            new_nbrs->push_back(nbr);
+          }
+        }
+        common::type layout = hybrid::get_type(new_nbrs->data(), new_nbrs->size());
+        nodes[layout]->push_back(new_nbrs);
+        old2new[n] = next_id[layout];
+        layouts[n] = layout;
+        next_id[layout]++;
+        delete nbrs;
+      }
+    }
+
+    size_t offsets[num_layouts];
+    offsets[0] = 0;
+    for(size_t l = 1; l < num_layouts; l++) {
+      offsets[l] = offsets[l - 1] + nodes[l - 1]->size();
+    }
+
+    size_t edges = 0;
+    out_neighborhoods->clear();
+    for(size_t l = 0; l < num_layouts; l++) {
+      for(uint32_t n = 0; n < nodes[l]->size(); n++) {
+        vector<uint32_t>* nbrs = nodes.at(l)->at(n);
+        for(size_t i = 0; i < nbrs->size(); i++) {
+          uint32_t nbr = nbrs->at(i);
+          nbrs->at(i) = (uint32_t)(old2new[nbr] + offsets[layouts[nbr]]);
+          edges++;
+        }
+        std::sort(nbrs->begin(), nbrs->end());
+        out_neighborhoods->push_back(nbrs);
+      }
+    }
+  }
 };
 
 #endif

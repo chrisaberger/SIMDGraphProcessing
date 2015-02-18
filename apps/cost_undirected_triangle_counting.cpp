@@ -151,6 +151,22 @@ class application{
 
       double better_than_uint[6] = {0,0,0,0,0,0};
 
+      struct psbs_data {
+        uint32_t ps_card;
+        uint32_t bs_card;
+        double psbs_time;
+        double bsbs_time;
+      };
+      vector<psbs_data> psbs_data_points;
+
+      struct ups_data {
+        uint32_t u_id;
+        uint32_t ps_id;
+        double ups_time;
+        double ubs_time;
+      };
+      vector<ups_data> ups_data_points;
+
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
       common::par_for_range(num_threads, 0, matrix_size, 100,
@@ -420,6 +436,15 @@ class application{
                 (a_type == common::PSHORT && b_type == common::UINTEGER)){
                 hybrid_intersection_time = start_time_4;
                 lost_times[3] += hybrid_intersection_time - min_time;
+/*
+                if(best == 5) {
+                  uint32_t ps_id = (A_is_ps_in_psbs) ? i : j;
+                  uint32_t bs_id = (A_is_ps_in_psbs) ? j : i;
+                  psbs_data data_point = { ps_id, bs_id, start_time_5, min_time };
+                  psbs_data_points.push_back(data_point);
+                }
+                */
+
                 if((hybrid_intersection_time/min_time) > min_ratio){
                     stats[i].num_hybrid_uint_pshort++;
                     stats[j].num_hybrid_uint_pshort++;
@@ -449,6 +474,14 @@ class application{
                 (a_type == common::PSHORT && b_type == common::BITSET)){
                 hybrid_intersection_time = start_time_5;
                 lost_times[4] += hybrid_intersection_time - min_time;
+
+                if(bs_bs_best) {
+                  uint32_t ps_card = (A_is_ps_in_psbs) ? AA.cardinality : BB.cardinality;
+                  uint32_t bs_card = (A_is_ps_in_psbs) ? BB.cardinality : AA.cardinality;
+                  psbs_data data_point = { ps_card, bs_card, start_time_5, min_time };
+                  psbs_data_points.push_back(data_point);
+                }
+
                 if((hybrid_intersection_time/min_time) > min_ratio){
                     stats[i].num_hybrid_pshort_bitset++;
                     stats[j].num_hybrid_pshort_bitset++;
@@ -558,6 +591,17 @@ class application{
       stats_file << stats[i].num_uu_instead_of_ups;
       stats_file << std::endl;
     }
+
+    ofstream psbs_file;
+    psbs_file.open("psbs.csv");
+    psbs_file << "ps_card,bs_card,psbs,bsbs" << endl;
+    for(auto data_point : psbs_data_points) {
+      psbs_file << data_point.ps_card << ",";
+      psbs_file << data_point.bs_card << ",";
+      psbs_file << data_point.psbs_time << ",";
+      psbs_file << data_point.bsbs_time << endl;
+    }
+    psbs_file.close();
 
     server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();
     pcm_print_uncore_power_state(before_uncstate, after_uncstate);

@@ -48,7 +48,7 @@ class hybrid{
       const common::type t);
 };
 inline common::type hybrid::get_type(){
-  return common::PSHORT;
+  return common::HYBRID;
 }
 
 inline common::type hybrid::compute_type(const double density){

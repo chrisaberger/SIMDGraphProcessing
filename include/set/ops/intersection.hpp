@@ -998,6 +998,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       } else if(prefix_index >= (s_b+start_index)){
         break;
       }
+      i = part_end+1;
     }
 
     // XXX: Correct density computation

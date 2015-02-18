@@ -71,19 +71,17 @@ inline double compressibility(const uint32_t* data, const size_t length) {
 
 #if PERFORMANCE == 1
 inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
-  return common::UINTEGER;
+  //return common::UINTEGER;
   if(length > 1) {
     uint32_t range = data[length - 1] - data[0];
     if(range > 0){
       double density = (double) length / range;
      // double c = compressibility(data, length);
-      if(density > ((double)1/256)) {
+      if(density > ((double)1/32)) {
         return common::BITSET;
-      }
-      else if(length/((range/65536)+1) > 8) {
+      } else if(length/((range/65536)+1) > 8) {
         return common::PSHORT;
-      } 
-      else {
+      } else {
         return common::UINTEGER;
       }
     }

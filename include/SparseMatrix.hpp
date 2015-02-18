@@ -390,8 +390,6 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_noattribute_graph(MutableGr
   const std::function<bool(uint32_t,uint32_t)> node_selection,
   const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
   const size_t num_threads){
-  inputGraph->prune_and_reorder_out_nbrs(node_selection, edge_selection);
-
   const size_t matrix_size_in = inputGraph->num_nodes;
   const size_t cardinality_in = inputGraph->num_edges;
 
@@ -437,8 +435,8 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_noattribute_graph(MutableGr
         selected_data,
         row_data_in,
         tid_alloc_size[tid*m],
-        [](uint32_t n, uint32_t a) -> bool { (void) n; (void) a; return true; },
-        [](uint32_t n1, uint32_t n2, uint32_t a) -> bool { (void) n1; (void) n2; (void) a; return true; },
+        node_selection, //[](uint32_t n, uint32_t a) -> bool { (void) n; (void) a; return true; },
+        edge_selection, //[](uint32_t n1, uint32_t n2, uint32_t a) -> bool { (void) n1; (void) n2; (void) a; return true; },
         row_range_data);
       indices[tid * m] += (index_size.first-tid_alloc_size[tid*m]);
       tid_alloc_size[tid*m] = index_size.first;

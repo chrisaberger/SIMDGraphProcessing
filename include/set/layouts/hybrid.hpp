@@ -138,56 +138,62 @@ inline size_t hybrid::build(uint8_t *r_in, const uint32_t *data, const size_t le
 //can be infered from the type. This gives us back a true CSR representation.
 inline size_t hybrid::build_flattened(uint8_t *r_in, const uint32_t *data, const size_t length){
   common::type t = hybrid::get_type(data,length);
-  r_in[0] = (uint8_t) t;
+  uint64_t val_t = (uint64_t) t;
+  ((uint64_t*) r_in)[0] = val_t;
+  r_in += sizeof(uint64_t);
+
+  size_t set_size;
   switch(t){
     case common::UINTEGER :
-      return 1+uinteger::build_flattened(&r_in[1],data,length);
-    break;
+      set_size = uinteger::build_flattened(r_in, data, length);
+      break;
     case common::PSHORT :
-      return 1+pshort::build_flattened(&r_in[1],data,length);
-    break;
+      set_size = pshort::build_flattened(r_in, data, length);
+      break;
     case common::BITSET :
-      return 1+bitset::build_flattened(&r_in[1],data,length);
-    break;
+      set_size = bitset::build_flattened(r_in, data, length);
+      break;
     case common::VARIANT :
-      return 1+variant::build_flattened(&r_in[1],data,length);
-    break;
+      set_size = variant::build_flattened(r_in, data, length);
+      break;
     case common::BITPACKED :
-      return 1+bitpacked::build_flattened(&r_in[1],data,length);
-    break;
+      set_size = bitpacked::build_flattened(r_in, data, length);
+      break;
     default:
-      return 0;
+      set_size = 0;
+      break;
   }
+
+  return sizeof(uint64_t) + set_size;
 }
 
 inline tuple<size_t,size_t,common::type> hybrid::get_flattened_data(const uint8_t *set_data, const size_t cardinality){
-  common::type t = (common::type) set_data[0];
-  tuple<size_t,size_t,common::type> mytup;
+  common::type t = (common::type) ((uint64_t*) set_data)[0];
+  tuple<size_t, size_t, common::type> mytup;
+  set_data += sizeof(uint64_t);
+
   switch(t){
     case common::UINTEGER :
-      mytup = uinteger::get_flattened_data(&set_data[1],cardinality);
-      get<0>(mytup)++;
+      mytup = uinteger::get_flattened_data(set_data, cardinality);
       break;
     case common::PSHORT :
-      mytup = pshort::get_flattened_data(&set_data[1],cardinality);
-      get<0>(mytup)++;
+      mytup = pshort::get_flattened_data(set_data, cardinality);
       break;
     case common::BITSET :
-      mytup = bitset::get_flattened_data(&set_data[1],cardinality);
-      get<0>(mytup)++;
+      mytup = bitset::get_flattened_data(set_data, cardinality);
       break;
     case common::VARIANT :
-      mytup = variant::get_flattened_data(&set_data[1],cardinality);
-      get<0>(mytup)++;
+      mytup = variant::get_flattened_data(set_data,cardinality);
       break;
     case common::BITPACKED :
-      mytup = bitpacked::get_flattened_data(&set_data[1],cardinality);
-      get<0>(mytup)++;
+      mytup = bitpacked::get_flattened_data(set_data,cardinality);
       break;
     default:
       mytup = make_tuple(0,0,common::UINTEGER);
       break;
   }
+
+  get<0>(mytup) += sizeof(uint64_t);
   return mytup;
 }
 
@@ -200,23 +206,23 @@ inline void hybrid::foreach_until(
     const size_t number_of_bytes,
     const common::type t) {
   switch(t){
-    case common::UINTEGER :
+    case common::UINTEGER:
       uinteger::foreach(f,data_in,cardinality,number_of_bytes,common::UINTEGER);
-    break;
-    case common::PSHORT :
+      break;
+    case common::PSHORT:
       pshort::foreach(f,data_in,cardinality,number_of_bytes,common::PSHORT);
-    break;
-    case common::BITSET :
+      break;
+    case common::BITSET:
       bitset::foreach(f,data_in,cardinality,number_of_bytes,common::BITSET);
-    break;
-    case common::VARIANT :
-      variant::foreach(f,data_in,cardinality,number_of_bytes,common::BITSET);
-    break;
-    case common::BITPACKED :
-      bitpacked::foreach(f,data_in,cardinality,number_of_bytes,common::BITSET);
-    break;
+      break;
+    case common::VARIANT:
+      variant::foreach(f,data_in,cardinality,number_of_bytes,common::VARIANT);
+      break;
+    case common::BITPACKED:
+      bitpacked::foreach(f,data_in,cardinality,number_of_bytes,common::BITPACKED);
+      break;
     default:
-    break;
+      break;
   }
 }
 
@@ -239,10 +245,10 @@ inline void hybrid::foreach(
       bitset::foreach(f,data_in,cardinality,number_of_bytes,common::BITSET);
       break;
     case common::VARIANT :
-      variant::foreach(f,data_in,cardinality,number_of_bytes,common::BITSET);
+      variant::foreach(f,data_in,cardinality,number_of_bytes,common::VARIANT);
       break;
     case common::BITPACKED :
-      bitpacked::foreach(f,data_in,cardinality,number_of_bytes,common::BITSET);
+      bitpacked::foreach(f,data_in,cardinality,number_of_bytes,common::BITPACKED);
       break;
     default:
       break;
@@ -271,12 +277,12 @@ inline size_t hybrid::par_foreach(
     case common::VARIANT :
       std::cout << "Parallel foreach for VARIANT is not implemented" << std::endl;
       exit(EXIT_FAILURE);
-      // variant::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::BITSET);
+      // variant::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::VARIANT);
       break;
     case common::BITPACKED :
       std::cout << "Parallel foreach for BITPACKED is not implemented" << std::endl;
       exit(EXIT_FAILURE);
-      // bitpacked::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::BITSET);
+      // bitpacked::par_foreach(num_threads,f,data_in,cardinality,number_of_bytes,common::BITPACKED);
       break;
     default:
       break;

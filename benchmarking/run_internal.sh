@@ -7,7 +7,7 @@ curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
 system="emptyheaded"
 
-datasets="cid-patents socLivejournal higgs orkut twitter2010"
+datasets="cid-patents socLivejournal higgs orkut wikipedia twitter2010"
 num_threads="1 48"
 
 
@@ -19,6 +19,8 @@ echo $odir
       for ordering in "u_the_game"; do
         cd ${system}
         for layout in "uint" "hybrid"; do
+          ./run_internal.sh $numruns up_non_simd_tcount /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/up_non_simd.${dataset}.${threads}.${ordering}.${layout}.log
+          ./run_internal.sh $numruns up_simd_tcount /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/up_simd.${dataset}.${threads}.${ordering}.${layout}.log
           ./run_internal.sh $numruns non_simd_tcount /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/non_simd.${dataset}.${threads}.${ordering}.${layout}.log
           ./run_internal.sh $numruns simd_tcount /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/simd.${dataset}.${threads}.${ordering}.${layout}.log
         done

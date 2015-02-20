@@ -15,7 +15,6 @@ THIS CLASS IMPLEMENTS THE FUNCTIONS ASSOCIATED WITH THE kunle LAYOUT.
 
 class kunle {
   public:
-    static const size_t range = 1000000;
     static const size_t num_level = (size_t) 3; //ceil(log(range)/log(BITS_PER_BIN));
 
     static size_t word_index(const uint32_t bit_index);
@@ -69,66 +68,68 @@ inline common::type kunle::get_type(){
 }
 //Copies data from input array of ints to our set data r_in
 inline size_t kunle::build(uint8_t *R, const uint32_t *A, const size_t s_a){
+  uint64_t *R_start = (uint64_t*) R;
   if(s_a > 0){
     uint64_t **levels = new uint64_t*[num_level];
-    size_t *current_level_bin = new size_t[num_level];
+    int *current_level_bin = new int[num_level];
+    size_t *bins_used = new size_t[num_level];
     uint64_t **current_level_pointer = new uint64_t*[num_level];
 
     size_t *bins_filled = new size_t[num_level];
-    size_t *elems_per_bit = new size_t[num_level];
 
     //setup code, allocs should probably occur outside
     size_t alloc_size = BITS_PER_BIN;
     for(size_t i = 0; i < num_level; i++){
       bins_filled[i] = 0;
-      elems_per_bit[i] = range/alloc_size;
       levels[i] = new uint64_t[alloc_size/sizeof(uint64_t)];
       memset(levels[i],(uint8_t)0,alloc_size);
       current_level_pointer[i] = levels[i];
-      current_level_bin[i] = 0;
+      current_level_bin[i] = -1;
       alloc_size *= BITS_PER_BIN;
     }
 
     for(size_t i = 0; i < s_a; i++){
       const uint32_t current_value = A[i];
       size_t level_bin = 0;
+      size_t dividor = alloc_size/(BITS_PER_BIN*BITS_PER_BIN);
       for(size_t j = 0; j < num_level; j++){
         //bit to be set inside of the level
-        const size_t level_bit = current_value / alloc_size;
-        
+        const size_t level_bit = current_value / dividor;
+
         //Where we are actually storing the bin
         uint64_t *my_bin = current_level_pointer[j];
         if(current_level_bin[j] != level_bin){
-          cout << "incrementing" << endl;
-          my_bin += BITS_PER_BIN/BITS_PER_WORD;
+          bins_used[j]++;
+          my_bin += (current_level_bin[j]==-1) ? 0:BITS_PER_BIN/BITS_PER_WORD;
           current_level_bin[j] = level_bin;
           current_level_pointer[j] = my_bin;
         }
         //Word we need to set
         const size_t my_level_word = (level_bit % BITS_PER_BIN) / BITS_PER_WORD;
         //Bit we need to set
-        const size_t bit_level_word = level_bit % BITS_PER_WORD;
-        cout << "bit level word: " << bit_level_word << endl;
-        my_bin[my_level_word] |= 1 << bit_level_word;
+        const size_t bit_value = level_bit % BITS_PER_WORD;
+        my_bin[my_level_word] |= ((uint64_t)1 << bit_value);
 
         level_bin = level_bit;
-        alloc_size /= BITS_PER_WORD;
+        dividor /= BITS_PER_BIN;
       }
     }
 
-    for(size_t i = 0; i < num_level; i++){
-      cout << "Num bytes: " << ((current_level_bin[i]+1)*BITS_PER_BIN)/8 << endl;
-      ((uint64_t*)(&R[i*sizeof(uint64_t)]))[0] = ((current_level_bin[i]+1)*BITS_PER_BIN)/8;
-    }
-    R += num_level*sizeof(uint64_t);
-
     size_t bytes_used = 0;
     for(size_t i = 0; i < num_level; i++){
-      const size_t bytes_to_copy = ((current_level_bin[i]+1)*BITS_PER_BIN)/sizeof(uint8_t);
+      ((uint64_t*)(&R[i*sizeof(uint64_t)]))[0] = (bins_used[i]*BITS_PER_BIN)/8;
+    }
+    R += num_level*sizeof(uint64_t);
+    bytes_used += num_level*sizeof(uint64_t);
+
+    for(size_t i = 0; i < num_level; i++){
+      const size_t bytes_to_copy = (bins_used[i]*BITS_PER_BIN)/8;
       memcpy(R,levels[i],bytes_to_copy);
+      uint64_t *R64 = (uint64_t*)R;
       R += bytes_to_copy;
       bytes_used += bytes_to_copy;
     }
+
     return bytes_used;
   }
   return 0;
@@ -196,15 +197,19 @@ inline void kunle::foreach(
     uint64_t *level_bin[MAX_LEVELS];
     uint64_t level_bin_bit[MAX_LEVELS];
     uint32_t level_offset[MAX_LEVELS+1];
+    uint32_t squares[MAX_LEVELS+1];
 
     uint64_t* A64 = (uint64_t*) A;
     uint64_t *data = A64+num_level;
+    size_t data_offset = 0;
     for(size_t i = 0; i < num_level; i++){
-      level_bin[i] = data + A64[i];
+      squares[num_level-1-i] = (i==0) ? 1:(BITS_PER_BIN*squares[num_level-i]); 
+      level_bin[i] = data + data_offset;
+      data_offset += (A64[i]/sizeof(uint64_t));
       level_bin_bit[i] = 0;
       level_offset[i] = 0;
     }
-
+    
     size_t cur_level = 0;
     while(true){
     START_LEVEL:
@@ -213,14 +218,13 @@ inline void kunle::foreach(
         || cur_level == 0xFFFFFFFFFFFFFFFF)
         break;
 
-      cout << cur_level << endl;
       data = level_bin[cur_level];
       if(cur_level < (num_level-1)){
         for(size_t i = level_bin_bit[cur_level]; i < BITS_PER_BIN; i++){
           const uint64_t cur_word = data[i >> ADDRESS_BITS_PER_WORD];
           if((cur_word >> (i % BITS_PER_WORD)) % 2){
             level_bin_bit[cur_level] = i+1;
-            level_offset[cur_level+1] = BITS_PER_BIN*(i+level_offset[cur_level-1]);
+            level_offset[cur_level+1] = (squares[cur_level]*i)+level_offset[cur_level];
             cur_level++;
             goto START_LEVEL;
           }
@@ -229,11 +233,12 @@ inline void kunle::foreach(
         for(size_t i = level_bin_bit[cur_level]; i < BITS_PER_BIN; i++){
           const uint64_t cur_word = data[i >> ADDRESS_BITS_PER_WORD];
           if((cur_word >> (i % BITS_PER_WORD)) % 2){
-            level_bin_bit[cur_level] = i+1;
             f(level_offset[cur_level]+i);
           }
         }
       }
+      level_bin_bit[cur_level] = 0;
+      level_bin[cur_level] += BITS_PER_BIN/BITS_PER_WORD;
       cur_level--;
     }
   }

@@ -47,27 +47,64 @@ def parse_file(f):
 def main():
   options = parseInput();
   f_perf = open('intersection_density_perf.csv', 'w')
+  diff_perf = open('diff_density_perf.csv', 'w')
   v_perf = open('vintersection_density_perf.csv', 'w')
-  d_perf = open('dintersection_density_perf.csv', 'w')
 
-  results = dict()
-  mem_results = dict()
-  constr_results = dict()
-  for filename in os.listdir(options.folder):
-    matchObj = re.match(r'(.*)\.(.*)\.(.*)\.(.*)\.(.*)\.log', filename, re.M | re.I)
-    if matchObj:
-      skew = float(matchObj.group(1))
-      lenA = int(matchObj.group(2))
-      lenB = int(matchObj.group(3))
-      ranges = int(matchObj.group(4))
+  skews=["0.00002","0.00004","0.00008","0.00016","0.00032"] #"0.00128","0.00256","0.00512","0.01024","0.02048"]
+  lensA=["20","40","80","160","320","1280","2560","5120","10240","20480","40960","163840","327680","655360","1310720"]
+  lensB=["20","40","80","160","320","1280","2560","5120","10240","20480","40960","163840","327680","655360","1310720"]
+  data_range = "10000000"
 
-      if lenA < lenB:
-        abs_filename = os.path.join(options.folder, filename)
-        times, encoding_times, mem = parse_file(open(abs_filename))
+  uint_dict = {}
+  min_types = {}
+  min_times = {}
 
-        results[lenA, lenB, skew] = [[t] for t in times]
-        #constr_results[densityA, densityB] = [[t] for t in encoding_times]
-        #mem_results[density, comp] = mem
+  for skew in skews:
+    f_perf = open('intersection_density_perf_' + skew + '.csv', 'w')
+    f_perf.write('\t' + "\t".join(lensB) +  '\n')
+    d_perf = open('diff_intersection_density_perf_' + skew + '.csv', 'w')
+    d_perf.write('\t' + "\t".join(lensB) +  '\n')
+    for lenA in lensA:
+      type_output = []
+      times_output = []
+      for lenB in lensB:
+        if int(lenA) <= int(lenB):
+          print options.folder + '/' + skew + "." + lenA + "." + lenB + "." +  data_range + ".0.log"
+          filename = open(options.folder + '/' + skew + "." + lenA + "." + lenB + "." + data_range + ".0.log", 'r')
+          times,encoding_times,mem = parse_file(filename)
+
+          #First deal with the UINT algos
+          uint_dict.update({skew+"_"+lenA+"_"+lenB:[times[0],times[1],times[2],times[3],times[4]]})
+          min_uint = 100000000.0          
+          for i in range(0,5):
+            if float(times[i]) < min_uint:
+              min_uint = float(times[i])
+
+          min_time = min_uint 
+          min_type = 0
+          for i in range(5,10):
+            print str(min_time) + " " + str(times[i])
+            if(float(times[i]) < min_time):
+              min_time = float(times[i])
+              min_type = i-4
+
+          relative_perf = float(min_uint)/float(min_time)
+
+          type_output.append(str(min_type))
+          times_output.append(str(relative_perf))
+
+          print times
+
+          min_types.update({skew+"_"+lenA+"_"+lenB:min_type})
+          min_times.update({skew+"_"+lenA+"_"+lenB:relative_perf})
+        else:
+          type_output.append("-1")
+          times_output.append("-1")
+
+      f_perf.write(lenA + '\t' + "\t".join(type_output) +  '\n')
+      d_perf.write(lenA + '\t' + "\t".join(times_output) +  '\n')
+
+
 
 if __name__ == "__main__":
     main()

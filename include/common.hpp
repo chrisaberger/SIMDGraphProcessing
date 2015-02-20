@@ -44,7 +44,7 @@
 
 #define COMPRESSION 0
 #define PERFORMANCE 1
-#define VECTORIZE 1
+#define VECTORIZE 0
 
 #define STATS
 
@@ -76,6 +76,10 @@ using namespace std;
 using namespace std::placeholders;
 
 namespace common{
+static size_t bitset_length = 0;
+static size_t pshort_requirement = 16;
+static double bitset_req = (1.0/256.0);
+
   static double startClock (){
     return omp_get_wtime();
   }
@@ -165,7 +169,8 @@ namespace common{
     PSHORT = 1,
     UINTEGER = 2,
     BITPACKED = 3,
-    VARIANT = 4
+    VARIANT = 4,
+    KUNLE = 5
   };
 
   static void dump_stats(){

@@ -653,7 +653,11 @@ namespace ops{
         //cout << count << " BITMASK: " << hex  << w_bitmask << dec << endl;
         if(w_bitmask != 0){
           const size_t start_index = _mm_popcnt_u32((~w_bitmask)&(w_bitmask-1));
-          count += scalar(&A[i_a+start_index],8-start_index,&B[i_b],8,&C[count]);
+          const size_t A_pos = start_index+i_a;
+          const size_t A_end = 8-start_index;
+          const size_t B_pos = i_b;
+          const size_t B_end = 8;
+          count += scalar(&A[A_pos],A_end,&B[B_pos],B_end,&C[count]);
         }
       } 
       if(A[i_a+7] > B[i_b+7]){
@@ -1476,9 +1480,9 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
               #ifdef STATS
               common::num_uint_uint++;
               #endif
-              //if(std::max(A_in->cardinality,B_in->cardinality)/std::min(A_in->cardinality,B_in->cardinality) > 20)
-              //  return (Set<hybrid>*)set_intersect_v3((Set<uinteger>*)C_in,(const Set<uinteger>*)rare,(const Set<uinteger>*)freq);
-              //else
+              if(std::max(A_in->cardinality,B_in->cardinality)/std::min(A_in->cardinality,B_in->cardinality) > 16)
+                return (Set<hybrid>*)set_intersect_v3((Set<uinteger>*)C_in,(const Set<uinteger>*)rare,(const Set<uinteger>*)freq);
+              else
                 return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)rare,(const Set<uinteger>*)freq);
             break;
             case common::PSHORT:

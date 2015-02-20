@@ -134,6 +134,10 @@ class application{
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
+  //common::bitset_length = atol(argv[1]);
+  //common::pshort_requirement = atol(argv[2]);
+  //common::bitset_req = atof(argv[3]);
+
   Parser input_data = input_parser::parse(argc,argv,"undirected_triangle_counting");
 
   if(input_data.layout.compare("uint") == 0){

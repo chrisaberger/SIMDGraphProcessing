@@ -7,8 +7,8 @@ curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
 system="emptyheaded"
 
-datasets="cid-patents socLivejournal higgs orkut wikipedia twitter2010"
-num_threads="1 48"
+datasets="g_plus cid-patents higgs socLivejournal orkut wikipedia twitter2010"
+num_threads="1"
 
 
 odir="${output}/${system}_${date}_${curtime}"
@@ -18,11 +18,16 @@ echo $odir
     for threads in $num_threads; do
       for ordering in "u_the_game"; do
         cd ${system}
+        ./run_internal.sh $numruns cost_undirected_triangle_counting /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/cost.${dataset}.${threads}.${ordering}.${layout}.log
+        ./run_internal.sh $numruns np_cost_undirected_triangle_counting /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/np_cost.${dataset}.${threads}.${ordering}.${layout}.log
         for layout in "uint" "hybrid"; do
-          ./run_internal.sh $numruns up_non_simd_tcount /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/up_non_simd.${dataset}.${threads}.${ordering}.${layout}.log
-          ./run_internal.sh $numruns up_simd_tcount /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/up_simd.${dataset}.${threads}.${ordering}.${layout}.log
-          ./run_internal.sh $numruns non_simd_tcount /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/non_simd.${dataset}.${threads}.${ordering}.${layout}.log
-          ./run_internal.sh $numruns simd_tcount /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/simd.${dataset}.${threads}.${ordering}.${layout}.log
+          ./run_internal.sh $numruns undirected_lollipop_counting /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/lollipop.${dataset}.${threads}.${ordering}.${layout}.log
+          ./run_internal.sh $numruns non_simd_undirected_lollipop_counting /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/nosimd_lollipop.${dataset}.${threads}.${ordering}.${layout}.log
+
+          #./run_internal.sh $numruns up_non_simd_tcount /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/up_non_simd.${dataset}.${threads}.${ordering}.${layout}.log
+          #./run_internal.sh $numruns up_simd_tcount /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/up_simd.${dataset}.${threads}.${ordering}.${layout}.log
+          #./run_internal.sh $numruns non_simd_tcount /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/non_simd.${dataset}.${threads}.${ordering}.${layout}.log
+          #./run_internal.sh $numruns simd_tcount /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads $layout | tee $odir/simd.${dataset}.${threads}.${ordering}.${layout}.log
         done
         #./run_internal.sh $numruns undirected_triangle_counting /dfs/scratch0/caberger/datasets/${dataset}/bin/${ordering}.bin $threads hybrid | tee $odir/${dataset}.${threads}.hybrid_perf.${ordering}.log
         #for layout in "bp" "v"; do

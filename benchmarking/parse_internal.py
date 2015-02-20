@@ -7,22 +7,13 @@ import time
 import re
 
 #special parsers
-from emptyheaded.parse_output import getInternalPerformanceInfo 
+from emptyheaded.parse_output import getIInternalPerformanceInfo 
 from average_runs import average_runs
 
 def parseInput():
   parser = OptionParser()
   parser.add_option("-f", "--data_folder", dest="folder",
     help="[REQUIRED] input edge list to parse")
-
-  parser.add_option("-p", "--perf_output", dest="perf_output",
-    help="[REQUIRED] number of thread to run with")
-
-  parser.add_option("-c", "--comp_output", dest="comp_output",
-    help="[REQUIRED] number of thread to run with")
-
-  parser.add_option("-s", "--simd_output", dest="simd_output",
-    help="[REQUIRED] number of thread to run with")
 
   (opts, args) = parser.parse_args()
 
@@ -38,93 +29,45 @@ def parseInput():
 def main():
   options = parseInput();
 
-  datasets = ["baidu","california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec","twitter2010","wikipedia"]
-  orderings = ["u_the_game","u_degree","u_bfs","u_random","u_rev_degree","u_strong_run"]
-  layouts = ["uint","pshort","hybrid_perf","hybrid_comp","bp","v"]
-  threads = ["1","24","48"]
+  datasets = ["orkut","cid-patents","socLivejournal","higgs"] #,"twitter2010","wikipedia","orkut"]
+  orderings = ["u_the_game"]
+  layouts = ["uint","hybrid"]
+  threads = ["1"]
 
-  perf_file = open(options.perf_output, 'w')
-  comp_file = open(options.comp_output, 'w')
-  simd_file = open(options.simd_output, 'w')
-
-  perf_file.write(",,")
+  my_output = {}
   for dataset in datasets:
-    for layout in layouts: 
-      perf_file.write(dataset + ",")
-  perf_file.write("\n")
-
-  simd_file.write(",,,simd,non-simd\n")
-  perf_file.write(",,")
-  for dataset in datasets:
-    for layout in layouts: 
-      perf_file.write(layout + ",")
-  perf_file.write("\n")
-
-  comp_file.write(",")
-  for ordering in orderings:
-    for layout in layouts:
-      comp_file.write(ordering + ",")
-  comp_file.write("\n")
-
-  comp_file.write(",")
-  for ordering in orderings:
-    for layout in layouts:
-      comp_file.write(layout + ",")
-  comp_file.write("\n")
-
-  num_bytes = -1
-  num_edges = -1
-  print_to_comp_file = True;
-  for dataset in datasets:
+    my_output[dataset] = {}
     for thread in threads:
       for ordering in orderings:
         for layout in layouts:
-          f = open(options.folder +"/" + dataset + "." + thread + "." + layout + "." + ordering +".log", 'r')
-          perf_info = getInternalPerformanceInfo(f,print_to_comp_file);
-          avg = average_runs(perf_info['perf'])
-          if layout == "hybrid_perf":
-            f = open(options.folder +"/nonsimd_" + dataset + "." + thread + "." + layout + "." + ordering +".log", 'r')
-            hperf_info = getInternalPerformanceInfo(f);
-            havg = average_runs(hperf_info['perf'])
-            simd_file.write(dataset + "," + thread + "," + ordering + "," + str(avg) + "," + str(havg) + "\n")
+          f = open(options.folder +"/non_simd." + dataset + "." + thread + "." + ordering + "." + layout + ".log", 'r')
+          perf_info = getIInternalPerformanceInfo(f);
+          non_simd_avg = average_runs(perf_info['perf'])
+
+          f = open(options.folder +"/simd." + dataset + "." + thread + "." + ordering + "." + layout + ".log", 'r')
+          perf_info = getIInternalPerformanceInfo(f);
+          simd_avg = average_runs(perf_info['perf'])
+
+          f = open(options.folder +"/up_non_simd." + dataset + "." + thread + "." + ordering + "." + layout + ".log", 'r')
+          perf_info = getIInternalPerformanceInfo(f);
+          up_non_simd_avg = average_runs(perf_info['perf'])
+
+          f = open(options.folder +"/up_simd." + dataset + "." + thread + "." + ordering + "." + layout + ".log", 'r')
+          perf_info = getIInternalPerformanceInfo(f);
+          up_simd_avg = average_runs(perf_info['perf'])
+
+          my_output[dataset].update({layout:{thread:{'non_simd':str(non_simd_avg),'simd':str(simd_avg),'up_non_simd':str(up_non_simd_avg),'up_simd':str(up_simd_avg)}}})
+
         #end for layout
       #end for ordering  
     #end for dataset
 
-  print_to_comp_file = True;
-  for thread in threads:
-    if print_to_comp_file:
-      for ordering in orderings:
-        for layout in layouts:
-          comp_file.write(ordering + "," + layout+ ",")
-          for dataset in datasets:
-              f = open(options.folder +"/" + dataset + "." + thread + "." + layout + "." + ordering +".log", 'r')
-              perf_info = getIInternalPerformanceInfo(f,print_to_comp_file);
-              bits_per_edge = perf_info['bpe']
-              comp_file.write(str(bits_per_edge) + ",")
-            #end for dataset
-        #end for layout 
-          comp_file.write("\n")
-      #end for dataset
-    print_to_comp_file = False
+  for dataset in my_output.keys():
+      data =  my_output[dataset]
+      #print data
+      print dataset + "," + data['hybrid']['1']['simd'] + "," + data['uint']['1']['simd'] + "," + data['hybrid']['1']['non_simd'] + "," + data['uint']['1']['non_simd'] 
+      print dataset + "," + data['hybrid']['1']['up_simd'] + "," + data['uint']['1']['up_simd'] + "," + data['hybrid']['1']['up_non_simd'] + "," + data['uint']['1']['up_non_simd'] 
 
-  num_bytes = -1
-  num_edges = -1
-  print_to_comp_file = True;
-  for thread in threads:
-    for ordering in orderings:
-      perf_file.write("t" +thread + "," + ordering + ",")
-      for dataset in datasets:
-        for layout in layouts:
-          f = open(options.folder +"/" + dataset + "." + thread + "." + layout + "." + ordering +".log", 'r')
-          perf_info = getInternalPerformanceInfo(f,print_to_comp_file);
-          avg = average_runs(perf_info['perf'])
-          perf_file.write(str(avg) + ",")
-
-      perf_file.write("\n")
-      #end for dataset 
-    #end for ordering
-    print_to_comp_file = False
 
 if __name__ == "__main__":
     main()

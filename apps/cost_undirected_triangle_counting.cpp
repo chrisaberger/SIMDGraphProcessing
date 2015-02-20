@@ -82,6 +82,7 @@ class application{
       ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,graph->max_nbrhood_size*10*sizeof(uint64_t));
 
       double total_min = 0.0;
+      double total_pshort_min = 0.0;
 
       size_t num_uint = 0;
       size_t num_pshort = 0;
@@ -271,6 +272,17 @@ class application{
             bool u_u_best = false;
 
             int best = 0;
+
+            if(start_time_1 <= start_time_3 &&
+              start_time_1 <= start_time_6){
+              total_pshort_min += start_time_1;
+            } else if(start_time_3 <= start_time_1 && 
+              start_time_3 <= start_time_6){
+              total_pshort_min += start_time_3;
+            } else {
+              total_pshort_min += start_time_6;
+            }
+
 
             if(start_time_1 <= start_time_1 &&
               start_time_1 <= start_time_2 &&  
@@ -491,6 +503,7 @@ class application{
       );
 
     cout << "Best cost time: " << total_min << endl;
+    cout << "Without pshort cost time: " << total_pshort_min << endl;
     cout << "Hybrid time: " << total_hybrid_time << endl;
     cout << "U-Int time: " << total_uint_time << endl;
     cout << "Uint: " << num_uint << endl;
@@ -499,6 +512,7 @@ class application{
     cout << "Uint/pshort: " << num_uint_ps << endl;
     cout << "PS/BS: " << num_ps_bs << endl;
     cout << "UINT/BS: " << num_uint_bs << endl;
+    /*
     cout << "Avg. PS card when BSBS instead of PSBS: " << (lens_bsbs_instead_of_psbs / num_bsbs_instead_of_psbs) << endl;
     cout << "Avg. BS card when BSBS instead of PSBS: " << (lens_bs_bsbs_instead_of_psbs / num_bsbs_instead_of_psbs) << endl;
     cout << "Avg. PS card when UBS instead of UPS: " << (lens_ubs_instead_of_ups / num_ubs_instead_of_ups) << endl;
@@ -516,6 +530,7 @@ class application{
     for(size_t i = 0; i < 5; i++) {
       cout << "UINT int " << i << ": " << num_uint_ints[i] << endl;
     }
+    */
 
     string lost_names[] = {"U-Int/U-Int", "P-Short/P-Short", "Bitset/Bitset", "U-Int/P-Short", "P-Short/Bitset", "U-Int/Bitset"};
     for(size_t i = 0; i < 6; i++) {

@@ -71,16 +71,13 @@ inline size_t kunle::build(uint8_t *R, const uint32_t *A, const size_t s_a){
   uint64_t *R_start = (uint64_t*) R;
   if(s_a > 0){
     uint64_t **levels = new uint64_t*[num_level];
-    int *current_level_bin = new int[num_level];
+    int current_level_bin[MAX_LEVELS];
     size_t *bins_used = new size_t[num_level];
     uint64_t **current_level_pointer = new uint64_t*[num_level];
-
-    size_t *bins_filled = new size_t[num_level];
 
     //setup code, allocs should probably occur outside
     size_t alloc_size = BITS_PER_BIN;
     for(size_t i = 0; i < num_level; i++){
-      bins_filled[i] = 0;
       levels[i] = new uint64_t[alloc_size/sizeof(uint64_t)];
       memset(levels[i],(uint8_t)0,alloc_size);
       current_level_pointer[i] = levels[i];
@@ -125,11 +122,9 @@ inline size_t kunle::build(uint8_t *R, const uint32_t *A, const size_t s_a){
     for(size_t i = 0; i < num_level; i++){
       const size_t bytes_to_copy = (bins_used[i]*BITS_PER_BIN)/8;
       memcpy(R,levels[i],bytes_to_copy);
-      uint64_t *R64 = (uint64_t*)R;
       R += bytes_to_copy;
       bytes_used += bytes_to_copy;
     }
-
     return bytes_used;
   }
   return 0;
@@ -204,6 +199,7 @@ inline void kunle::foreach(
     size_t data_offset = 0;
     for(size_t i = 0; i < num_level; i++){
       squares[num_level-1-i] = (i==0) ? 1:(BITS_PER_BIN*squares[num_level-i]); 
+
       level_bin[i] = data + data_offset;
       data_offset += (A64[i]/sizeof(uint64_t));
       level_bin_bit[i] = 0;

@@ -18,7 +18,7 @@ class application{
 
     application(Parser input_data){
       num_triangles = 0;
-      inputGraph = input_data.input_graph; 
+      inputGraph = input_data.input_graph;
       num_threads = input_data.num_threads;
       layout = input_data.layout;
     }

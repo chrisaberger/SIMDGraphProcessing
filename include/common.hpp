@@ -28,7 +28,7 @@
 
 // Experts only! Proceed wih caution!
 
-//#define ENABLE_PCM
+#define ENABLE_PCM
 //#define ENABLE_PRINT_THREAD_TIMES
 //#define ENABLE_ATOMIC_UNION
 

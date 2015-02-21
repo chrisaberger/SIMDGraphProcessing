@@ -912,9 +912,8 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       c_index[0] = start_index;
       #endif
 
-      uint64_t tmp[4];
-
       #if VECTORIZE == 1
+      uint64_t tmp[4];
       while((i+3) < total_size){
         const __m256 a1 = _mm256_loadu_ps((const float*)(A + i + a_start_index));
         const __m256 a2 = _mm256_loadu_ps((const float*)(B + i + b_start_index));
@@ -1172,7 +1171,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     return C_in;
   }
 
-  /*
+/*
   inline Set<kunle>* set_intersect(
       Set<kunle> *C_in,
       const Set<kunle> *A_in,

@@ -28,7 +28,7 @@
 
 // Experts only! Proceed wih caution!
 
-//#define ENABLE_PCM
+#define ENABLE_PCM
 //#define ENABLE_PRINT_THREAD_TIMES
 //#define ENABLE_ATOMIC_UNION
 
@@ -170,7 +170,8 @@ static double bitset_req = (1.0/256.0);
     UINTEGER = 2,
     BITPACKED = 3,
     VARIANT = 4,
-    KUNLE = 5
+    HYBRID = 5,
+    KUNLE = 6
   };
 
   static void dump_stats(){
@@ -221,10 +222,10 @@ static double bitset_req = (1.0/256.0);
 
   // Iterates over a range of numbers in parallel
   template<typename F>
-  static void par_for_range(const size_t num_threads, const size_t from, const size_t to, const size_t block_size, F body) {
+  static size_t par_for_range(const size_t num_threads, const size_t from, const size_t to, const size_t block_size, F body) {
      const size_t range_len = to - from;
      const size_t real_num_threads = min(range_len / block_size + 1, num_threads);
-     // std::cout << "Range length: " << range_len << " Threads: " << real_num_threads << std::endl;
+     std::cout << "Range length: " << range_len << " Threads: " << real_num_threads << std::endl;
 
      if(real_num_threads == 1) {
         for(size_t i = from; i < to; i++) {
@@ -281,8 +282,10 @@ static double bitset_req = (1.0/256.0);
         delete[] thread_times;
 #endif
      }
+
+     return real_num_threads;
   }
-  static void par_for_range(const size_t num_threads, const size_t from, const size_t to, const size_t block_size,
+  static size_t par_for_range(const size_t num_threads, const size_t from, const size_t to, const size_t block_size,
     std::function<void(size_t)> setup,
     std::function<void(size_t, size_t)> body,
     std::function<void(size_t)> tear_down) {
@@ -299,7 +302,7 @@ static double bitset_req = (1.0/256.0);
     common::stopClock("PARALLEL SETUP",setup1);
     #endif
 
-    par_for_range(num_threads,from,to,block_size,body);
+    size_t real_num_threads = par_for_range(num_threads,from,to,block_size,body);
 
     #ifdef ENABLE_PRINT_THREAD_TIMES
     double td = common::startClock();
@@ -312,6 +315,8 @@ static double bitset_req = (1.0/256.0);
     #ifdef ENABLE_PRINT_THREAD_TIMES
     common::stopClock("PARALLEL TEAR DOWN",td);
     #endif
+
+    return real_num_threads;
   }
 
   static vector<uint32_t> range(uint32_t max) {

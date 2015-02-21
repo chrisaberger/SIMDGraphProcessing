@@ -18,7 +18,7 @@ class application{
 
     application(Parser input_data){
       num_triangles = 0;
-      inputGraph = input_data.input_graph; 
+      inputGraph = input_data.input_graph;
       num_threads = input_data.num_threads;
       layout = input_data.layout;
     }
@@ -81,11 +81,12 @@ class application{
            Set<R> A = this->graph->get_decoded_row(i,src_buffer);
            Set<R> C(buffers->data[tid]);
 
+           //std::cout << A.type;
            A.foreach([this, i, &A, &C, &dst_buffer, &t_num_triangles, &intersect_time] (uint32_t j){
              Set<R> B = this->graph->get_decoded_row(j,dst_buffer);
-             
+
              //ops::set_intersect(&C,&A,&B)->cardinality;
-            
+
             //double timez = common::startClock();
             const size_t tmp_count = ops::set_intersect(&C,&A,&B)->cardinality;
             //intersect_time += common::stopClock(timez);

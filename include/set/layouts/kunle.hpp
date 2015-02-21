@@ -68,19 +68,26 @@ inline common::type kunle::get_type(){
 }
 //Copies data from input array of ints to our set data r_in
 inline size_t kunle::build(uint8_t *R, const uint32_t *A, const size_t s_a){
-  uint64_t *R_start = (uint64_t*) R;
   if(s_a > 0){
-    uint64_t **levels = new uint64_t*[num_level];
+    uint64_t *levels[MAX_LEVELS];
     int current_level_bin[MAX_LEVELS];
-    size_t *bins_used = new size_t[num_level];
-    uint64_t **current_level_pointer = new uint64_t*[num_level];
+    size_t bins_used[MAX_LEVELS];
+    uint64_t *current_level_pointer[MAX_LEVELS];
+
+    uint32_t *skip_list[MAX_LEVELS];
+    uint32_t *skip_list_pointer[MAX_LEVELS];
 
     //setup code, allocs should probably occur outside
     size_t alloc_size = BITS_PER_BIN;
     for(size_t i = 0; i < num_level; i++){
+      bins_used[i] = 0;
+
       levels[i] = new uint64_t[alloc_size/sizeof(uint64_t)];
+      skip_list[i] = new uint32_t[alloc_size];
       memset(levels[i],(uint8_t)0,alloc_size);
+      memset(skip_list[i],(uint8_t)0,alloc_size*sizeof(uint32_t));
       current_level_pointer[i] = levels[i];
+      skip_list_pointer[i] = skip_list[i];
       current_level_bin[i] = -1;
       alloc_size *= BITS_PER_BIN;
     }
@@ -95,9 +102,19 @@ inline size_t kunle::build(uint8_t *R, const uint32_t *A, const size_t s_a){
 
         //Where we are actually storing the bin
         uint64_t *my_bin = current_level_pointer[j];
-        if(current_level_bin[j] != level_bin){
+        uint32_t *my_skip_list = skip_list_pointer[j];
+        if(current_level_bin[j] != (int)level_bin){
           bins_used[j]++;
+
           my_bin += (current_level_bin[j]==-1) ? 0:BITS_PER_BIN/BITS_PER_WORD;
+          my_skip_list += (current_level_bin[j]==-1) ? 0:(num_level-j);
+          skip_list_pointer[j] = my_skip_list;
+
+          (skip_list_pointer[j])[0]++; 
+          for(int k = j-1; k >= 0; k--){
+            (skip_list_pointer[k])[j-k]++; 
+          }
+
           current_level_bin[j] = level_bin;
           current_level_pointer[j] = my_bin;
         }
@@ -118,6 +135,13 @@ inline size_t kunle::build(uint8_t *R, const uint32_t *A, const size_t s_a){
     }
     R += num_level*sizeof(uint64_t);
     bytes_used += num_level*sizeof(uint64_t);
+
+    for(size_t i = 0; i < num_level; i++){
+      cout << "Bins used: " << bins_used[i] << endl;
+      cout << "Skip list copy: " << num_level-i << endl;
+      cout << (skip_list[i])[0] << " " << (skip_list[i])[1] << " " << (skip_list[i])[2] << " " << (skip_list[i])[3] << " " << (skip_list[i])[4] << endl;
+      cout << (skip_list[i])[5] << " " << (skip_list[i])[6] << " " << (skip_list[i])[7] << " " << (skip_list[i])[8] << " " << (skip_list[i])[4] << endl;
+    }
 
     for(size_t i = 0; i < num_level; i++){
       const size_t bytes_to_copy = (bins_used[i]*BITS_PER_BIN)/8;

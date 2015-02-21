@@ -7,9 +7,9 @@ namespace ops{
     if(A_in->number_of_bytes > 0 && B_in->number_of_bytes > 0){
       const uint64_t *a_index = (uint64_t*) A_in->data;
       const uint64_t *b_index = (uint64_t*) B_in->data;
-      
-      uint64_t * const A = (uint64_t*)(A_in->data+sizeof(uint64_t));
-      const uint64_t * const B = (uint64_t*)(B_in->data+sizeof(uint64_t));
+
+      uint64_t* A = (uint64_t*)(A_in->data+sizeof(uint64_t));
+      uint64_t* B = (uint64_t*)(B_in->data+sizeof(uint64_t));
       const size_t s_a = ((A_in->number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t));
       const size_t s_b = ((B_in->number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t));
 
@@ -28,20 +28,20 @@ namespace ops{
       //8 ints
       //4 longs
       size_t i = 0;
+      A += a_start_index;
+      B += b_start_index;
       #if VECTORIZE == 1
-      while((i+3) < total_size){
-        const __m256 a1 = _mm256_loadu_ps((const float*)&A[i+a_start_index]);
-        const __m256 a2 = _mm256_loadu_ps((const float*)&B[i+b_start_index]);
+      for(; (i+3) < total_size; i += 4, A += 4, B += 4){
+        const __m256 a1 = _mm256_loadu_ps((const float*)A);
+        const __m256 a2 = _mm256_loadu_ps((const float*)B);
         const __m256 r = _mm256_or_ps(a2, a1);
 
-        _mm256_storeu_ps((float*)&A[i+a_start_index], r);
-
-        i += 4;
+        _mm256_storeu_ps((float*)A, r);
       }
       #endif
 
-      for(; i < total_size; i++){
-        A[i+a_start_index] |= B[i+b_start_index];
+      for(; i < total_size; i++, A++, B++){
+        *A |= *B;
       }
     }
   }
@@ -51,8 +51,7 @@ namespace ops{
 
     B_in->foreach( [&A_in,&A,start_index] (uint32_t cur){
       const size_t word_index = bitset::word_index(cur);
-      if(!(A[word_index-start_index] & ((uint64_t)1 << (cur % BITS_PER_WORD))))
-        __sync_fetch_and_or(&A[word_index-start_index],((uint64_t) 1 << (cur % BITS_PER_WORD)));
+      A[word_index-start_index] |= ((uint64_t) 1 << (cur % BITS_PER_WORD));
     });
   }
   inline void set_union(Set<pshort> *A_in, Set<bitset> *B_in){
@@ -61,6 +60,7 @@ namespace ops{
   inline void set_union(Set<bitset> *A_in,Set<uinteger> *B_in){
     uint64_t* A = (uint64_t*)(A_in->data+sizeof(uint64_t));
     const uint64_t start_index = (A_in->number_of_bytes > 0) ? ((uint64_t*)A_in->data)[0]:0;
+
     B_in->foreach( [&A_in,&A,start_index] (uint32_t cur){
       const size_t word_index = bitset::word_index(cur);
       A[word_index-start_index] |= ((uint64_t) 1 << (cur % BITS_PER_WORD));
@@ -94,26 +94,33 @@ namespace ops{
       A_in->cardinality += (A[word_index-start_index]!=old_value);
     });
   }
+
+  // Computes the union of a bitpacked set and a bitset.
   inline void set_union(Set<bitpacked> *A_in,Set<bitset> *B_in){
     return set_union(B_in,A_in);
   }
+
+  // Dynamically dispatches the union of a bitset and hybrid set.
   inline void set_union(Set<bitset> *A_in,Set<hybrid> *B_in){
     switch(B_in->type){
       case common::UINTEGER:
         set_union(A_in,(Set<uinteger>*)B_in);
-      break;
+        break;
       case common::PSHORT:
         set_union(A_in,(Set<pshort>*)B_in);
-      break;
+        break;
       case common::BITSET:
         set_union(A_in,(Set<bitset>*)B_in);
-      break;
+        break;
       case common::VARIANT:
         set_union(A_in,(Set<variant>*)B_in);
-      break;
+        break;
       case common::BITPACKED:
         set_union(A_in,(Set<bitpacked>*)B_in);
-      break;
+        break;
+      case common::HYBRID:
+        // There should never be a set where type is HYBRID.
+        assert(false);
     }
   }
 }

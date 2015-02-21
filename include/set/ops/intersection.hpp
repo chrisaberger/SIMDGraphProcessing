@@ -1171,6 +1171,81 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
 
     return C_in;
   }
+
+  /*
+  inline Set<kunle>* set_intersect(
+      Set<kunle> *C_in,
+      const Set<kunle> *A_in,
+      const Set<kunle> *B_in) {
+    size_t count = 0;
+
+    // Words per SIMD register
+    const size_t words_per_reg = 4;
+    const size_t bits_per_word = 64;
+
+    uint32_t * const C = (uint64_t*)C_in->data;
+    const uint64_t * const A = (uint64_t*)A_in->data;
+    const uint64_t * const B = (uint64_t*)B_in->data;
+
+    size_t level_pos[num_levels][2];
+    size_t level_lens[num_levels][2];
+    size_t curr_level = 0;
+
+    uint64_t r_vals[num_levels][words_per_reg];
+    uint64_t m1_skip_vals[num_levels][words_per_reg];
+    uint64_t m2_skip_vals[num_levels][words_per_reg];
+
+    while(true) {
+      const __m256 m1 = _mm256_loadu_ps(A + level_pos[curr_level][0]);
+      const __m256 m2 = _mm256_loadu_ps(B + level_pos[curr_level][1]);
+      const __m256 r = _mm256_and_ps(m1, m2);
+
+      _mm256_storeu_ps((float*)r_vals[curr_level], r);
+
+      if(curr_level == num_levels - 1) {
+        // If we are at the leaf level, count the number of bits in r and
+        // move up a level
+        count += _mm_popcnt_u64(r_vals[curr_level][0]);
+        count += _mm_popcnt_u64(r_vals[curr_level][1]);
+        count += _mm_popcnt_u64(r_vals[curr_level][2]);
+        count += _mm_popcnt_u64(r_vals[curr_level][3]);
+        curr_level--;
+      }
+      else {
+        // Skip bins in m1 that are not in m2
+        const __m256 m1_skip = _mm256_andnot_ps(m1, m2);
+        // Skip bins in m2 that are not in m1
+        const __m256 m2_skip = _mm256_andnot_ps(m2, m1);
+
+        _mm256_storeu_ps((float*)m1_skip_vals[curr_level], m1_skip);
+        _mm256_storeu_ps((float*)m2_skip_vals[curr_level], m2_skip);
+
+        for(size_t word = 0; word < words_per_reg; word++) {
+          for(size_t i = 0; i < bits_per_word; i++) {
+            uint64_t r_bit = r_vals[curr_level] >> i;
+            uint64_t m1_skip_bit = m1_skip_vals[curr_level] >> i;
+            uint64_t m2_skip_bit = m2_skip_vals[curr_level] >> i;
+
+            if(r_bit) {
+              // Potential hit, check the lower levels
+              curr_level++;
+            }
+            else if(m1_skip_bit) {
+              // Skip subtree that corresponds to the m1_skip_bit
+              level_pos[curr_level + 1][0]++;
+            }
+            else if(m2_skip_bit) {
+              // Skip subtree that corresponds to the m2_skip_bit
+              level_pos[curr_level + 1][1]++;
+            }
+          }
+        }
+      }
+    }
+
+    return count;
+  }
+  */
   /*
   inline Set<uinteger>* set_intersect(Set<uinteger> *C_in,const Set<uinteger> *A_in,const Set<pshort> *B_in){
     uint32_t * const C = (uint32_t*)C_in->data;

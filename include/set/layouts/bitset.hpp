@@ -36,9 +36,9 @@ class bitset{
         const size_t cardinality,
         const size_t number_of_bytes,
         const common::type t);
-    
+
     template<typename F>
-    static void par_foreach(
+    static size_t par_foreach(
       F f,
       const size_t num_threads,
       const uint8_t* A,
@@ -173,7 +173,7 @@ inline void bitset::foreach(
 
 // Iterates over set applying a lambda in parallel.
 template<typename F>
-inline void bitset::par_foreach(
+inline size_t bitset::par_foreach(
       F f,
       const size_t num_threads,
       const uint8_t* A,
@@ -186,7 +186,7 @@ inline void bitset::par_foreach(
     const size_t num_data_words = ((number_of_bytes-sizeof(uint64_t))/sizeof(uint64_t));
     const uint64_t offset = ((uint64_t*)A)[0];
     const uint64_t* A64 = (uint64_t*)(A+sizeof(uint64_t));
-    common::par_for_range(num_threads, 0, num_data_words, 512,
+    return common::par_for_range(num_threads, 0, num_data_words, 512,
            [&f, &A64, cardinality,offset](size_t tid, size_t i) {
               const uint64_t cur_word = A64[i];
               if(cur_word != 0) {
@@ -199,4 +199,6 @@ inline void bitset::par_foreach(
               }
            });
   }
+
+  return 1;
 }

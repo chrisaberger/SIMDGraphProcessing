@@ -63,18 +63,20 @@ class application{
     //allocate a new visited array and set the start node
     Set<bitset> visited(bs_size);
     Set<bitset> old_visited(bs_size);
+    uint64_t* old_visited_data = (uint64_t*)(old_visited.data + sizeof(uint64_t));
 
     bitset::set(start_node,(uint64_t*)(visited.data+sizeof(uint64_t)),0);
     Set<uinteger> frontier = Set<uinteger>::from_array(f_data,start_array,1);
     bool dense_frontier = false;
 
-    Set<bitset> **vis_bufs = new Set<bitset>*[num_threads];
+    Set<bitset> **vis_bufs = new Set<bitset>*[num_threads * PADDING];
     for(size_t i = 0; i < num_threads; i ++){
-      vis_bufs[i] = new Set<bitset>(bs_size);
+      vis_bufs[i * PADDING] = new Set<bitset>(bs_size);
     }
 
 
     size_t path_length = 0;
+    double pure_bfs_time = common::startClock();
     while(true){
       cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << dense_frontier << endl;
 
@@ -83,16 +85,18 @@ class application{
       common::stopClock("copy time",copy_time);
 
       double union_time = common::startClock();
+      size_t real_num_threads = num_threads;
       if(dense_frontier){
-        common::par_for_range(num_threads, 0, graph->matrix_size, 2048,
-          [this, &old_visited, &vis_bufs, &frontier](size_t tid, size_t i) {
-            Set<bitset> visitedT = vis_bufs[tid];
-            if(!bitset::is_set(i,(uint64_t*)(old_visited.data+sizeof(uint64_t)),0)) {
+        real_num_threads = common::par_for_range(num_threads, 0, graph->matrix_size, 2048,
+          [&](size_t tid, size_t i) {
+            Set<bitset>* const visitedT = vis_bufs[tid * PADDING];
+            uint64_t* const visitedT_data = (uint64_t*)(visitedT->data + sizeof(uint64_t));
+            if(!bitset::is_set(i, old_visited_data, 0)) {
                Set<T> innbrs = this->graph->get_column(i);
-               innbrs.foreach_until([i,&visitedT, &old_visited] (uint32_t nbr) {
-                if(bitset::is_set(nbr,(uint64_t*)(old_visited.data+sizeof(uint64_t)),0)){
-                  bitset::set(i,(uint64_t*)(visitedT.data+sizeof(uint64_t)),0);
-                  visitedT.cardinality++;
+               innbrs.foreach_until([&] (uint32_t nbr) -> bool {
+                if(bitset::is_set(nbr, old_visited_data, 0)){
+                  bitset::set(i, visitedT_data, 0);
+                  //visitedT->cardinality++;
                   return true;
                 }
                 return false;
@@ -101,15 +105,25 @@ class application{
           }
         );
       } else{
-        frontier.par_foreach(num_threads,
-          [this, &vis_bufs] (size_t tid,uint32_t n){
+        double start_uint_union = common::startClock();
+        real_num_threads = frontier.par_foreach(num_threads,
+          [&] (size_t tid,uint32_t n){
             Set<T> outnbrs = this->graph->get_row(n);
-            ops::set_union(vis_bufs[tid],&outnbrs);
+            ops::set_union(vis_bufs[tid * PADDING], &outnbrs);
         });
+        common::stopClock("uint union", start_uint_union);
       }
-      for(size_t i = 0; i < num_threads; i++){
-        ops::set_union(&visited,vis_bufs[i]);
+
+      double union_threads_time = common::startClock();
+      size_t left_to_merge = real_num_threads;
+      while(left_to_merge > 1) {
+        for(size_t i = 0; i < left_to_merge / 2; i++){
+          ops::set_union(vis_bufs[i * PADDING], vis_bufs[(left_to_merge - i - 1) * PADDING]);
+        }
+        left_to_merge = left_to_merge / 2 + (left_to_merge % 2);
       }
+      ops::set_union(&visited, vis_bufs[0]);
+      common::stopClock("union thread", union_threads_time);
 
       common::stopClock("union time",union_time);
 
@@ -117,14 +131,14 @@ class application{
       frontier = *ops::set_difference(&frontier,&visited,&old_visited);
       common::stopClock("difference",diff_time);
 
-      //TO TURN BEAMER OFF COMMENT OUT THIS LINE
-      dense_frontier = ((double)frontier.cardinality / graph->matrix_size) > 0.06;
-
       if(frontier.cardinality == 0 || path_length >= depth)
         break;
       path_length++;
 
+      //TO TURN BEAMER OFF COMMENT OUT THIS LINE
+      dense_frontier = ((double)frontier.cardinality / graph->matrix_size) > 0.06;
     }
+    common::stopClock("pure bfs time", pure_bfs_time);
 
     cout << "path length: " << path_length << endl;
     cout << "frontier size: " << frontier.cardinality << endl;

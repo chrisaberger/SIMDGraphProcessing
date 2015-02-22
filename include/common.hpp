@@ -28,6 +28,7 @@
 
 static size_t ADDRESS_BITS_PER_BLOCK = 8;
 static size_t BLOCK_SIZE = 256;
+static double BITSET_THRESHOLD = 10 / 32.0;
 
 // Experts only! Proceed wih caution!
 //#define ENABLE_PCM

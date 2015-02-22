@@ -62,13 +62,13 @@ inline size_t new_type::build(uint8_t *R, const uint32_t *A, const size_t s_a){
         i++;
       }
       double density = ((i-block_start_index) < 2) ? 0.0:(double)(i-block_start_index)/(A[i-1]-A[block_start_index]);
-      if(density > (double)(1.0/32.0)){
+      if(density > common::BITSET_THRESHOLD){
         for(size_t j = block_start_index; j < i; j++){
-          bitset_array[bs_i++] = A[j]; 
+          bitset_array[bs_i++] = A[j];
         }
       } else{
         for(size_t j = block_start_index; j < i; j++){
-          uint_array[uint_i++] = A[j]; 
+          uint_array[uint_i++] = A[j];
         }
       }
     }

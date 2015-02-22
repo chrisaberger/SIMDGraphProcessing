@@ -261,7 +261,9 @@ int main(int argc, char* argv[]) {
   intersect<pshort,pshort,bitset,bitset,pshort>(len1, len2, in1, in2, "pshort_bitset",DEFAULT);
 
   int block_size[] = {256, 512, 1024, 4096};
+  int address_bits[] = {8, 9, 10, 12};
   for(size_t i = 0; i < 4; i++){
+    ADDRESS_BITS_PER_BLOCK = address_bits[i];
     BLOCK_SIZE = block_size[i];
 
     cout << endl << "BSNEW_BSNEW" << endl;
@@ -269,6 +271,9 @@ int main(int argc, char* argv[]) {
 
     cout << endl << "UINT_BSNEW: " << BLOCK_SIZE << endl;
     intersect<uinteger,uinteger,bitset_new,bitset_new,uinteger>(len1, len2, in1, in2, "uint_bsnew",DEFAULT);
+
+    cout << endl << "NT_NT: " << BLOCK_SIZE << endl;
+    intersect<new_type,new_type,new_type,new_type,new_type>(len1, len2, in1, in2, "nt_nt",DEFAULT);
   }
 
   cout << endl << "HYBRID" << endl;

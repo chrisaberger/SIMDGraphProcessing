@@ -1231,6 +1231,14 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     return count;
   }
   inline Set<bitset_new>* set_intersect(Set<bitset_new> *C_in,const Set<bitset_new> *A_in,const Set<bitset_new> *B_in){
+    if(A_in->number_of_bytes == 0 || B_in->number_of_bytes == 0){
+      C_in->cardinality = 0;
+      C_in->number_of_bytes = 0;
+      C_in->density = 0.0;
+      C_in->type= common::UINTEGER;
+      return C_in;
+    }
+
     size_t A_num_blocks = A_in->number_of_bytes/(sizeof(uint32_t)+(BLOCK_SIZE/8));
     size_t B_num_blocks = B_in->number_of_bytes/(sizeof(uint32_t)+(BLOCK_SIZE/8));
 
@@ -1311,6 +1319,14 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
   }
 
   inline Set<uinteger>* set_intersect(Set<uinteger> *C_in,const Set<uinteger> *A_in,const Set<bitset_new> *B_in){
+    if(A_in->number_of_bytes == 0 || B_in->number_of_bytes == 0){
+      C_in->cardinality = 0;
+      C_in->number_of_bytes = 0;
+      C_in->density = 0.0;
+      C_in->type= common::UINTEGER;
+      return C_in;
+    }
+
     size_t B_num_blocks = B_in->number_of_bytes/(sizeof(uint32_t)+(BLOCK_SIZE/8));
     uint64_t *B_data = (uint64_t*)(B_in->data+(B_num_blocks*sizeof(uint32_t)));
     uint32_t *B_offset_pointer = (uint32_t*)B_in->data;
@@ -1398,6 +1414,14 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
   }
 
   inline Set<new_type>* set_intersect(Set<new_type> *C_in,const Set<new_type> *A_in,const Set<new_type> *B_in){
+    if(A_in->number_of_bytes == 0 || B_in->number_of_bytes == 0){
+      C_in->cardinality = 0;
+      C_in->number_of_bytes = 0;
+      C_in->density = 0.0;
+      C_in->type= common::UINTEGER;
+      return C_in;
+    }
+
     const size_t A_num_uint_bytes = ((size_t*)A_in->data)[0];
     uint8_t * A_uinteger_data = A_in->data+sizeof(size_t);
     uint8_t * A_new_bs_data = A_in->data+sizeof(size_t)+A_num_uint_bytes;
@@ -1440,11 +1464,10 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     BSU = ops::set_intersect(&BSU,&B_I,&A_BS);
     count += BSU.cardinality;
 
-    uint8_t *C_pointer = C_in->data;
+    uint8_t *C_pointer = C_in->data+sizeof(size_t);
     const size_t num_uint = count;
     #if WRITE_VECTOR == 1
     ((size_t*)C_in->data)[0] = (num_uint*sizeof(uint32_t));
-    C_pointer += sizeof(size_t);
     distinct_merge_three_way(
       count,
       (uint32_t*)(C_pointer),
@@ -1452,12 +1475,12 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       (uint32_t*)UBS.data,UBS.cardinality,
       (uint32_t*)BSU.data,BSU.cardinality);
     #endif
-
+ 
     C_pointer += (num_uint*sizeof(uint32_t));
 
     Set<bitset_new>BSBS(C_pointer);
-    BSBS = ops::set_intersect(&BSBS,&A_BS,&B_BS)->cardinality;
-    count += BSBS.number_of_bytes;
+    BSBS = ops::set_intersect(&BSBS,&A_BS,&B_BS);
+    count += BSBS.cardinality;
 
     C_in->cardinality = count;
     C_in->number_of_bytes = sizeof(size_t)+(num_uint*sizeof(uint32_t))+BSBS.number_of_bytes;

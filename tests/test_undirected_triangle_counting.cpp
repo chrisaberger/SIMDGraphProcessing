@@ -100,7 +100,7 @@ class application{
     produceSubgraph();
     common::stopClock("Selections",start_time);
 
-    //graph->print_data("graph.txt");
+    graph->print_data("graph.txt");
 
     if(pcm_init() < 0)
        return;
@@ -112,7 +112,6 @@ class application{
     cout << "Count: " << num_triangles << endl << endl;
 
     common::dump_stats();
-
     
     pcm_cleanup();
   }
@@ -133,6 +132,12 @@ int main (int argc, char* argv[]) {
     myapp.run();  
   } else if(input_data.layout.compare("hybrid") == 0){
     application<hybrid,hybrid> myapp(input_data);
+    myapp.run();  
+  } else if(input_data.layout.compare("new_type") == 0){
+    application<new_type,new_type> myapp(input_data);
+    myapp.run();  
+  } else if(input_data.layout.compare("bitset_new") == 0){
+    application<bitset_new,bitset_new> myapp(input_data);
     myapp.run();  
   } 
   #if COMPRESSION == 1

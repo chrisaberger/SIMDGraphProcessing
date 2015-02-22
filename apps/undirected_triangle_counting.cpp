@@ -1,4 +1,4 @@
-#define WRITE_VECTOR 0
+#define WRITE_VECTOR 1
 
 #include "SparseMatrix.hpp"
 #include "MutableGraph.hpp"
@@ -63,7 +63,7 @@ class application{
 
       ParallelBuffer<uint32_t> *src_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size);
       ParallelBuffer<uint32_t> *dst_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size);
-      ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,graph->max_nbrhood_size*sizeof(uint32_t));
+      ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,ALLOCATOR*graph->max_nbrhood_size*graph->max_nbrhood_size*sizeof(uint32_t));
 
       double intersect_time = 0.0;
 
@@ -82,18 +82,19 @@ class application{
            uint32_t *src_buffer = src_buffers->data[tid];
            uint32_t *dst_buffer = dst_buffers->data[tid];
 
-           Set<R> A = this->graph->get_decoded_row(i,src_buffer);
+           Set<R> A = this->graph->get_row(i);
            Set<R> C(buffers->data[tid]);
 
            //std::cout << A.type;
            A.foreach([this, i, &A, &C, &dst_buffer, &t_num_triangles, &intersect_time] (uint32_t j){
-             Set<R> B = this->graph->get_decoded_row(j,dst_buffer);
+             Set<R> B = this->graph->get_row(j);
 
              //ops::set_intersect(&C,&A,&B)->cardinality;
-
             //double timez = common::startClock();
             const size_t tmp_count = ops::set_intersect(&C,&A,&B)->cardinality;
             //intersect_time += common::stopClock(timez);
+
+            //cout << tmp_count << endl;
 
              t_num_triangles += tmp_count;
            });
@@ -156,6 +157,12 @@ int main (int argc, char* argv[]) {
     myapp.run();  
   } else if(input_data.layout.compare("hybrid") == 0){
     application<hybrid,hybrid> myapp(input_data);
+    myapp.run();  
+  } else if(input_data.layout.compare("new_type") == 0){
+    application<new_type,new_type> myapp(input_data);
+    myapp.run();  
+  } else if(input_data.layout.compare("bitset_new") == 0){
+    application<bitset_new,bitset_new> myapp(input_data);
     myapp.run();  
   } 
   #if COMPRESSION == 1

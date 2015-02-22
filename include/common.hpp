@@ -26,7 +26,8 @@
 #include <cstdarg>
 #include <set>
 
-static size_t BLOCK_SIZE = 512;
+static size_t ADDRESS_BITS_PER_BLOCK = 8;
+static size_t BLOCK_SIZE = 256;
 
 // Experts only! Proceed wih caution!
 //#define ENABLE_PCM
@@ -34,8 +35,8 @@ static size_t BLOCK_SIZE = 512;
 //#define ENABLE_ATOMIC_UNION
 
 //TODO: Replace with new command line arguments.
-#define ALLOCATOR 2
-#define REALLOC_THRESHOLD 0.9
+#define ALLOCATOR 512
+#define REALLOC_THRESHOLD 0.7
 
 //Needed for parallelization, prevents false sharing of cache lines
 #define PADDING 300
@@ -179,7 +180,8 @@ static double bitset_req = (1.0/256.0);
     VARIANT = 4,
     HYBRID = 5,
     KUNLE = 6,
-    BITSET_NEW = 7
+    BITSET_NEW = 7,
+    NEW_TYPE = 8
   };
 
   static void dump_stats(){

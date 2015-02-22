@@ -9,8 +9,7 @@ RUN THE CORRESPONDING SET MEHTODS.
 */
 
 //#include "kunle.hpp"
-#include "bitset_new.hpp"
-#include "uinteger.hpp"
+#include "new_type.hpp"
 #include "pshort.hpp"
 #include "bitset.hpp"
 #include "bitpacked.hpp" //this file includes variant.hpp

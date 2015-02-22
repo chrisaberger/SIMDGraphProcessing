@@ -1,4 +1,4 @@
-#define WRITE_VECTOR 1
+#define WRITE_VECTOR 0
 
 #include "SparseMatrix.hpp"
 #include "MutableGraph.hpp"
@@ -63,7 +63,9 @@ class application{
 
       ParallelBuffer<uint32_t> *src_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size);
       ParallelBuffer<uint32_t> *dst_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size);
-      ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,graph->max_nbrhood_size*sizeof(uint32_t));
+      ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,512*graph->max_nbrhood_size*sizeof(uint32_t));
+
+      common::alloc_scratch_space(512*graph->max_nbrhood_size*sizeof(uint32_t),num_threads);
 
       double intersect_time = 0.0;
 
@@ -88,6 +90,8 @@ class application{
            //std::cout << A.type;
            A.foreach([this, i, &A, &C, &dst_buffer, &t_num_triangles, &intersect_time] (uint32_t j){
              Set<R> B = this->graph->get_row(j);
+
+             //cout << "Edge: " << i << " " << j << endl;
 
              //ops::set_intersect(&C,&A,&B)->cardinality;
             //double timez = common::startClock();

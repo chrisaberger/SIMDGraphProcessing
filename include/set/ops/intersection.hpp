@@ -684,16 +684,16 @@ namespace ops{
 
     //XXX: Fix
     const double density = 0.0;//((count > 0) ? ((double)count/(C[count]-C[0])) : 0.0);
-    
+
     C_in->cardinality = count;
     C_in->number_of_bytes = count*sizeof(uint32_t);
     C_in->density = density;
     C_in->type= common::UINTEGER;
 
-    return C_in;  
-  } 
+    return C_in;
+  }
 
-  inline Set<uinteger>* set_intersect(Set<uinteger> *C_in, const Set<uinteger> *A_in, const Set<uinteger> *B_in){
+  inline Set<uinteger>* set_intersect_standard(Set<uinteger> *C_in, const Set<uinteger> *A_in, const Set<uinteger> *B_in){
     uint32_t * const C = (uint32_t*) C_in->data; 
     const uint32_t * const A = (uint32_t*) A_in->data;
     const uint32_t * const B = (uint32_t*) B_in->data;
@@ -1535,18 +1535,28 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     return C_in;
   }
   */
+
   inline Set<uinteger>* set_intersect(Set<uinteger> *C_in,const Set<pshort> *A_in,const Set<uinteger> *B_in){
     return set_intersect(C_in,B_in,A_in);
   }
+
+  inline Set<uinteger>* set_intersect(Set<uinteger> *C_in, const Set<uinteger> *A_in, const Set<uinteger> *B_in) {
+    const Set<uinteger> *rare = (A_in->cardinality > B_in->cardinality) ? B_in:A_in;
+    const Set<uinteger> *freq = (A_in->cardinality > B_in->cardinality) ? A_in:B_in;
+    const unsigned long min_size = 1;
+
+    if(std::max(A_in->cardinality,B_in->cardinality) / std::max(min_size, std::min(A_in->cardinality,B_in->cardinality)) > 16)
+      return set_intersect_v3(C_in, rare, freq);
+    else
+      return set_intersect_standard(C_in, rare, freq);
+  }
+
   inline Set<hybrid>* set_intersect(Set<hybrid> *C_in,const Set<hybrid> *A_in,const Set<hybrid> *B_in){
     if(A_in->cardinality == 0 || B_in->cardinality == 0){
       C_in->cardinality = 0;
       C_in->number_of_bytes = 0;
       return C_in;
     }
-
-    const Set<hybrid> *rare = (A_in->cardinality > B_in->cardinality) ? B_in:A_in;
-    const Set<hybrid> *freq = (A_in->cardinality > B_in->cardinality) ? A_in:B_in;
 
     switch (A_in->type) {
         case common::UINTEGER:
@@ -1555,25 +1565,22 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
               #ifdef STATS
               common::num_uint_uint++;
               #endif
-              if(std::max(A_in->cardinality,B_in->cardinality)/std::min(A_in->cardinality,B_in->cardinality) > 16)
-                return (Set<hybrid>*)set_intersect_v3((Set<uinteger>*)C_in,(const Set<uinteger>*)rare,(const Set<uinteger>*)freq);
-              else
-                return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)rare,(const Set<uinteger>*)freq);
-            break;
+              return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
+              break;
             case common::PSHORT:
               #ifdef STATS
               common::num_uint_pshort++;
               #endif
               return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<pshort>*)B_in);
-            break;
+              break;
             case common::BITSET:
               #ifdef STATS
               common::num_pshort_bs++;
               #endif
               return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<bitset>*)B_in);
-            break;
+              break;
             default:
-            break;
+              break;
           }
         break;
         case common::PSHORT:

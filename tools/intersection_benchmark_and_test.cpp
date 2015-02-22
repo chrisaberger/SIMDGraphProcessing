@@ -17,7 +17,8 @@ enum intersection_type: uint8_t {
   GALLOP = 1,
   IBM = 2,
   V1 = 3,
-  V3 = 4
+  V3 = 4,
+  DEFAULT = 5
 };
 
 template<class T, class R> Set<R> decode_array(size_t n, uint8_t* set_data, uint32_t *buffer) {
@@ -60,6 +61,9 @@ template<class T, class R, class U, class P, class F> void intersect(size_t len_
   Set<P> set_b_dec = decode_array<U, P>(len_b, set_b_buffer, buffer2);
 
   switch(id){
+    case STANDARD:
+      ops::set_intersect_standard((Set<uinteger>*)&set_c,(Set<uinteger>*)&set_a_dec,(Set<uinteger>*)&set_b_dec);
+      break;
     case V1:
       ops::set_intersect_v1((Set<uinteger>*)&set_c,(Set<uinteger>*)&set_a_dec,(Set<uinteger>*)&set_b_dec);
       break;
@@ -73,7 +77,7 @@ template<class T, class R, class U, class P, class F> void intersect(size_t len_
       ops::set_intersect_ibm((Set<uinteger>*)&set_c,(Set<uinteger>*)&set_a_dec,(Set<uinteger>*)&set_b_dec);
       break;
     default:
-      ops::set_intersect(&set_c, &set_a_dec,&set_b_dec);
+      ops::set_intersect(&set_c, &set_a_dec, &set_b_dec);
       break;
   }
 
@@ -228,7 +232,7 @@ int main(int argc, char* argv[]) {
 
   cout << endl << "UINTEGER_UINTEGER_IBM" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_ibm",IBM);
-  
+
   cout << endl << "UINTEGER_UINTEGER_STANDARD" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_standard",STANDARD);
 
@@ -242,29 +246,29 @@ int main(int argc, char* argv[]) {
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_gallop",GALLOP);
 
   cout << endl << "PSHORT_PSHORT" << endl;
-  intersect<pshort,pshort,pshort,pshort,pshort>(len1, len2, in1, in2, "pshort_pshort",STANDARD);
+  intersect<pshort,pshort,pshort,pshort,pshort>(len1, len2, in1, in2, "pshort_pshort",DEFAULT);
 
   cout << endl << "BITSET_BITSET" << endl;
-  intersect<bitset,bitset,bitset,bitset,bitset>(len1, len2, in1, in2, "bitset_bitset",STANDARD);
-  
+  intersect<bitset,bitset,bitset,bitset,bitset>(len1, len2, in1, in2, "bitset_bitset",DEFAULT);
+
   cout << endl << "UINTEGER_PSHORT" << endl;
-  intersect<uinteger,uinteger,pshort,pshort,uinteger>(len1, len2, in1, in2, "uinteger_pshort",STANDARD);
+  intersect<uinteger,uinteger,pshort,pshort,uinteger>(len1, len2, in1, in2, "uinteger_pshort",DEFAULT);
 
   cout << endl << "UINTEGER_BITSET" << endl;
-  intersect<uinteger,uinteger,bitset,bitset,uinteger>(len1, len2, in1, in2, "uinteger_bitset",STANDARD);
+  intersect<uinteger,uinteger,bitset,bitset,uinteger>(len1, len2, in1, in2, "uinteger_bitset",DEFAULT);
 
   cout << endl << "PSHORT_BITSET" << endl;
-  intersect<pshort,pshort,bitset,bitset,pshort>(len1, len2, in1, in2, "pshort_bitset",STANDARD);
+  intersect<pshort,pshort,bitset,bitset,pshort>(len1, len2, in1, in2, "pshort_bitset",DEFAULT);
 
   int block_size[] = {256, 512, 1024, 4096};
   for(size_t i = 0; i < 4; i++){
     BLOCK_SIZE = block_size[i];
     cout << endl << "BSNEW_BSNEW" << endl;
-    intersect<bitset_new,bitset_new,bitset_new,bitset_new,bitset_new>(len1, len2, in1, in2, "bsnew_bsnew",STANDARD);
+    intersect<bitset_new,bitset_new,bitset_new,bitset_new,bitset_new>(len1, len2, in1, in2, "bsnew_bsnew",DEFAULT);
   }
 
   cout << endl << "HYBRID" << endl;
-  intersect<hybrid,hybrid,hybrid,hybrid,hybrid>(len1, len2, in1, in2, "hybrid",STANDARD);
+  intersect<hybrid,hybrid,hybrid,hybrid,hybrid>(len1, len2, in1, in2, "hybrid",DEFAULT);
 
   return 0;
 }

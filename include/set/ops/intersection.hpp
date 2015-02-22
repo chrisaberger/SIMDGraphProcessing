@@ -1350,6 +1350,53 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     return set_intersect(C_in,B_in,A_in);
   }
 
+  inline void distinct_merge_three_way(
+    size_t count,
+    uint32_t *result, 
+    uint32_t *A, size_t lenA, 
+    uint32_t *B, size_t lenB,
+    uint32_t *C, size_t lenC){
+
+    size_t i_a = 0;
+    size_t i_b = 0;
+    size_t i_c = 0;
+    for(size_t i=0; i < count; i++){
+      if(i_a < lenA && i_b < lenB && i_c < lenC){
+        if(A[i_a] <= B[i_b] && A[i_a] <= C[i_c]){
+          result[i] = A[i_a++];
+        } else if(B[i_b] <= A[i_a] && B[i_b] <= C[i_c]){
+          result[i] = B[i_b++];
+        } else{
+          result[i] = C[i_c++];
+        }
+      } else if(i_b < lenB && i_c < lenC){
+        if(B[i_b] <= C[i_c]){
+          result[i] = B[i_b++];
+        } else{
+          result[i] = C[i_c++];
+        }
+      } else if(i_a < lenA && i_c < lenC){
+        if(A[i_a] <= C[i_c]){
+          result[i] = A[i_a++];
+        } else{
+          result[i] = C[i_c++];
+        }
+      } else if(i_a < lenA && i_b < lenB){
+        if(A[i_a] <= B[i_b]){
+          result[i] = A[i_a++];
+        } else{
+          result[i] = B[i_b++];
+        }
+      } else if(i_a < lenA){
+        result[i] = A[i_a++];
+      } else if(i_b < lenB){
+        result[i] = B[i_b++];
+      } else{
+        result[i] = C[i_c++];
+      }
+    }
+  }
+
   inline Set<new_type>* set_intersect(Set<new_type> *C_in,const Set<new_type> *A_in,const Set<new_type> *B_in){
     const size_t A_num_uint_bytes = ((size_t*)A_in->data)[0];
     uint8_t * A_uinteger_data = A_in->data+sizeof(size_t);
@@ -1368,8 +1415,9 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     uint8_t *scratch1 = C_in->data;
     const size_t scratch2_space = A_num_uint_bytes;
     uint8_t *scratch2 = C_in->data+scratch1_space;    
-    const size_t scratch3_space = A_num_uint_bytes;
-    uint8_t *scratch3 = C_in->data+scratch1_space+scratch2_space;   
+    const size_t scratch3_space = B_num_uint_bytes;
+    uint8_t *scratch3 = C_in->data+scratch1_space+scratch2_space; 
+    C_in->data += (scratch1_space+scratch2_space+scratch3_space);  
 
     Set<uinteger>UU(scratch1);
     Set<uinteger>UBS(scratch2);
@@ -1392,11 +1440,27 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     BSU = ops::set_intersect(&BSU,&B_I,&A_BS);
     count += BSU.cardinality;
 
-    Set<bitset_new>BSBS(C_in->data);
-    count += ops::set_intersect(&BSBS,&A_BS,&B_BS)->cardinality;
+    uint8_t *C_pointer = C_in->data;
+    const size_t num_uint = count;
+    #if WRITE_VECTOR == 1
+    ((size_t*)C_in->data)[0] = (num_uint*sizeof(uint32_t));
+    C_pointer += sizeof(size_t);
+    distinct_merge_three_way(
+      count,
+      (uint32_t*)(C_pointer),
+      (uint32_t*)UU.data,UU.cardinality, 
+      (uint32_t*)UBS.data,UBS.cardinality,
+      (uint32_t*)BSU.data,BSU.cardinality);
+    #endif
+
+    C_pointer += (num_uint*sizeof(uint32_t));
+
+    Set<bitset_new>BSBS(C_pointer);
+    BSBS = ops::set_intersect(&BSBS,&A_BS,&B_BS)->cardinality;
+    count += BSBS.number_of_bytes;
 
     C_in->cardinality = count;
-    C_in->number_of_bytes = 0;
+    C_in->number_of_bytes = sizeof(size_t)+(num_uint*sizeof(uint32_t))+BSBS.number_of_bytes;
     C_in->density = 0.0;
     C_in->type= common::NEW_TYPE;
 

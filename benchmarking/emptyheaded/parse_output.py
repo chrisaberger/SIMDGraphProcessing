@@ -61,7 +61,7 @@ def getInternalPerformanceInfo(f, get_compression=False, get_bfs_details=False):
           'l2_misses': l2_misses,
           'l3_misses': l3_misses }
 
-def getIInternalPerformanceInfo(f,get_compression=False):        
+def getIInternalPerformanceInfo(f,get_compression=False):
   perf = []
   num_bytes = -1.0
   num_edges = -1.0

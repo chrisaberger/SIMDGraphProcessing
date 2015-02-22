@@ -39,8 +39,12 @@ class application{
     }
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
       (void) attribute;
-      //(void) nbr; (void) node; return true;
+#ifdef PRUNING
       return nbr < node;
+#else
+      (void) nbr; (void) node;
+      return true;
+#endif
     }
     #endif
 

@@ -212,7 +212,7 @@ class application{
             Set<uinteger> A_uint_in = (AA.cardinality < BB.cardinality) ? A_uint : B_uint;
             Set<uinteger> B_uint_in = (AA.cardinality < BB.cardinality) ? B_uint : A_uint;
 
-            double start_time_1s[5];
+            double start_time_1s[6];
             start_time_1s[0] = common::startClock();
             tmp_count = ops::set_intersect_ibm((Set<uinteger>*)&C,&A_uint_in,&B_uint_in)->cardinality;
             start_time_1s[0] = common::stopClock(start_time_1s[0]);
@@ -226,8 +226,13 @@ class application{
             tmp_count = ops::set_intersect_galloping((Set<uinteger>*)&C,&A_uint_in,&B_uint_in)->cardinality;
             start_time_1s[3] = common::stopClock(start_time_1s[3]);
             start_time_1s[4] = common::startClock();
-            tmp_count = ops::set_intersect((Set<uinteger>*)&C,&A_uint_in,&B_uint_in)->cardinality;
+            tmp_count = ops::set_intersect_standard((Set<uinteger>*)&C,&A_uint_in,&B_uint_in)->cardinality;
             start_time_1s[4] = common::stopClock(start_time_1s[4]);
+
+            // What would the optimier do?
+            start_time_1s[5] = common::startClock();
+            tmp_count = ops::set_intersect((Set<uinteger>*)&C,&A_uint_in,&B_uint_in)->cardinality;
+            start_time_1s[5] = common::stopClock(start_time_1s[5]);
 
             double start_time_1 = 1000.0;
             int min_uint_int = 0;
@@ -238,7 +243,7 @@ class application{
               }
             }
 
-            total_uint_time += start_time_1;
+            total_uint_time += start_time_1s[4];
 
             double start_time_2 = common::startClock();
             tmp_count = ops::set_intersect((Set<pshort>*)&C,&A_ps,&B_ps)->cardinality;
@@ -423,7 +428,7 @@ class application{
               stats[i].my_type = a_type;
               stats[j].my_type =b_type;
               if(a_type == common::UINTEGER && b_type == common::UINTEGER){
-                hybrid_intersection_time = start_time_1;
+                hybrid_intersection_time = start_time_1s[5];
                 lost_times[0] += hybrid_intersection_time - min_time;
                 better_than_uint[best] += hybrid_intersection_time - min_time;
                 if((hybrid_intersection_time/min_time) > min_ratio){

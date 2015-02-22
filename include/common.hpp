@@ -28,7 +28,7 @@
 
 // Experts only! Proceed wih caution!
 
-#define ENABLE_PCM
+//#define ENABLE_PCM
 //#define ENABLE_PRINT_THREAD_TIMES
 //#define ENABLE_ATOMIC_UNION
 
@@ -44,7 +44,13 @@
 
 #define COMPRESSION 0
 #define PERFORMANCE 1
-#define VECTORIZE 0
+#define VECTORIZE 1
+
+// Enables/disables pruning
+#define PRUNING
+
+// Enables/disables hybrid that always chooses U-Int
+//#define HYBRID_UINT
 
 #define STATS
 
@@ -225,7 +231,7 @@ static double bitset_req = (1.0/256.0);
   static size_t par_for_range(const size_t num_threads, const size_t from, const size_t to, const size_t block_size, F body) {
      const size_t range_len = to - from;
      const size_t real_num_threads = min(range_len / block_size + 1, num_threads);
-     std::cout << "Range length: " << range_len << " Threads: " << real_num_threads << std::endl;
+     //std::cout << "Range length: " << range_len << " Threads: " << real_num_threads << std::endl;
 
      if(real_num_threads == 1) {
         for(size_t i = from; i < to; i++) {

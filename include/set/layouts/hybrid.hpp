@@ -72,7 +72,9 @@ inline double compressibility(const uint32_t* data, const size_t length) {
 
 #if PERFORMANCE == 1
 inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
-  //return common::UINTEGER;
+#ifdef HYBRID_UINT
+  return common::UINTEGER;
+#else
   if(length > 1) {
     uint32_t range = data[length - 1] - data[0];
     if(range > 0){
@@ -91,6 +93,7 @@ inline common::type hybrid::get_type(const uint32_t *data, const size_t length){
   } else{
     return common::UINTEGER;
   }
+#endif
   //return common::UINTEGER;
 }
 #endif

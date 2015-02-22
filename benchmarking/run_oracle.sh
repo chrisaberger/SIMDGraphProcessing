@@ -4,7 +4,7 @@
 cd "$(dirname "$0")"
 
 output=/dfs/scratch0/noetzli/output
-datasets="wikipedia g_plus higgs socLivejournal orkut cid-patents twitter2010"
+datasets="g_plus higgs socLivejournal orkut cid-patents twitter2010 wikipedia"
 orderings="random degree"
 STABLE_BIN_DIR=/afs/cs.stanford.edu/u/noetzli/tmp/EmptyHeaded/stable_binaries
 

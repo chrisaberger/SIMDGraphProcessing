@@ -1,4 +1,4 @@
-#define WRITE_VECTOR 1
+#define WRITE_VECTOR 0
 
 #include "SparseMatrix.hpp"
 #include "common.hpp"
@@ -120,6 +120,58 @@ uint64_t c_str_to_uint64_t(char* str) {
   return result;
 }
 
+vector<uint32_t> gen_set(uint64_t len, uint64_t range, size_t run_len) {
+  set<uint32_t> result;
+
+  const uint64_t max_offset = (uint64_t)(max(1.0, len * 0.1));
+  const uint32_t min_v = rand() % max_offset;
+  const uint32_t max_v = min_v + range;
+
+  for(size_t i = 0; i < run_len; i++) {
+    result.insert(min_v + i);
+    result.insert(max_v - i);
+  }
+
+  uint32_t v;
+  while(result.size() < len) {
+    bool all_free = false;
+    while(!all_free) {
+      // Pick a random value in the range
+      v = rand() % (max_v - min_v - 1) + min_v + 1;
+
+      // Check if we can place a run here
+      all_free = true;
+      for(size_t i = 0; i < run_len; i++) {
+        if(result.find(v) != result.end()) {
+          all_free = false;
+          break;
+        }
+      }
+    }
+
+
+    for(size_t i = 0; i < run_len; i++) {
+      result.insert(v + i);
+    }
+  }
+
+  std::cout << "LEN: " << result.size() << std::endl;
+
+  return vector<uint32_t>(result.begin(), result.end());
+}
+
+void vector_to_file(string file, vector<uint32_t>& v) {
+  ofstream out_file;
+  out_file.open(file);
+
+  out_file << v.size() << endl;
+
+  for(auto n : v)
+    out_file << n << endl;
+
+  out_file.close();
+}
+
 int main(int argc, char* argv[]) {
   ops::prepare_shuffling_dictionary16();
 
@@ -129,7 +181,7 @@ int main(int argc, char* argv[]) {
 #ifdef FROM_FILE
   uint32_t* a;
   uint32_t* b;
-  
+
   uint32_t len_a;
   uint32_t len_b;
 
@@ -160,8 +212,8 @@ int main(int argc, char* argv[]) {
   }
   srand(time(NULL));
 
-  const uint64_t rangeA = c_str_to_uint64_t(argv[1]);
-  const uint64_t rangeB = c_str_to_uint64_t(argv[2]);
+  const uint64_t range_a = c_str_to_uint64_t(argv[1]);
+  const uint64_t range_b = c_str_to_uint64_t(argv[2]);
 
   const uint64_t len_a = c_str_to_uint64_t(argv[3]);
   const uint64_t len_b = c_str_to_uint64_t(argv[4]);
@@ -169,52 +221,23 @@ int main(int argc, char* argv[]) {
   const double skew_a = stod(argv[5]);
   const double skew_b = stod(argv[6]);
 
-  assert(rangeA > len_a);
-  assert(rangeB > len_b);
+  std::cout << range_a << " " << range_b << " " << len_a << " " << len_b << " " << skew_a << " " << skew_b << endl;
 
-  size_t offset = 10000;
-
-  uint32_t a_v = 0;//rand() % offset;
-  uint32_t b_v = 0;//rand() % offset;
-
-  const uint32_t a_e = rangeA+a_v;
-  const uint32_t b_e = rangeB+b_v;
-
-  uint32_t* a = new uint32_t[len_a];
-  uint32_t* b = new uint32_t[len_b];
-
-#ifdef DEBUG
-  ofstream myfileA;
-  myfileA.open("input_a");
-  myfileA << len_a << endl;
-  ofstream myfileB;
-  myfileB.open("input_b");
-  myfileB << len_b << endl;
-#endif
+  assert(range_a > len_a);
+  assert(range_b > len_b);
 
   size_t run_len_a = (len_a * skew_a)+1;
   size_t run_len_b = (len_b * skew_b)+1;
 
-  for(uint64_t i = 0; i < len_a; ) {
-    a_v += (i != 0) ? (rand() % ((a_e-a_v)/(len_a-i)))+1 : 0;
-    size_t run = 0;
-    while(run++ < run_len_a && i < len_a){
+  vector<uint32_t> vec_a = gen_set(len_a, range_a, run_len_a);
+  vector<uint32_t> vec_b = gen_set(len_b, range_b, run_len_b);
+  uint32_t* a = vec_a.data();
+  uint32_t* b = vec_b.data();
+
 #ifdef DEBUG
-      myfileA << a_v << endl;
+  vector_to_file("input_a", vec_a);
+  vector_to_file("input_b", vec_b);
 #endif
-      a[i++] = a_v++;
-    }
-  }
-  for(uint64_t i = 0; i < len_b; ) {
-    b_v += (i != 0) ? (rand() % ((b_e-b_v)/(len_b-i)))+1: 0;
-    size_t run = 0;
-    while(run++ < run_len_b && i < len_b){
-#ifdef DEBUG
-      myfileB << b_v << endl;
-#endif
-      b[i++] = b_v++;
-    }
-  }
 #endif
 
   double denA = (double)len_a/(a[len_a-1]-a[0]);
@@ -229,6 +252,8 @@ int main(int argc, char* argv[]) {
   cout << "B start: " << b[0] << " B end: " << b[len_b-1] << endl;
   cout << "Density A: " << denA << endl;
   cout << "Density B: " << denB << endl;
+  cout << "Run len A: " << run_len_a << endl;
+  cout << "Run len B: " << run_len_b << endl;
 
   cout << endl << "UINTEGER_UINTEGER_IBM" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_ibm",IBM);

@@ -1,4 +1,6 @@
 // class templates
+#define WRITE_VECTOR 1
+
 #include "SparseMatrix.hpp"
 #include "MutableGraph.hpp"
 #include "pcm_helper.hpp"
@@ -54,13 +56,15 @@ class application{
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
       const size_t matrix_size = graph->matrix_size;
+      common::alloc_scratch_space(512*matrix_size*matrix_size*sizeof(uint32_t),num_threads);
+
 
       uint32_t *src_buffer = new uint32_t[matrix_size];
       uint32_t *dst_buffer = new uint32_t[matrix_size];
       uint8_t *result_buffer = new uint8_t[matrix_size*8];
 
-      uint32_t i = 56426;
-      uint32_t j = 47444;
+      uint32_t i = 1147;
+      uint32_t j = 1081;
 
       cout << "src: " << i << " dst: " << j << endl;
 

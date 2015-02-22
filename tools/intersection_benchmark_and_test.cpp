@@ -122,6 +122,7 @@ uint64_t c_str_to_uint64_t(char* str) {
 
 int main(int argc, char* argv[]) {
   ops::prepare_shuffling_dictionary16();
+  common::alloc_scratch_space(BUF_SIZE,1);
 
   dummy1 = new uint32_t[DUMMY_SIZE];
   dummy2 = new uint32_t[DUMMY_SIZE];

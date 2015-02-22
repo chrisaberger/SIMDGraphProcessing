@@ -146,7 +146,7 @@ inline void new_type::foreach(
     const size_t num_uint_bytes = ((size_t*)A)[0];
     const uint8_t * const uinteger_data = A+sizeof(size_t);
     const uint8_t * const new_bs_data = A+sizeof(size_t)+num_uint_bytes;
-    const size_t num_bs_bytes = number_of_bytes-(sizeof(size_t)-num_uint_bytes);
+    const size_t num_bs_bytes = number_of_bytes-(sizeof(size_t)+num_uint_bytes);
     const size_t uint_card = num_uint_bytes/sizeof(uint32_t);
 
     uinteger::foreach(f,uinteger_data,uint_card,num_uint_bytes,common::UINTEGER);

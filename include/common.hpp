@@ -35,11 +35,12 @@ static size_t BLOCK_SIZE = 256;
 //#define ENABLE_ATOMIC_UNION
 
 //TODO: Replace with new command line arguments.
-#define ALLOCATOR 512
+#define ALLOCATOR 2
 #define REALLOC_THRESHOLD 0.7
 
 //Needed for parallelization, prevents false sharing of cache lines
 #define PADDING 300
+#define MAX_THREADS 512 
 
 //#define ATTRIBUTES
 #define WRITE_TABLE 0
@@ -84,9 +85,22 @@ using namespace std;
 using namespace std::placeholders;
 
 namespace common{
-static size_t bitset_length = 0;
-static size_t pshort_requirement = 16;
-static double bitset_req = (1.0/256.0);
+  static size_t bitset_length = 0;
+  static size_t pshort_requirement = 16;
+  static double bitset_req = (1.0/256.0);
+
+  static size_t tid = 0;
+  static uint8_t **scratch_space = new uint8_t*[MAX_THREADS];
+  static uint8_t **scratch_space1 = new uint8_t*[MAX_THREADS];
+
+  static void alloc_scratch_space(size_t alloc_size, size_t num_threads){
+    for(size_t i = 0; i < num_threads; i++){
+      cout << "ALLLOC: " << alloc_size << endl;
+      scratch_space[i] = new uint8_t[alloc_size];
+      scratch_space1[i] = new uint8_t[alloc_size];
+
+    }
+  }
 
   static double startClock (){
     return omp_get_wtime();

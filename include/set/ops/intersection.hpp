@@ -1243,13 +1243,13 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     size_t B_num_blocks = B_in->number_of_bytes/(sizeof(uint32_t)+(BLOCK_SIZE/8));
 
     size_t A_scratch_space = A_num_blocks*sizeof(size_t);
-    size_t B_scratch_space = B_num_blocks*sizeof(size_t);
-    size_t scratch_space = A_scratch_space + B_scratch_space;
+    //size_t B_scratch_space = B_num_blocks*sizeof(size_t);
+    //size_t scratch_space = A_scratch_space + B_scratch_space;
 
     //need to move alloc outsize
-    size_t *A_offset_positions = (size_t*)C_in->data;
-    size_t *B_offset_positions = (size_t*)(C_in->data+A_scratch_space);
-    C_in->data += scratch_space;
+    size_t *A_offset_positions = (size_t*)(common::scratch_space[common::tid]);
+    size_t *B_offset_positions = (size_t*)(common::scratch_space[common::tid]+A_scratch_space);
+    //C_in->data += scratch_space;
 
     uint64_t *A_data = (uint64_t*)(A_in->data+(A_num_blocks*sizeof(uint32_t)));
     uint64_t *B_data = (uint64_t*)(B_in->data+(B_num_blocks*sizeof(uint32_t)));
@@ -1335,12 +1335,12 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
 
     size_t A_scratch_space = A_in->cardinality*sizeof(uint32_t);
     size_t B_scratch_space = A_in->cardinality*sizeof(uint32_t);
-    size_t scratch_space = A_scratch_space + B_scratch_space;
+    //size_t scratch_space = A_scratch_space + B_scratch_space;
 
     //need to move alloc outsize
-    uint32_t *A_positions = (uint32_t*)C_in->data;
-    uint32_t *B_offset_positions = (uint32_t*)(C_in->data+A_scratch_space);
-    C_in->data += scratch_space;
+    uint32_t *A_positions = (uint32_t*)common::scratch_space[common::tid];
+    uint32_t *B_offset_positions = (uint32_t*)(common::scratch_space[common::tid]+A_scratch_space);
+    //C_in->data += scratch_space;
 
     size_t offset_count = hetero_intersect_offsets(
       A_positions,B_offset_positions,A_data,
@@ -1425,23 +1425,23 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     const size_t A_num_uint_bytes = ((size_t*)A_in->data)[0];
     uint8_t * A_uinteger_data = A_in->data+sizeof(size_t);
     uint8_t * A_new_bs_data = A_in->data+sizeof(size_t)+A_num_uint_bytes;
-    const size_t A_num_bs_bytes = A_in->number_of_bytes-(sizeof(size_t)-A_num_uint_bytes);
+    const size_t A_num_bs_bytes = A_in->number_of_bytes-(sizeof(size_t)+A_num_uint_bytes);
     const size_t A_uint_card = A_num_uint_bytes/sizeof(uint32_t);
 
     const size_t B_num_uint_bytes = ((size_t*)B_in->data)[0];
     uint8_t * B_uinteger_data = B_in->data+sizeof(size_t);
     uint8_t * B_new_bs_data = B_in->data+sizeof(size_t)+B_num_uint_bytes;
-    const size_t B_num_bs_bytes = B_in->number_of_bytes-(sizeof(size_t)-B_num_uint_bytes);
+    const size_t B_num_bs_bytes = B_in->number_of_bytes-(sizeof(size_t)+B_num_uint_bytes);
     const size_t B_uint_card = B_num_uint_bytes/sizeof(uint32_t);
 
     //do all three uintegers then merge then intersect the bs
     const size_t scratch1_space = A_num_uint_bytes;
-    uint8_t *scratch1 = C_in->data;
+    uint8_t *scratch1 = common::scratch_space1[common::tid];
     const size_t scratch2_space = A_num_uint_bytes;
-    uint8_t *scratch2 = C_in->data+scratch1_space;    
+    uint8_t *scratch2 = scratch1+scratch1_space;    
     const size_t scratch3_space = B_num_uint_bytes;
-    uint8_t *scratch3 = C_in->data+scratch1_space+scratch2_space; 
-    C_in->data += (scratch1_space+scratch2_space+scratch3_space);  
+    uint8_t *scratch3 = scratch2+scratch2_space; 
+    //C_in->data += (scratch1_space+scratch2_space+scratch3_space);  
 
     Set<uinteger>UU(scratch1);
     Set<uinteger>UBS(scratch2);

@@ -121,6 +121,8 @@ namespace ops{
       case common::HYBRID:
         // There should never be a set where type is HYBRID.
         assert(false);
+      default:
+      break;
     }
   }
 }

@@ -912,9 +912,8 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       c_index[0] = start_index;
       #endif
 
-      uint64_t tmp[4];
-
       #if VECTORIZE == 1
+      uint64_t tmp[4];
       while((i+3) < total_size){
         const __m256 a1 = _mm256_loadu_ps((const float*)(A + i + a_start_index));
         const __m256 a2 = _mm256_loadu_ps((const float*)(B + i + b_start_index));
@@ -1171,8 +1170,91 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
 
     return C_in;
   }
+    inline size_t intersect_offsets(
+    uint32_t *C, 
+    size_t *position_data_A, 
+    size_t *position_data_B, 
+    uint32_t *A, 
+    size_t s_a,
+    uint32_t *B, 
+    size_t s_b){
 
-  /*
+    size_t count = 0;
+    size_t i_a = 0;
+    size_t i_b = 0;
+    bool notFinished = i_a < s_a  && i_b < s_b;
+    while(notFinished){
+      while(notFinished && B[i_b] < A[i_a]){
+        ++i_b;
+        notFinished = i_b < s_b;
+      }
+      if(notFinished && A[i_a] == B[i_b]){
+        C[count] = A[i_a];
+        position_data_A[count] = i_a;
+        position_data_B[count] = i_b;
+        ++count;
+      }
+      ++i_a;
+      notFinished = notFinished && i_a < s_a;
+    }
+    return count;
+  }
+  inline size_t intersect_block(uint64_t *result_data, uint64_t *A, uint64_t *B){
+    //BLOCK SIZE HAS TO BE A MULTIPLE OF 256
+    size_t count = 0;
+    for(size_t i = 0; i < BLOCK_SIZE; i+=256){
+      const size_t vector_index = (i/64);
+      const __m256 m1 = _mm256_loadu_ps((float*)(A + vector_index));
+      const __m256 m2 = _mm256_loadu_ps((float*)(B + vector_index));
+      const __m256 r = _mm256_and_ps(m1, m2);
+      _mm256_storeu_ps((float*)(result_data+vector_index), r);
+      count += _mm_popcnt_u64(result_data[vector_index]);
+      count += _mm_popcnt_u64(result_data[vector_index+1]);
+      count += _mm_popcnt_u64(result_data[vector_index+2]);
+      count += _mm_popcnt_u64(result_data[vector_index+3]);
+    }
+    return count;
+  }
+  inline Set<bitset_new>* set_intersect(Set<bitset_new> *C_in,const Set<bitset_new> *A_in,const Set<bitset_new> *B_in){
+    size_t A_num_blocks = A_in->number_of_bytes/(sizeof(uint32_t)+(BLOCK_SIZE/8));
+    size_t B_num_blocks = B_in->number_of_bytes/(sizeof(uint32_t)+(BLOCK_SIZE/8));
+
+    size_t A_scratch_space = A_num_blocks*sizeof(size_t);
+    size_t B_scratch_space = B_num_blocks*sizeof(size_t);
+    size_t scratch_space = A_scratch_space + B_scratch_space;
+
+    //need to move alloc outsize
+    size_t *A_offset_positions = (size_t*)C_in->data;
+    size_t *B_offset_positions = (size_t*)(C_in->data+A_scratch_space);
+    C_in->data += scratch_space;
+
+    uint64_t *A_data = (uint64_t*)(A_in->data+(A_num_blocks*sizeof(uint32_t)));
+    uint64_t *B_data = (uint64_t*)(B_in->data+(B_num_blocks*sizeof(uint32_t)));
+
+    uint32_t *A_offset_pointer = (uint32_t*)A_in->data;
+    uint32_t *B_offset_pointer = (uint32_t*)B_in->data;
+
+    size_t offset_count = intersect_offsets((uint32_t *)C_in->data,
+      A_offset_positions,B_offset_positions,A_offset_pointer,A_num_blocks,B_offset_pointer,B_num_blocks);
+
+    uint64_t *result = (uint64_t*)(C_in->data + sizeof(uint32_t)*offset_count);
+    const size_t bytes_per_block = (BLOCK_SIZE/8);
+    const size_t words_per_block = bytes_per_block/sizeof(uint64_t);
+    size_t count = 0;
+    for(size_t i = 0; i < offset_count; i++){
+      size_t A_offset = A_offset_positions[i] * words_per_block;
+      size_t B_offset = B_offset_positions[i] * words_per_block;
+      count += intersect_block(result+(i*words_per_block),A_data+A_offset,B_data+B_offset);
+    }
+
+    C_in->cardinality = count;
+    C_in->number_of_bytes = offset_count*(sizeof(uint32_t)+bytes_per_block);
+    C_in->density = 0.0;
+    C_in->type= common::BITSET_NEW;
+
+    return C_in;
+  }
+/*
   inline Set<kunle>* set_intersect(
       Set<kunle> *C_in,
       const Set<kunle> *A_in,

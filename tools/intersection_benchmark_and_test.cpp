@@ -1,3 +1,5 @@
+#define WRITE_VECTOR 1
+
 #include "SparseMatrix.hpp"
 #include "common.hpp"
 
@@ -79,6 +81,21 @@ template<class T, class R, class U, class P, class F> void intersect(size_t len_
   std::cout << "End intersect. |C| = " << set_c.cardinality << std::endl;
 
 #ifdef DEBUG
+  ofstream myfile1;
+  myfile1.open(filename.append("_a"));
+  size_t index1 = 0;
+  set_a_dec.foreach([&myfile1,&index1](uint32_t i){
+    myfile1 << "Index: " << index1++ << " Data: " << i << endl;
+  });
+  ofstream myfile2;
+  myfile2.open(filename.append("_b"));
+  size_t index2 = 0;
+  set_b_dec.foreach([&myfile2,&index2](uint32_t i){
+    myfile2 << "Index: " << index2++ << " Data: " << i << endl;
+  });
+#endif
+
+#ifdef DEBUG
   ofstream myfile;
   myfile.open(filename.append("_output"));
   size_t index = 0;
@@ -153,8 +170,8 @@ int main(int argc, char* argv[]) {
 
   size_t offset = 10000;
 
-  uint32_t a_v = rand() % offset;
-  uint32_t b_v = rand() % offset;
+  uint32_t a_v = 0;//rand() % offset;
+  uint32_t b_v = 0;//rand() % offset;
 
   const uint32_t a_e = rangeA+a_v;
   const uint32_t b_e = rangeB+b_v;
@@ -176,21 +193,21 @@ int main(int argc, char* argv[]) {
 
   for(uint64_t i = 0; i < len_a; ) {
     a_v += (i != 0) ? (rand() % ((a_e-a_v)/(len_a-i)))+1 : 0;
-#ifdef DEBUG
-    myfileA << a_v << endl;
-#endif
     size_t run = 0;
     while(run++ < run_len_a && i < len_a){
+#ifdef DEBUG
+      myfileA << a_v << endl;
+#endif
       a[i++] = a_v++;
     }
   }
   for(uint64_t i = 0; i < len_b; ) {
     b_v += (i != 0) ? (rand() % ((b_e-b_v)/(len_b-i)))+1: 0;
-#ifdef DEBUG
-    myfileB << b_v << endl;
-#endif
     size_t run = 0;
     while(run++ < run_len_b && i < len_b){
+#ifdef DEBUG
+      myfileB << b_v << endl;
+#endif
       b[i++] = b_v++;
     }
   }
@@ -211,7 +228,7 @@ int main(int argc, char* argv[]) {
 
   cout << endl << "UINTEGER_UINTEGER_IBM" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_ibm",IBM);
-
+  
   cout << endl << "UINTEGER_UINTEGER_STANDARD" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_standard",STANDARD);
 
@@ -239,9 +256,15 @@ int main(int argc, char* argv[]) {
   cout << endl << "PSHORT_BITSET" << endl;
   intersect<pshort,pshort,bitset,bitset,pshort>(len1, len2, in1, in2, "pshort_bitset",STANDARD);
 
+  int block_size[] = {256, 512, 1024, 4096};
+  for(size_t i = 0; i < 4; i++){
+    BLOCK_SIZE = block_size[i];
+    cout << endl << "BSNEW_BSNEW" << endl;
+    intersect<bitset_new,bitset_new,bitset_new,bitset_new,bitset_new>(len1, len2, in1, in2, "bsnew_bsnew",STANDARD);
+  }
+
   cout << endl << "HYBRID" << endl;
   intersect<hybrid,hybrid,hybrid,hybrid,hybrid>(len1, len2, in1, in2, "hybrid",STANDARD);
-
 
   return 0;
 }

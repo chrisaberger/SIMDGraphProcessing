@@ -4,14 +4,6 @@ THIS CLASS IMPLEMENTS THE FUNCTIONS ASSOCIATED WITH THE kunle LAYOUT.
 
 */
 
-#include "common.hpp"
-
-#define BITS_PER_BIN 512
-#define MAX_LEVELS 10
-
-#define BITS_PER_WORD 64
-#define ADDRESS_BITS_PER_WORD 6
-#define BYTES_PER_WORD 8
 
 class kunle {
   public:
@@ -129,20 +121,48 @@ inline size_t kunle::build(uint8_t *R, const uint32_t *A, const size_t s_a){
       }
     }
 
+    //encode the skip list structure
     size_t bytes_used = 0;
     for(size_t i = 0; i < num_level; i++){
-      ((uint64_t*)(&R[i*sizeof(uint64_t)]))[0] = (bins_used[i]*BITS_PER_BIN)/8;
+      const size_t skip_list_bytes = (bins_used[i]*num_level*sizeof(uint32_t));
+      cout << "Skip list bytes: " << skip_list_bytes << endl;
+      ((uint64_t*)R)[0] = skip_list_bytes; //simd pack each structure
+      R += sizeof(uint64_t);
+      bytes_used += sizeof(uint64_t);
     }
-    R += num_level*sizeof(uint64_t);
-    bytes_used += num_level*sizeof(uint64_t);
+    cout << "BYTES USED: " << bytes_used << endl;
 
     for(size_t i = 0; i < num_level; i++){
       cout << "Bins used: " << bins_used[i] << endl;
       cout << "Skip list copy: " << num_level-i << endl;
-      cout << (skip_list[i])[0] << " " << (skip_list[i])[1] << " " << (skip_list[i])[2] << " " << (skip_list[i])[3] << " " << (skip_list[i])[4] << endl;
-      cout << (skip_list[i])[5] << " " << (skip_list[i])[6] << " " << (skip_list[i])[7] << " " << (skip_list[i])[8] << " " << (skip_list[i])[4] << endl;
+      uint32_t *my_skip_list = skip_list[i];
+      for(size_t b = 0; b < bins_used[i]; b++){
+        size_t j = 0;
+        for(; j < i; j++){
+          //cout << "\t" << (skip_list[i])[j-i] << endl;
+          ((uint32_t*)R)[b*num_level+j] = 0;
+        }
+        cout << "\t";
+        for(; j < num_level; j++){
+          cout << (my_skip_list)[j-i] << " ";
+          ((uint32_t*)R)[b*num_level+j] = my_skip_list[j-i];
+        }
+        cout << endl;
+        my_skip_list += (num_level-j);
+        cout << ((uint32_t*)R)[b*num_level] << " " << ((uint32_t*)R)[b*num_level+1] << " " << ((uint32_t*)R)[b*num_level+2] << endl;
+        R += sizeof(uint32_t)*num_level;
+        bytes_used += sizeof(uint32_t)*num_level;
+      }
     }
+    cout << "BYTES USED: " << bytes_used << endl; 
 
+    //Encode the data
+    for(size_t i = 0; i < num_level; i++){
+      cout << "BYTE DATA: " << (bins_used[i]*BITS_PER_BIN)/8 << endl;
+      ((uint64_t*)(&R[i*sizeof(uint64_t)]))[0] = (bins_used[i]*BITS_PER_BIN)/8;
+    }
+    R += num_level*sizeof(uint64_t);
+    bytes_used += num_level*sizeof(uint64_t);
     for(size_t i = 0; i < num_level; i++){
       const size_t bytes_to_copy = (bins_used[i]*BITS_PER_BIN)/8;
       memcpy(R,levels[i],bytes_to_copy);
@@ -219,13 +239,21 @@ inline void kunle::foreach(
     uint32_t squares[MAX_LEVELS+1];
 
     uint64_t* A64 = (uint64_t*) A;
-    uint64_t *data = A64+num_level;
     size_t data_offset = 0;
+    //jump over the skip list
+    for(size_t i = 0; i < num_level; i++){
+      cout << "HERE: " << A64[i] << endl;
+      data_offset += (A64[i]);
+    }
+    uint64_t *data = (uint64_t*)&A[(num_level+num_level)*sizeof(uint64_t) + data_offset];
+    A64 = (uint64_t*)&A[data_offset + num_level*sizeof(uint64_t)];
+    data_offset =0;
+
     for(size_t i = 0; i < num_level; i++){
       squares[num_level-1-i] = (i==0) ? 1:(BITS_PER_BIN*squares[num_level-i]); 
-
       level_bin[i] = data + data_offset;
       data_offset += (A64[i]/sizeof(uint64_t));
+      cout << "BYTES USED: " << (A64[i]/sizeof(uint64_t)) << endl;
       level_bin_bit[i] = 0;
       level_offset[i] = 0;
     }

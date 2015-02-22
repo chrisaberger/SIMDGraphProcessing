@@ -63,7 +63,7 @@ class application{
 
       ParallelBuffer<uint32_t> *src_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size);
       ParallelBuffer<uint32_t> *dst_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size);
-      ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,ALLOCATOR*graph->max_nbrhood_size*graph->max_nbrhood_size*sizeof(uint32_t));
+      ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,graph->max_nbrhood_size*sizeof(uint32_t));
 
       double intersect_time = 0.0;
 

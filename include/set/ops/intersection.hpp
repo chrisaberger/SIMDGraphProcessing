@@ -1204,11 +1204,11 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
   }
 
   inline Set<uinteger>* set_intersect(Set<uinteger> *C_in, const Set<uinteger> *A_in, const Set<uinteger> *B_in) {
-    //return set_intersect_standard(C_in, rare, freq);
-
     const Set<uinteger> *rare = (A_in->cardinality > B_in->cardinality) ? B_in:A_in;
     const Set<uinteger> *freq = (A_in->cardinality > B_in->cardinality) ? A_in:B_in;
     const unsigned long min_size = 1;
+
+    //return set_intersect_standard(C_in, rare, freq);
 
     if(std::max(A_in->cardinality,B_in->cardinality) / std::max(min_size, std::min(A_in->cardinality,B_in->cardinality)) > 16)
       return set_intersect_v3(C_in, rare, freq);

@@ -35,7 +35,7 @@ static size_t BLOCK_SIZE = 256;
 //#define ENABLE_ATOMIC_UNION
 
 //TODO: Replace with new command line arguments.
-#define ALLOCATOR 512
+#define ALLOCATOR 2
 #define REALLOC_THRESHOLD 0.7
 
 //Needed for parallelization, prevents false sharing of cache lines

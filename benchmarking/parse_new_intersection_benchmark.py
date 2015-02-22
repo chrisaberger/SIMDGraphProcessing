@@ -53,21 +53,25 @@ def parse_file(filename):
 def main():
   options = parseInput();
 
+  ranges = ["1000000", "5000000", "10000000"]
   cards = ["512", "1024", "2048", "4096", "8192", "16384", "32768", "65536", "131072", "262144"]
-  skews = ["0.0"] # "0.00002", "0.00032", "0.02048"]
+  skews = ["0.0", "0.00002", "0.00032", "0.02048"]
 
   results = defaultdict(lambda: [])
-  for card in cards:
-    for skew in skews:
-      p, _, _ = parse_file(os.path.join(options.folder, card + "_" + skew + "_0.log"))
-      results[card, skew].append(p)
-
-  for skew in skews:
-    print skew
+  for set_range in ranges:
     for card in cards:
-      print card + "\t" + "\t".join(results[card, skew][0])
-    print
-    print
+      for skew in skews:
+        p, _, _ = parse_file(os.path.join(options.folder, set_range + "_" + card + "_" + skew + "_0.log"))
+        results[card, skew].append(p)
+
+  for set_range in ranges:
+    print set_range
+    for skew in skews:
+      print skew
+      for card in cards:
+        print card + "\t" + "\t".join(results[card, skew][0])
+      print
+      print
 
 if __name__ == "__main__":
     main()

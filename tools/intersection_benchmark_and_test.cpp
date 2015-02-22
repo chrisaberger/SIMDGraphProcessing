@@ -256,54 +256,61 @@ int main(int argc, char* argv[]) {
   cout << "Run len A: " << run_len_a << endl;
   cout << "Run len B: " << run_len_b << endl;
 
-  cout << endl << "UINTEGER_UINTEGER_IBM" << endl;
+  cout << endl << "label: UINTEGER_UINTEGER_IBM" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_ibm",IBM);
 
-  cout << endl << "UINTEGER_UINTEGER_STANDARD" << endl;
+  cout << endl << "label: UINTEGER_UINTEGER_STANDARD" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_standard",STANDARD);
 
-  cout << endl << "UINTEGER_UINTEGER_V3" << endl;
+  cout << endl << "label: UINTEGER_UINTEGER_V3" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_v3",V3);
 
-  cout << endl << "UINTEGER_UINTEGER_V1" << endl;
+  cout << endl << "label: UINTEGER_UINTEGER_V1" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_v1",V1);
 
-  cout << endl << "UINTEGER_UINTEGER_GALLOP" << endl;
+  cout << endl << "label: UINTEGER_UINTEGER_GALLOP" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_gallop",GALLOP);
 
-  cout << endl << "PSHORT_PSHORT" << endl;
+/*
+  cout << endl << "label: PSHORT_PSHORT" << endl;
   intersect<pshort,pshort,pshort,pshort,pshort>(len1, len2, in1, in2, "pshort_pshort",DEFAULT);
 
-  cout << endl << "BITSET_BITSET" << endl;
+  cout << endl << "label: BITSET_BITSET" << endl;
   intersect<bitset,bitset,bitset,bitset,bitset>(len1, len2, in1, in2, "bitset_bitset",DEFAULT);
 
-  cout << endl << "UINTEGER_PSHORT" << endl;
+  cout << endl << "label: UINTEGER_PSHORT" << endl;
   intersect<uinteger,uinteger,pshort,pshort,uinteger>(len1, len2, in1, in2, "uinteger_pshort",DEFAULT);
 
-  cout << endl << "UINTEGER_BITSET" << endl;
+  cout << endl << "label: UINTEGER_BITSET" << endl;
   intersect<uinteger,uinteger,bitset,bitset,uinteger>(len1, len2, in1, in2, "uinteger_bitset",DEFAULT);
 
-  cout << endl << "PSHORT_BITSET" << endl;
+  cout << endl << "label: PSHORT_BITSET" << endl;
   intersect<pshort,pshort,bitset,bitset,pshort>(len1, len2, in1, in2, "pshort_bitset",DEFAULT);
-
-  int block_size[] = {256, 512, 1024, 4096};
-  int address_bits[] = {8, 9, 10, 12};
-  for(size_t i = 0; i < 4; i++){
+  */
+/*
+  int block_size[] = {256, 4096};
+  int address_bits[] = {8, 12};
+  double bitset_thresholds[] = { 1.0 / 16.0, 1.0 / 8.0, 1.0 / 4.0 };
+  for(size_t i = 0; i < 2; i++){
     ADDRESS_BITS_PER_BLOCK = address_bits[i];
     BLOCK_SIZE = block_size[i];
 
-    cout << endl << "BSNEW_BSNEW" << endl;
+    cout << endl << "label: BSNEW_BSNEW" << BLOCK_SIZE << endl;
     intersect<bitset_new,bitset_new,bitset_new,bitset_new,bitset_new>(len1, len2, in1, in2, "bsnew_bsnew",DEFAULT);
 
-    cout << endl << "UINT_BSNEW: " << BLOCK_SIZE << endl;
+    cout << endl << "label: UINT_BSNEW: " << BLOCK_SIZE << endl;
     intersect<uinteger,uinteger,bitset_new,bitset_new,uinteger>(len1, len2, in1, in2, "uint_bsnew",DEFAULT);
 
-    cout << endl << "NT_NT: " << BLOCK_SIZE << endl;
-    intersect<new_type,new_type,new_type,new_type,new_type>(len1, len2, in1, in2, "nt_nt",DEFAULT);
-  }
+    for(size_t j = 0; j < 3; j++) {
+      BITSET_THRESHOLD = bitset_thresholds[j];
 
-  cout << endl << "HYBRID" << endl;
-  intersect<hybrid,hybrid,hybrid,hybrid,hybrid>(len1, len2, in1, in2, "hybrid",DEFAULT);
+      cout << endl << "label: NT_NT: " << BLOCK_SIZE << " " << BITSET_THRESHOLD << endl;
+      intersect<new_type,new_type,new_type,new_type,new_type>(len1, len2, in1, in2, "nt_nt",DEFAULT);
+    }
+  }*/
+
+  //cout << endl << "label: HYBRID" << endl;
+  //intersect<hybrid,hybrid,hybrid,hybrid,hybrid>(len1, len2, in1, in2, "hybrid",DEFAULT);
 
   return 0;
 }

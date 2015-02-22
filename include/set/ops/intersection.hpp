@@ -707,6 +707,7 @@ namespace ops{
     #if VECTORIZE == 1
     size_t st_a = (s_a / 4) * 4;
     size_t st_b = (s_b / 4) * 4;
+
     while(i_a < st_a && i_b < st_b) {
       //[ load segments of four 32-bit elements
       __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
@@ -1170,18 +1171,79 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
 
     return C_in;
   }
-    inline size_t intersect_offsets(
+  inline size_t simd_intersect_offsets(
     uint32_t *C, 
-    size_t *position_data_A, 
-    size_t *position_data_B, 
+    uint32_t *position_data_A, 
+    uint32_t *position_data_B, 
     uint32_t *A, 
     size_t s_a,
     uint32_t *B, 
-    size_t s_b){
+    size_t s_b){    
 
     size_t count = 0;
-    size_t i_a = 0;
-    size_t i_b = 0;
+    size_t i_a = 0, i_b = 0;
+
+    // trim lengths to be a multiple of 4
+    #if VECTORIZE == 1
+    size_t st_a = (s_a / 4) * 4;
+    size_t st_b = (s_b / 4) * 4;
+    uint32_t offset[] = {0,1,2,3};
+    const __m128i offset_reg = _mm_loadu_si128((__m128i*)&offset);
+
+    while(i_a < st_a && i_b < st_b) {
+      //[ load segments of four 32-bit elements
+      __m128i v_a = _mm_loadu_si128((__m128i*)&A[i_a]);
+      __m128i v_b = _mm_loadu_si128((__m128i*)&B[i_b]);
+      //]
+
+      const __m128i a_offset = _mm_set1_epi32(i_a);
+      const __m128i b_offset = _mm_set1_epi32(i_b);
+
+      //[ move pointers
+      uint32_t a_max = A[i_a+3];
+      uint32_t b_max = B[i_b+3];
+      i_a += (a_max <= b_max) * 4;
+      i_b += (a_max >= b_max) * 4;
+      //]
+
+      //[ compute mask of common elements
+      uint32_t right_cyclic_shift = _MM_SHUFFLE(0,3,2,1);
+      __m128i cmp_mask1 = _mm_cmpeq_epi32(v_a, v_b);    // pairwise comparison
+      v_b = _mm_shuffle_epi32(v_b, right_cyclic_shift);       // shuffling
+      __m128i cmp_mask2 = _mm_cmpeq_epi32(v_a, v_b);    // again...
+      v_b = _mm_shuffle_epi32(v_b, right_cyclic_shift);
+      __m128i cmp_mask3 = _mm_cmpeq_epi32(v_a, v_b);    // and again...
+      v_b = _mm_shuffle_epi32(v_b, right_cyclic_shift);
+      __m128i cmp_mask4 = _mm_cmpeq_epi32(v_a, v_b);    // and again.
+      __m128i cmp_mask = _mm_or_si128(
+              _mm_or_si128(cmp_mask1, cmp_mask2),
+              _mm_or_si128(cmp_mask3, cmp_mask4)
+      ); // OR-ing of comparison masks
+      // convert the 128-bit mask to the 4-bit mask
+      uint32_t mask = _mm_movemask_ps((__m128)cmp_mask);
+      //]
+
+      //[ copy out common elements
+      //#if WRITE_VECTOR == 1
+      __m128i r = _mm_shuffle_epi8(v_a, shuffle_mask32[mask]);
+      _mm_storeu_si128((__m128i*)&C[count], r);
+
+      const __m128i p1 = _mm_shuffle_epi8(offset_reg, shuffle_mask32[mask]);
+      const __m128i sum = _mm_add_epi32(p1,a_offset);
+      _mm_storeu_si128((__m128i*)&position_data_A[count], sum);
+      const __m128i p2 = _mm_shuffle_epi8(offset_reg, shuffle_mask32[mask]);
+      _mm_storeu_si128((__m128i*)&position_data_B[count], _mm_add_epi32(p2,b_offset));
+
+      //cout << "C[" << count << "]: " << C[count] << endl;
+
+      //#endif
+
+      count += _mm_popcnt_u32(mask); // a number of elements is a weight of the mask
+      //]
+    }
+    #endif
+
+    // intersect the tail using scalar intersection
     bool notFinished = i_a < s_a  && i_b < s_b;
     while(notFinished){
       while(notFinished && B[i_b] < A[i_a]){
@@ -1192,6 +1254,47 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         C[count] = A[i_a];
         position_data_A[count] = i_a;
         position_data_B[count] = i_b;
+        ++count;
+      }
+      ++i_a;
+      notFinished = notFinished && i_a < s_a;
+    }
+
+    #if WRITE_VECTOR == 0
+    (void) C;
+    #endif
+
+    return count;  
+  }
+  inline size_t intersect_offsets(
+    uint32_t *C, 
+    uint32_t *position_data_A, 
+    uint32_t *position_data_B, 
+    uint32_t *A, 
+    size_t s_a,
+    uint32_t *B, 
+    size_t s_b,
+    uint64_t *A_data,
+    uint64_t *B_data){
+
+    const size_t bytes_per_block = (BLOCK_SIZE/8);
+    const size_t words_per_block = bytes_per_block/sizeof(uint64_t);
+
+    size_t count = 0;
+    uint32_t i_a = 0;
+    uint32_t i_b = 0;
+    bool notFinished = i_a < s_a  && i_b < s_b;
+    while(notFinished){
+      while(notFinished && B[i_b] < A[i_a]){
+        ++i_b;
+        notFinished = i_b < s_b;
+      }
+      if(notFinished && A[i_a] == B[i_b]){
+        C[count] = A[i_a];
+        position_data_A[count] = i_a;
+        position_data_B[count] = i_b;
+        _mm_prefetch(&A_data[i_a*words_per_block],_MM_HINT_T0);
+        _mm_prefetch(&B_data[i_b*words_per_block],_MM_HINT_T0);
         ++count;
       }
       ++i_a;
@@ -1244,13 +1347,13 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     size_t A_num_blocks = A_in->number_of_bytes/(sizeof(uint32_t)+(BLOCK_SIZE/8));
     size_t B_num_blocks = B_in->number_of_bytes/(sizeof(uint32_t)+(BLOCK_SIZE/8));
 
-    size_t A_scratch_space = A_num_blocks*sizeof(size_t);
+    size_t A_scratch_space = A_num_blocks*sizeof(uint32_t);
     //size_t B_scratch_space = B_num_blocks*sizeof(size_t);
     //size_t scratch_space = A_scratch_space + B_scratch_space;
 
     //need to move alloc outsize
-    size_t *A_offset_positions = (size_t*)(common::scratch_space[common::tid]);
-    size_t *B_offset_positions = (size_t*)(common::scratch_space[common::tid]+A_scratch_space);
+    uint32_t *A_offset_positions = (uint32_t*)(common::scratch_space[common::tid]);
+    uint32_t *B_offset_positions = (uint32_t*)(common::scratch_space[common::tid]+A_scratch_space);
     //C_in->data += scratch_space;
 
     uint64_t *A_data = (uint64_t*)(A_in->data+(A_num_blocks*sizeof(uint32_t)));
@@ -1260,7 +1363,10 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     uint32_t *B_offset_pointer = (uint32_t*)B_in->data;
 
     size_t offset_count = intersect_offsets((uint32_t *)C_in->data,
-      A_offset_positions,B_offset_positions,A_offset_pointer,A_num_blocks,B_offset_pointer,B_num_blocks);
+      A_offset_positions,B_offset_positions,
+      A_offset_pointer,A_num_blocks,
+      B_offset_pointer,B_num_blocks,
+      A_data,B_data);
 
     uint64_t *result = (uint64_t*)(C_in->data + sizeof(uint32_t)*offset_count);
     const size_t bytes_per_block = (BLOCK_SIZE/8);
@@ -1285,7 +1391,11 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     uint32_t *A, 
     size_t s_a,
     uint32_t *B, 
-    size_t s_b){
+    size_t s_b,
+    uint64_t *B_data){
+
+    const size_t bytes_per_block = (BLOCK_SIZE/8);
+    const size_t words_per_block = bytes_per_block/sizeof(uint64_t);
 
     size_t count = 0;
     size_t i_a = 0;
@@ -1299,6 +1409,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       if(notFinished && (A[i_a] >> ADDRESS_BITS_PER_BLOCK) == B[i_b]){
         A_positions[count] = i_a;
         B_position_data[count] = i_b;
+        _mm_prefetch(&B_data[i_b*words_per_block],_MM_HINT_T0);
         ++count;
       }
       ++i_a;
@@ -1346,7 +1457,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
 
     size_t offset_count = hetero_intersect_offsets(
       A_positions,B_offset_positions,A_data,
-      A_in->cardinality,B_offset_pointer,B_num_blocks);
+      A_in->cardinality,B_offset_pointer,B_num_blocks,B_data);
 
     size_t count = 0;
     const size_t bytes_per_block = (BLOCK_SIZE/8);
@@ -1369,11 +1480,11 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
   }
 
   inline void distinct_merge_three_way(
-    size_t count,
+    const size_t count,
     uint32_t *result, 
-    uint32_t *A, size_t lenA, 
-    uint32_t *B, size_t lenB,
-    uint32_t *C, size_t lenC){
+    const uint32_t *A, const size_t lenA, 
+    const uint32_t *B, const size_t lenB,
+    const uint32_t *C, const size_t lenC){
 
     size_t i_a = 0;
     size_t i_b = 0;

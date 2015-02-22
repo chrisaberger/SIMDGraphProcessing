@@ -23,13 +23,12 @@ namespace ops{
       const uint64_t end_index = ((a_index[0]+s_a) > (b_index[0]+s_b)) ? (b_index[0]+s_b):(a_index[0]+s_a);
       const uint64_t total_size = (start_index > end_index) ? 0:(end_index-start_index);
 
-      uint64_t tmp[4];
-
       //16 uint16_ts
       //8 ints
       //4 longs
       size_t i = 0;
       #if VECTORIZE == 1
+      uint64_t tmp[4];
       for(; (i+3) < total_size; i += 4){
         const __m256 a1 = _mm256_loadu_ps((const float*)&A[i+a_start_index]);
         const __m256 a2 = _mm256_loadu_ps((const float*)&B[i+b_start_index]);

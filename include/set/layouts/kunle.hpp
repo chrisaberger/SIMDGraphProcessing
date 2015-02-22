@@ -4,14 +4,6 @@ THIS CLASS IMPLEMENTS THE FUNCTIONS ASSOCIATED WITH THE kunle LAYOUT.
 
 */
 
-#include "common.hpp"
-
-#define BITS_PER_BIN 512
-#define MAX_LEVELS 10
-
-#define BITS_PER_WORD 64
-#define ADDRESS_BITS_PER_WORD 6
-#define BYTES_PER_WORD 8
 
 class kunle {
   public:

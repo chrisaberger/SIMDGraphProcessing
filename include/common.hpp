@@ -26,8 +26,9 @@
 #include <cstdarg>
 #include <set>
 
-// Experts only! Proceed wih caution!
+static size_t BLOCK_SIZE = 512;
 
+// Experts only! Proceed wih caution!
 #define ENABLE_PCM
 //#define ENABLE_PRINT_THREAD_TIMES
 //#define ENABLE_ATOMIC_UNION
@@ -171,7 +172,8 @@ static double bitset_req = (1.0/256.0);
     BITPACKED = 3,
     VARIANT = 4,
     HYBRID = 5,
-    KUNLE = 6
+    KUNLE = 6,
+    BITSET_NEW = 7
   };
 
   static void dump_stats(){
@@ -191,8 +193,6 @@ static double bitset_req = (1.0/256.0);
     cout << "Num PSHORT/PSHORT: " << num_pshort_pshort << endl;
     cout << "Num PSHORT/BS: " << num_pshort_bs << endl;
     cout << "Num BS/BS: " << num_bs_bs << endl;
-
-
   }
 
   static void* allocate_local(size_t num, size_t size, int node) {

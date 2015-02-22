@@ -1199,6 +1199,21 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     }
     return count;
   }
+  inline Set<uinteger>* set_intersect(Set<uinteger> *C_in,const Set<pshort> *A_in,const Set<uinteger> *B_in){
+    return set_intersect(C_in,B_in,A_in);
+  }
+
+  inline Set<uinteger>* set_intersect(Set<uinteger> *C_in, const Set<uinteger> *A_in, const Set<uinteger> *B_in) {
+    const Set<uinteger> *rare = (A_in->cardinality > B_in->cardinality) ? B_in:A_in;
+    const Set<uinteger> *freq = (A_in->cardinality > B_in->cardinality) ? A_in:B_in;
+    const unsigned long min_size = 1;
+
+    if(std::max(A_in->cardinality,B_in->cardinality) / std::max(min_size, std::min(A_in->cardinality,B_in->cardinality)) > 16)
+      return set_intersect_v3(C_in, rare, freq);
+    else
+      return set_intersect_standard(C_in, rare, freq);
+  }
+
   inline size_t intersect_block(uint64_t *result_data, uint64_t *A, uint64_t *B){
     //BLOCK SIZE HAS TO BE A MULTIPLE OF 256
     size_t count = 0;
@@ -1295,7 +1310,6 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     return 0;
   }
 
-
   inline Set<uinteger>* set_intersect(Set<uinteger> *C_in,const Set<uinteger> *A_in,const Set<bitset_new> *B_in){
     size_t B_num_blocks = B_in->number_of_bytes/(sizeof(uint32_t)+(BLOCK_SIZE/8));
     uint64_t *B_data = (uint64_t*)(B_in->data+(B_num_blocks*sizeof(uint32_t)));
@@ -1334,6 +1348,59 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
   }
   inline Set<uinteger>* set_intersect(Set<uinteger> *C_in,const Set<bitset_new> *A_in,const Set<uinteger> *B_in){
     return set_intersect(C_in,B_in,A_in);
+  }
+
+  inline Set<new_type>* set_intersect(Set<new_type> *C_in,const Set<new_type> *A_in,const Set<new_type> *B_in){
+    const size_t A_num_uint_bytes = ((size_t*)A_in->data)[0];
+    uint8_t * A_uinteger_data = A_in->data+sizeof(size_t);
+    uint8_t * A_new_bs_data = A_in->data+sizeof(size_t)+A_num_uint_bytes;
+    const size_t A_num_bs_bytes = A_in->number_of_bytes-(sizeof(size_t)-A_num_uint_bytes);
+    const size_t A_uint_card = A_num_uint_bytes/sizeof(uint32_t);
+
+    const size_t B_num_uint_bytes = ((size_t*)B_in->data)[0];
+    uint8_t * B_uinteger_data = B_in->data+sizeof(size_t);
+    uint8_t * B_new_bs_data = B_in->data+sizeof(size_t)+B_num_uint_bytes;
+    const size_t B_num_bs_bytes = B_in->number_of_bytes-(sizeof(size_t)-B_num_uint_bytes);
+    const size_t B_uint_card = B_num_uint_bytes/sizeof(uint32_t);
+
+    //do all three uintegers then merge then intersect the bs
+    const size_t scratch1_space = A_num_uint_bytes;
+    uint8_t *scratch1 = C_in->data;
+    const size_t scratch2_space = A_num_uint_bytes;
+    uint8_t *scratch2 = C_in->data+scratch1_space;    
+    const size_t scratch3_space = A_num_uint_bytes;
+    uint8_t *scratch3 = C_in->data+scratch1_space+scratch2_space;   
+
+    Set<uinteger>UU(scratch1);
+    Set<uinteger>UBS(scratch2);
+    Set<uinteger>BSU(scratch3);
+
+    const Set<uinteger>A_I(A_uinteger_data,A_uint_card,A_num_uint_bytes,common::UINTEGER);
+    const Set<uinteger>B_I(B_uinteger_data,B_uint_card,B_num_uint_bytes,common::UINTEGER);
+
+    const Set<bitset_new>A_BS(A_new_bs_data,A_in->cardinality-A_uint_card,A_num_bs_bytes,common::BITSET_NEW);
+    const Set<bitset_new>B_BS(B_new_bs_data,B_in->cardinality-B_uint_card,B_num_bs_bytes,common::BITSET_NEW);
+
+    size_t count = 0;
+    
+    UU = ops::set_intersect(&UU,&A_I,&B_I);
+    count += UU.cardinality;
+
+    UBS = ops::set_intersect(&UBS,&A_I,&B_BS);
+    count += UBS.cardinality;
+
+    BSU = ops::set_intersect(&BSU,&B_I,&A_BS);
+    count += BSU.cardinality;
+
+    Set<bitset_new>BSBS(C_in->data);
+    count += ops::set_intersect(&BSBS,&A_BS,&B_BS)->cardinality;
+
+    C_in->cardinality = count;
+    C_in->number_of_bytes = 0;
+    C_in->density = 0.0;
+    C_in->type= common::NEW_TYPE;
+
+    return C_in;
   }
 /*
   inline Set<kunle>* set_intersect(
@@ -1698,21 +1765,6 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     return C_in;
   }
   */
-
-  inline Set<uinteger>* set_intersect(Set<uinteger> *C_in,const Set<pshort> *A_in,const Set<uinteger> *B_in){
-    return set_intersect(C_in,B_in,A_in);
-  }
-
-  inline Set<uinteger>* set_intersect(Set<uinteger> *C_in, const Set<uinteger> *A_in, const Set<uinteger> *B_in) {
-    const Set<uinteger> *rare = (A_in->cardinality > B_in->cardinality) ? B_in:A_in;
-    const Set<uinteger> *freq = (A_in->cardinality > B_in->cardinality) ? A_in:B_in;
-    const unsigned long min_size = 1;
-
-    if(std::max(A_in->cardinality,B_in->cardinality) / std::max(min_size, std::min(A_in->cardinality,B_in->cardinality)) > 16)
-      return set_intersect_v3(C_in, rare, freq);
-    else
-      return set_intersect_standard(C_in, rare, freq);
-  }
 
   inline Set<hybrid>* set_intersect(Set<hybrid> *C_in,const Set<hybrid> *A_in,const Set<hybrid> *B_in){
     if(A_in->cardinality == 0 || B_in->cardinality == 0){

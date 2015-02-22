@@ -180,7 +180,8 @@ static double bitset_req = (1.0/256.0);
     VARIANT = 4,
     HYBRID = 5,
     KUNLE = 6,
-    BITSET_NEW = 7
+    BITSET_NEW = 7,
+    NEW_TYPE = 8
   };
 
   static void dump_stats(){

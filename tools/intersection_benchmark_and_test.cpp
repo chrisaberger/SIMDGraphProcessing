@@ -263,8 +263,12 @@ int main(int argc, char* argv[]) {
   int block_size[] = {256, 512, 1024, 4096};
   for(size_t i = 0; i < 4; i++){
     BLOCK_SIZE = block_size[i];
+
     cout << endl << "BSNEW_BSNEW" << endl;
     intersect<bitset_new,bitset_new,bitset_new,bitset_new,bitset_new>(len1, len2, in1, in2, "bsnew_bsnew",DEFAULT);
+
+    cout << endl << "UINT_BSNEW: " << BLOCK_SIZE << endl;
+    intersect<uinteger,uinteger,bitset_new,bitset_new,uinteger>(len1, len2, in1, in2, "uint_bsnew",DEFAULT);
   }
 
   cout << endl << "HYBRID" << endl;

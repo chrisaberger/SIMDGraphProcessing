@@ -52,7 +52,7 @@ static double BITSET_THRESHOLD = 1.0 / 32.0;
 #define VECTORIZE 1
 
 // Enables/disables pruning
-//#define PRUNING
+#define PRUNING
 //#define NEW_BITSET
 
 // Enables/disables hybrid that always chooses U-Int

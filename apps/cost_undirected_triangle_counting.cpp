@@ -73,6 +73,8 @@ class application{
       system_counter_state_t before_sstate = pcm_get_counter_state();
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
+      common::alloc_scratch_space(512*graph->max_nbrhood_size*sizeof(uint32_t),num_threads);
+
       ParallelBuffer<uint8_t> *src_buffers_bs_new = new ParallelBuffer<uint8_t>(num_threads,graph->matrix_size*100*sizeof(uint64_t));
       ParallelBuffer<uint8_t> *src_buffers_bs = new ParallelBuffer<uint8_t>(num_threads,graph->matrix_size*100*sizeof(uint64_t));
       ParallelBuffer<uint8_t> *src_buffers_new = new ParallelBuffer<uint8_t>(num_threads,graph->matrix_size*100*sizeof(uint64_t));
@@ -262,17 +264,6 @@ class application{
             tmp_count = ops::set_intersect((Set<pshort>*)&C,&A_ps,&B_ps)->cardinality;
             start_time_2 = common::stopClock(start_time_2);
             */
-
-            std::cout << "A" << std::endl;
-            A_new_bs.foreach([&] (uint32_t x) {
-                std::cout << x << " " << std::endl;
-                });
-
-            std::cout << "B" << std::endl;
-            B_new_bs.foreach([&] (uint32_t x) {
-                std::cout << x << " " << std::endl;
-                });
-            std::cout << "done" << std::endl;
 
             // New bitset
             double start_time_new_bs = common::startClock();
@@ -578,7 +569,7 @@ class application{
 
     cout << "Best cost time: " << total_min << endl;
     cout << "Best cost time (u/bs only): " << total_min_bs << endl;
-    cout << "Best cost time (u/new_bs only): " << total_min_bs << endl;
+    cout << "Best cost time (u/new_bs only): " << total_min_new_bs << endl;
     cout << "Hybrid time: " << total_hybrid_time << endl;
     cout << "U-Int time: " << total_uint_time << endl;
     cout << "BS time: " << total_bs_time << endl;
@@ -619,6 +610,7 @@ class application{
       cout << "Replace U-Int/U-Int with " << lost_names[i] << ": " << better_than_uint[i] << endl;
     }
 
+    /*
     ofstream stats_file;
     stats_file.open("stats.csv");
     stats_file << "id,card,range,uint/uint,pshort/pshort,bitset/bitset,u/ps,ps/bs,u/bs,,eh uint/uint,eh pshort/pshort,eh bitset/bitset,eh u/ps,eh ps/bs,eh u/bs,percent time,ehtype,num_bs_instead_of_ps_psbs,num_ubs_instead_of_ups,num_bsbs_instead_of_ups,num_uu_instead_of_ups" << std::endl;
@@ -661,7 +653,7 @@ class application{
       psbs_file << data_point.psbs_time << ",";
       psbs_file << data_point.bsbs_time << endl;
     }
-    psbs_file.close();
+    psbs_file.close();*/
 
     server_uncore_power_state_t* after_uncstate = pcm_get_uncore_power_state();
     pcm_print_uncore_power_state(before_uncstate, after_uncstate);

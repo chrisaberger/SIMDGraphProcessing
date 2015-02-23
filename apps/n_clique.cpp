@@ -74,6 +74,8 @@ class application{
     system_counter_state_t before_sstate = pcm_get_counter_state();
     server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
+    common::alloc_scratch_space(512*graph->max_nbrhood_size*sizeof(uint32_t),num_threads);
+
     const size_t matrix_size = graph->matrix_size;
     const size_t estimated_table_size = ((graph->cardinality*40)/num_threads);
     ParallelTable<uint64_t>* output = new ParallelTable<uint64_t>(num_threads,query_depth,estimated_table_size);

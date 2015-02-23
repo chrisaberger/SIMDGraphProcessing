@@ -61,7 +61,7 @@ def main():
   labels = []
   ranges = ["1000000", "5000000", "10000000"]
   cards = ["8", "16", "32", "64", "128", "256", "512", "1024", "2048", "4096", "8192", "16384", "32768", "65536", "131072", "262144"]
-  skews = ["0.0", "0.1", "0.0001", "0.00002", "0.00032", "0.02048"]
+  skews = ["0.0", "0.0001", "0.0002", "0.0004", "0.0008", "0.0016", "0.0032", "0.0064", "0.0128", "0.0256", "0.0512", "0.1024"]
 
   results = defaultdict(lambda: [])
   for set_range in ranges:
@@ -74,11 +74,11 @@ def main():
 
   for set_range in ranges:
     print set_range
-    for skew in skews:
-      print skew
+    for card in cards:
+      print card
       print "\t" + "\t".join(labels)
-      for card in cards:
-        print card + "\t" + "\t".join(results[card, skew][0])
+      for skew in skews:
+        print skew + "\t" + "\t".join(results[card, skew][0])
       print
       print
 

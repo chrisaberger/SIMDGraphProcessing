@@ -51,7 +51,7 @@ static size_t BLOCK_SIZE = 256;
 #define VECTORIZE 1
 
 // Enables/disables pruning
-//#define PRUNING
+#define PRUNING
 //#define NEW_BITSET
 
 // Enables/disables hybrid that always chooses U-Int

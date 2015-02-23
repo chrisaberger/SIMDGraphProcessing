@@ -60,7 +60,7 @@ inline void bitset_new::set(const uint32_t index, uint64_t * const in_array, con
   *(in_array + ((index >> ADDRESS_BITS_PER_WORD)-start_index)) |= ((uint64_t)1 << (index & 0x3F));
 }
 inline common::type bitset_new::get_type(){
-  return common::BITSET;
+  return common::BITSET_NEW;
 }
 
 inline void pack_block(uint64_t *R, const uint32_t *A, const size_t s_a){
@@ -125,9 +125,9 @@ inline size_t bitset_new::build_flattened(uint8_t *r_in, const uint32_t *data, c
 inline tuple<size_t,size_t,common::type> bitset_new::get_flattened_data(const uint8_t *set_data, const size_t cardinality){
   if(cardinality > 0){
     const uint32_t *size_ptr = (uint32_t*) set_data;
-    return make_tuple(sizeof(uint32_t),(size_t)size_ptr[0],common::BITSET);
+    return make_tuple(sizeof(uint32_t),(size_t)size_ptr[0],common::BITSET_NEW);
   } else{
-    return make_tuple(0,0,common::BITSET);
+    return make_tuple(0,0,common::BITSET_NEW);
   }
 }
 

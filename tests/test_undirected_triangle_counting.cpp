@@ -63,8 +63,8 @@ class application{
       uint32_t *dst_buffer = new uint32_t[matrix_size];
       uint8_t *result_buffer = new uint8_t[matrix_size*8];
 
-      uint32_t i = 1383;
-      uint32_t j = 1366;
+      uint32_t i = 3600;
+      uint32_t j = 3596;
 
       cout << "src: " << i << " dst: " << j << endl;
 

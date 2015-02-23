@@ -1202,7 +1202,6 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       //]
 
       const __m128i a_offset = _mm_set1_epi32(i_a);
-      const __m128i b_offset = _mm_set1_epi32(i_b);
 
       //[ move pointers
       uint32_t a_max = A[i_a+3];
@@ -1242,7 +1241,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         while(B[i_b+b_index] < C[i]){
           b_index++;
         }
-        position_data_B[i] = b_index;
+        position_data_B[i] = b_index+i_b;
         _mm_prefetch(&A_data[position_data_A[i]*words_per_block],_MM_HINT_T1);
         _mm_prefetch(&B_data[position_data_B[i]*words_per_block],_MM_HINT_T1);
       }
@@ -1337,17 +1336,30 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
   inline size_t intersect_block(uint64_t *result_data, uint64_t *A, uint64_t *B){
     //BLOCK SIZE HAS TO BE A MULTIPLE OF 256
     size_t count = 0;
-    for(size_t i = 0; i < BLOCK_SIZE; i+=256){
-      const size_t vector_index = (i/64);
-      const __m256 m1 = _mm256_loadu_ps((float*)(A + vector_index));
-      const __m256 m2 = _mm256_loadu_ps((float*)(B + vector_index));
-      const __m256 r = _mm256_and_ps(m1, m2);
-      _mm256_storeu_ps((float*)(result_data+vector_index), r);
-      count += _mm_popcnt_u64(result_data[vector_index]);
-      count += _mm_popcnt_u64(result_data[vector_index+1]);
-      count += _mm_popcnt_u64(result_data[vector_index+2]);
-      count += _mm_popcnt_u64(result_data[vector_index+3]);
+    if(BLOCK_SIZE >= 256){
+      for(size_t i = 0; i < BLOCK_SIZE; i+=256){
+        const size_t vector_index = (i/64);
+        const __m256 m1 = _mm256_loadu_ps((float*)(A + vector_index));
+        const __m256 m2 = _mm256_loadu_ps((float*)(B + vector_index));
+        const __m256 r = _mm256_and_ps(m1, m2);
+        #if WRITE_VECTOR == 1
+        _mm256_storeu_ps((float*)(result_data+vector_index), r);
+        #endif
+        count += _mm_popcnt_u64(result_data[vector_index]);
+        count += _mm_popcnt_u64(result_data[vector_index+1]);
+        count += _mm_popcnt_u64(result_data[vector_index+2]);
+        count += _mm_popcnt_u64(result_data[vector_index+3]);
+      }
+    } else{
+      for(size_t i = 0; i < BLOCK_SIZE; i+=64){
+        const uint64_t r = A[i/64] & B[i/64]; 
+        #if WRITE_VECTOR == 1
+        C[i/64] = r;
+        #endif
+        count += _mm_popcnt_u64(r);
+      }
     }
+
     return count;
   }
   inline Set<bitset_new>* set_intersect(Set<bitset_new> *C_in,const Set<bitset_new> *A_in,const Set<bitset_new> *B_in){
@@ -1440,7 +1452,9 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     const size_t word_to_check = probe_value / BITS_PER_WORD;
     const size_t bit_to_check = probe_value % BITS_PER_WORD;
     if((block[word_to_check] >> bit_to_check) % 2){
+      #if WRITE_VECTOR == 1
       result[0] = value;
+      #endif
       return 1;
     } 
     return 0;
@@ -1462,7 +1476,6 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     uint32_t *A_data = (uint32_t*)A_in->data;
 
     size_t A_scratch_space = A_in->cardinality*sizeof(uint32_t);
-    size_t B_scratch_space = A_in->cardinality*sizeof(uint32_t);
     //size_t scratch_space = A_scratch_space + B_scratch_space;
 
     //need to move alloc outsize
@@ -1567,7 +1580,6 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     uint8_t *scratch1 = common::scratch_space1[common::tid];
     const size_t scratch2_space = A_num_uint_bytes;
     uint8_t *scratch2 = scratch1+scratch1_space;    
-    const size_t scratch3_space = B_num_uint_bytes;
     uint8_t *scratch3 = scratch2+scratch2_space; 
     //C_in->data += (scratch1_space+scratch2_space+scratch3_space);  
 
@@ -1997,6 +2009,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
   }
   */
 
+#ifdef NEW_BITSET
   inline Set<hybrid>* set_intersect(Set<hybrid> *C_in,const Set<hybrid> *A_in,const Set<hybrid> *B_in){
     if(A_in->cardinality == 0 || B_in->cardinality == 0){
       C_in->cardinality = 0;
@@ -2013,44 +2026,66 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
               #endif
               return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
               break;
-            case common::PSHORT:
+            case common::BITSET_NEW:
               #ifdef STATS
-              common::num_uint_pshort++;
+              common::num_uint_bs++;
               #endif
-              return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<pshort>*)B_in);
-              break;
-            case common::BITSET:
-              #ifdef STATS
-              common::num_pshort_bs++;
-              #endif
-              return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<bitset>*)B_in);
+              return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<bitset_new>*)B_in);
               break;
             default:
               break;
           }
         break;
-        case common::PSHORT:
+        case common::BITSET_NEW:
           switch (B_in->type) {
             case common::UINTEGER:
               #ifdef STATS
-              common::num_uint_pshort++;
+              common::num_uint_bs++;
               #endif
-              return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)B_in,(const Set<pshort>*)A_in);
+              return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)B_in,(const Set<bitset_new>*)A_in);
             break;
-            case common::PSHORT:
+            case common::BITSET_NEW:
               #ifdef STATS
-              common::num_pshort_pshort++;
+              common::num_bs_bs++;
               #endif
-              return (Set<hybrid>*)set_intersect((Set<pshort>*)C_in,(const Set<pshort>*)A_in,(const Set<pshort>*)B_in);
-            break;
-            case common::BITSET:
-              #ifdef STATS
-              common::num_pshort_bs++;
-              #endif
-              return (Set<hybrid>*)set_intersect((Set<pshort>*)C_in,(const Set<pshort>*)A_in,(const Set<bitset>*)B_in);
+              return (Set<hybrid>*)set_intersect((Set<bitset_new>*)C_in,(const Set<bitset_new>*)A_in,(const Set<bitset_new>*)B_in);
             break;
             default:
             break;
+          }
+        break;
+        default:
+        break;
+    }
+
+    cout << "ERROR" << endl;
+    return C_in;
+  }
+#else
+  inline Set<hybrid>* set_intersect(Set<hybrid> *C_in,const Set<hybrid> *A_in,const Set<hybrid> *B_in){
+    if(A_in->cardinality == 0 || B_in->cardinality == 0){
+      C_in->cardinality = 0;
+      C_in->number_of_bytes = 0;
+      return C_in;
+    }
+
+    switch (A_in->type) {
+        case common::UINTEGER:
+          switch (B_in->type) {
+            case common::UINTEGER:
+              #ifdef STATS
+              common::num_uint_uint++;
+              #endif
+              return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<uinteger>*)B_in);
+              break;
+            case common::BITSET:
+              #ifdef STATS
+              common::num_uint_bs++;
+              #endif
+              return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)A_in,(const Set<bitset>*)B_in);
+              break;
+            default:
+              break;
           }
         break;
         case common::BITSET:
@@ -2060,12 +2095,6 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
               common::num_uint_bs++;
               #endif
               return (Set<hybrid>*)set_intersect((Set<uinteger>*)C_in,(const Set<uinteger>*)B_in,(const Set<bitset>*)A_in);
-            break;
-            case common::PSHORT:
-              #ifdef STATS
-              common::num_pshort_bs++;
-              #endif
-              return (Set<hybrid>*)set_intersect((Set<pshort>*)C_in,(const Set<pshort>*)B_in,(const Set<bitset>*)A_in);
             break;
             case common::BITSET:
               #ifdef STATS
@@ -2084,6 +2113,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     cout << "ERROR" << endl;
     return C_in;
   }
+#endif
 }
 
 #endif

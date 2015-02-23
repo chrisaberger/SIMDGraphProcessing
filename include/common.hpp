@@ -26,8 +26,8 @@
 #include <cstdarg>
 #include <set>
 
-static size_t ADDRESS_BITS_PER_BLOCK = 9;
-static size_t BLOCK_SIZE = 512;
+static size_t ADDRESS_BITS_PER_BLOCK = 7;
+static size_t BLOCK_SIZE = 128;
 
 // Experts only! Proceed wih caution!
 //#define ENABLE_PCM
@@ -35,7 +35,7 @@ static size_t BLOCK_SIZE = 512;
 //#define ENABLE_ATOMIC_UNION
 
 //TODO: Replace with new command line arguments.
-#define ALLOCATOR 2
+#define ALLOCATOR 200
 #define REALLOC_THRESHOLD 0.7
 
 //Needed for parallelization, prevents false sharing of cache lines
@@ -50,7 +50,8 @@ static size_t BLOCK_SIZE = 512;
 #define VECTORIZE 1
 
 // Enables/disables pruning
-#define PRUNING
+//#define PRUNING
+//#define NEW_BITSET
 
 // Enables/disables hybrid that always chooses U-Int
 //#define HYBRID_UINT

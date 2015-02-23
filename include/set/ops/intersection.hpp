@@ -1224,7 +1224,6 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       // convert the 128-bit mask to the 4-bit mask
       uint32_t mask = _mm_movemask_ps((__m128)cmp_mask);
       //]
-
       //[ copy out common elements
       //#if WRITE_VECTOR == 1
       __m128i r = _mm_shuffle_epi8(v_a, shuffle_mask32[mask]);
@@ -1258,7 +1257,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     }
     #endif
 
-    // intersect the tail using scalar intersection
+  // intersect the tail using scalar intersection
     bool notFinished = i_a < s_a  && i_b < s_b;
     while(notFinished){
       while(notFinished && B[i_b] < A[i_a]){
@@ -1312,47 +1311,6 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         position_data_B[count] = i_b;
         _mm_prefetch(&A_data[i_a*words_per_block],_MM_HINT_T1);
         _mm_prefetch(&B_data[i_b*words_per_block],_MM_HINT_T1);
-        ++count;
-      }
-      ++i_a;
-      notFinished = notFinished && i_a < s_a;
-    }
-
-    #if WRITE_VECTOR == 0
-    (void) C;
-    #endif
-
-    return count;  
-  }
-  inline size_t intersect_offsets(
-    uint32_t *C, 
-    uint32_t *position_data_A, 
-    uint32_t *position_data_B, 
-    uint32_t *A, 
-    size_t s_a,
-    uint32_t *B, 
-    size_t s_b,
-    uint64_t *A_data,
-    uint64_t *B_data){
-
-    const size_t bytes_per_block = (BLOCK_SIZE/8);
-    const size_t words_per_block = bytes_per_block/sizeof(uint64_t);
-
-    size_t count = 0;
-    uint32_t i_a = 0;
-    uint32_t i_b = 0;
-    bool notFinished = i_a < s_a  && i_b < s_b;
-    while(notFinished){
-      while(notFinished && B[i_b] < A[i_a]){
-        ++i_b;
-        notFinished = i_b < s_b;
-      }
-      if(notFinished && A[i_a] == B[i_b]){
-        C[count] = A[i_a];
-        position_data_A[count] = i_a;
-        position_data_B[count] = i_b;
-        _mm_prefetch(&A_data[i_a*words_per_block],_MM_HINT_T0);
-        _mm_prefetch(&B_data[i_b*words_per_block],_MM_HINT_T0);
         ++count;
       }
       ++i_a;

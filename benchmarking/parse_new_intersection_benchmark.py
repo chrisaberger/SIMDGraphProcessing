@@ -58,17 +58,17 @@ def parse_file(filename):
 def main():
   options = parseInput();
 
-  labels = None
+  labels = []
   ranges = ["1000000", "5000000", "10000000"]
   cards = ["8", "16", "32", "64", "128", "256", "512", "1024", "2048", "4096", "8192", "16384", "32768", "65536", "131072", "262144"]
-  skews = ["0.0", "0.00002", "0.00032", "0.02048"]
+  skews = ["0.0", "0.1", "0.0001", "0.00002", "0.00032", "0.02048"]
 
   results = defaultdict(lambda: [])
   for set_range in ranges:
     for card in cards:
       for skew in skews:
         l, p, _, _ = parse_file(os.path.join(options.folder, set_range + "_" + card + "_" + skew + "_0.log"))
-        if not labels:
+        if len(labels) < len(l):
           labels = l
         results[card, skew].append(p)
 

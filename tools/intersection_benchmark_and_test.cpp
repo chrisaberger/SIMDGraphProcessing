@@ -274,10 +274,12 @@ int main(int argc, char* argv[]) {
 /*
   cout << endl << "label: PSHORT_PSHORT" << endl;
   intersect<pshort,pshort,pshort,pshort,pshort>(len1, len2, in1, in2, "pshort_pshort",DEFAULT);
+  */
 
   cout << endl << "label: BITSET_BITSET" << endl;
   intersect<bitset,bitset,bitset,bitset,bitset>(len1, len2, in1, in2, "bitset_bitset",DEFAULT);
 
+  /*
   cout << endl << "label: UINTEGER_PSHORT" << endl;
   intersect<uinteger,uinteger,pshort,pshort,uinteger>(len1, len2, in1, in2, "uinteger_pshort",DEFAULT);
 
@@ -287,27 +289,28 @@ int main(int argc, char* argv[]) {
   cout << endl << "label: PSHORT_BITSET" << endl;
   intersect<pshort,pshort,bitset,bitset,pshort>(len1, len2, in1, in2, "pshort_bitset",DEFAULT);
   */
-/*
-  int block_size[] = {256, 4096};
-  int address_bits[] = {8, 12};
+
+  int block_size[] = {64, 128, 256, 4096};
+  int address_bits[] = {6, 7, 8, 12};
   double bitset_thresholds[] = { 1.0 / 16.0, 1.0 / 8.0, 1.0 / 4.0 };
-  for(size_t i = 0; i < 2; i++){
+  for(size_t i = 0; i < 4; i++){
     ADDRESS_BITS_PER_BLOCK = address_bits[i];
     BLOCK_SIZE = block_size[i];
 
     cout << endl << "label: BSNEW_BSNEW" << BLOCK_SIZE << endl;
     intersect<bitset_new,bitset_new,bitset_new,bitset_new,bitset_new>(len1, len2, in1, in2, "bsnew_bsnew",DEFAULT);
-
+/*
     cout << endl << "label: UINT_BSNEW: " << BLOCK_SIZE << endl;
     intersect<uinteger,uinteger,bitset_new,bitset_new,uinteger>(len1, len2, in1, in2, "uint_bsnew",DEFAULT);
-
+    */
+/*
     for(size_t j = 0; j < 3; j++) {
       BITSET_THRESHOLD = bitset_thresholds[j];
-
+*/
       cout << endl << "label: NT_NT: " << BLOCK_SIZE << " " << BITSET_THRESHOLD << endl;
       intersect<new_type,new_type,new_type,new_type,new_type>(len1, len2, in1, in2, "nt_nt",DEFAULT);
-    }
-  }*/
+//   }
+  }
 
   //cout << endl << "label: HYBRID" << endl;
   //intersect<hybrid,hybrid,hybrid,hybrid,hybrid>(len1, len2, in1, in2, "hybrid",DEFAULT);

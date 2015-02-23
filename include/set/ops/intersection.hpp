@@ -943,7 +943,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
 
         count += _mm_popcnt_u64(result);
       }
-      C_in->number_of_bytes = total_size*sizeof(uint64_t)+sizeof(uint32_t);
+      C_in->number_of_bytes = total_size*sizeof(uint64_t)+sizeof(uint64_t);
     }
     const double density = 0.0;//(count > 0) ? (double)count/(8*small_length) : 0.0;
 

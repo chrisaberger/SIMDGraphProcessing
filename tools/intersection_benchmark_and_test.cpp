@@ -4,7 +4,7 @@
 #include "common.hpp"
 
 #define DEBUG
-//#define FROM_FILE
+#define FROM_FILE
 
 #define BUF_SIZE 1024L * 1024L * 1024L
 #define DUMMY_SIZE 1024L * 1024L * 64L
@@ -240,6 +240,9 @@ int main(int argc, char* argv[]) {
   vector_to_file("input_a", vec_a);
   vector_to_file("input_b", vec_b);
 #endif
+  cout << "Run len A: " << run_len_a << endl;
+  cout << "Run len B: " << run_len_b << endl;
+
 #endif
 
   double denA = (double)len_a/(a[len_a-1]-a[0]);
@@ -254,9 +257,7 @@ int main(int argc, char* argv[]) {
   cout << "B start: " << b[0] << " B end: " << b[len_b-1] << endl;
   cout << "Density A: " << denA << endl;
   cout << "Density B: " << denB << endl;
-  cout << "Run len A: " << run_len_a << endl;
-  cout << "Run len B: " << run_len_b << endl;
-
+  /*
   cout << endl << "UINTEGER_UINTEGER_IBM" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_ibm",IBM);
 
@@ -274,6 +275,7 @@ int main(int argc, char* argv[]) {
 
   cout << endl << "PSHORT_PSHORT" << endl;
   intersect<pshort,pshort,pshort,pshort,pshort>(len1, len2, in1, in2, "pshort_pshort",DEFAULT);
+  */
 
   cout << endl << "BITSET_BITSET" << endl;
   intersect<bitset,bitset,bitset,bitset,bitset>(len1, len2, in1, in2, "bitset_bitset",DEFAULT);
@@ -281,6 +283,7 @@ int main(int argc, char* argv[]) {
   cout << endl << "UINTEGER_PSHORT" << endl;
   intersect<uinteger,uinteger,pshort,pshort,uinteger>(len1, len2, in1, in2, "uinteger_pshort",DEFAULT);
 
+  /*
   cout << endl << "UINTEGER_BITSET" << endl;
   intersect<uinteger,uinteger,bitset,bitset,uinteger>(len1, len2, in1, in2, "uinteger_bitset",DEFAULT);
 
@@ -305,6 +308,6 @@ int main(int argc, char* argv[]) {
 
   cout << endl << "HYBRID" << endl;
   intersect<hybrid,hybrid,hybrid,hybrid,hybrid>(len1, len2, in1, in2, "hybrid",DEFAULT);
-
+  */
   return 0;
 }

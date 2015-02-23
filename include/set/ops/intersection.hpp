@@ -921,7 +921,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         const __m256 r = _mm256_and_ps(a2, a1);
 
         #if WRITE_VECTOR == 1
-        _mm256_storeu_ps((float*)(C + i), r);
+        _mm256_storeu_ps((float*)(C + i + start_index), r);
         #endif
 
         _mm256_storeu_ps((float*)tmp, r);
@@ -938,7 +938,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         const uint64_t result = A[i+a_start_index] & B[i+b_start_index];
 
         #if WRITE_VECTOR == 1
-        C[i] = result;
+        C[i+start_index] = result;
         #endif
 
         count += _mm_popcnt_u64(result);

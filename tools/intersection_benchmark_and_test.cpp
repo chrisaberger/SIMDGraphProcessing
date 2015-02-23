@@ -1,9 +1,9 @@
-#define WRITE_VECTOR 0
+#define WRITE_VECTOR 1
 
 #include "SparseMatrix.hpp"
 #include "common.hpp"
 
-//#define DEBUG
+#define DEBUG
 //#define FROM_FILE
 
 #define BUF_SIZE 1024L * 1024L * 1024L
@@ -84,6 +84,7 @@ template<class T, class R, class U, class P, class F> void intersect(size_t len_
   common::stopClock("intersect", start_time_intersect);
   std::cout << "End intersect. |C| = " << set_c.cardinality << std::endl;
 
+/*
 #ifdef DEBUG
   ofstream myfile1;
   myfile1.open(filename.append("_a"));
@@ -98,7 +99,7 @@ template<class T, class R, class U, class P, class F> void intersect(size_t len_
     myfile2 << "Index: " << index2++ << " Data: " << i << endl;
   });
 #endif
-
+*/
 #ifdef DEBUG
   ofstream myfile;
   myfile.open(filename.append("_output"));

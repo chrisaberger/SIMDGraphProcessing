@@ -56,15 +56,24 @@ class application{
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
       const size_t matrix_size = graph->matrix_size;
+<<<<<<< HEAD
+      common::alloc_scratch_space(512*matrix_size*sizeof(uint32_t),num_threads);
+=======
       common::alloc_scratch_space(512*matrix_size*matrix_size*sizeof(uint32_t),num_threads);
+>>>>>>> origin/andres_sandbox
 
 
       uint32_t *src_buffer = new uint32_t[matrix_size];
       uint32_t *dst_buffer = new uint32_t[matrix_size];
       uint8_t *result_buffer = new uint8_t[matrix_size*8];
 
+<<<<<<< HEAD
+      uint32_t i = 3600;
+      uint32_t j = 3596;
+=======
       uint32_t i = 1147;
       uint32_t j = 1081;
+>>>>>>> origin/andres_sandbox
 
       cout << "src: " << i << " dst: " << j << endl;
 
@@ -104,7 +113,7 @@ class application{
     produceSubgraph();
     common::stopClock("Selections",start_time);
 
-    graph->print_data("graph.txt");
+    //graph->print_data("graph.txt");
 
     if(pcm_init() < 0)
        return;

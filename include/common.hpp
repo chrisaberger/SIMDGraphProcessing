@@ -36,6 +36,7 @@ static double BITSET_THRESHOLD = 10 / 32.0;
 //#define ENABLE_ATOMIC_UNION
 
 //TODO: Replace with new command line arguments.
+
 #define ALLOCATOR 2
 #define REALLOC_THRESHOLD 0.7
 
@@ -51,7 +52,8 @@ static double BITSET_THRESHOLD = 10 / 32.0;
 #define VECTORIZE 1
 
 // Enables/disables pruning
-#define PRUNING
+//#define PRUNING
+//#define NEW_BITSET
 
 // Enables/disables hybrid that always chooses U-Int
 //#define HYBRID_UINT

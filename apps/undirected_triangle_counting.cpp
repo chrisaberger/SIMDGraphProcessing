@@ -61,10 +61,7 @@ class application{
       system_counter_state_t before_sstate = pcm_get_counter_state();
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
-      ParallelBuffer<uint32_t> *src_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size);
-      ParallelBuffer<uint32_t> *dst_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size);
       ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,512*graph->max_nbrhood_size*sizeof(uint32_t));
-
       common::alloc_scratch_space(512*graph->max_nbrhood_size*sizeof(uint32_t),num_threads);
 
       double intersect_time = 0.0;
@@ -72,27 +69,23 @@ class application{
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
       common::par_for_range(num_threads, 0, matrix_size, 100,
-        [this,src_buffers,dst_buffers,buffers,t_count](size_t tid){
-          src_buffers->allocate(tid);
-          dst_buffers->allocate(tid);
+        [this,buffers,t_count](size_t tid){
           buffers->allocate(tid);
           t_count[tid*PADDING] = 0;
         },
         ////////////////////////////////////////////////////
-        [this,src_buffers,dst_buffers,buffers,t_count,&intersect_time](size_t tid, size_t i) {
+        [this,buffers,t_count,&intersect_time](size_t tid, size_t i) {
            long t_num_triangles = 0;
-           uint32_t *src_buffer = src_buffers->data[tid];
-           uint32_t *dst_buffer = dst_buffers->data[tid];
-
            Set<R> A = this->graph->get_row(i);
            Set<R> C(buffers->data[tid]);
 
+          //cout << "Node: " << i << endl;
+
            //std::cout << A.type;
-           A.foreach([this, i, &A, &C, &dst_buffer, &t_num_triangles, &intersect_time] (uint32_t j){
+           A.foreach([this, i, &A, &C, &t_num_triangles, &intersect_time] (uint32_t j){
              Set<R> B = this->graph->get_row(j);
 
              //cout << "Edge: " << i << " " << j << endl;
-
              //ops::set_intersect(&C,&A,&B)->cardinality;
             //double timez = common::startClock();
             const size_t tmp_count = ops::set_intersect(&C,&A,&B)->cardinality;
@@ -102,6 +95,9 @@ class application{
 
              t_num_triangles += tmp_count;
            });
+
+            //cout << t_num_triangles << endl;
+
 
            t_count[tid*PADDING] += t_num_triangles;
         },

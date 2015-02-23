@@ -1178,7 +1178,12 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     uint32_t *A, 
     size_t s_a,
     uint32_t *B, 
-    size_t s_b){    
+    size_t s_b,
+    uint64_t *A_data,
+    uint64_t *B_data){    
+
+    const size_t bytes_per_block = (BLOCK_SIZE/8);
+    const size_t words_per_block = bytes_per_block/sizeof(uint64_t);
 
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
@@ -1202,8 +1207,6 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       //[ move pointers
       uint32_t a_max = A[i_a+3];
       uint32_t b_max = B[i_b+3];
-      i_a += (a_max <= b_max) * 4;
-      i_b += (a_max >= b_max) * 4;
       //]
 
       //[ compute mask of common elements
@@ -1222,28 +1225,40 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       // convert the 128-bit mask to the 4-bit mask
       uint32_t mask = _mm_movemask_ps((__m128)cmp_mask);
       //]
-
       //[ copy out common elements
       //#if WRITE_VECTOR == 1
       __m128i r = _mm_shuffle_epi8(v_a, shuffle_mask32[mask]);
       _mm_storeu_si128((__m128i*)&C[count], r);
 
       const __m128i p1 = _mm_shuffle_epi8(offset_reg, shuffle_mask32[mask]);
-      const __m128i sum = _mm_add_epi32(p1,a_offset);
-      _mm_storeu_si128((__m128i*)&position_data_A[count], sum);
-      const __m128i p2 = _mm_shuffle_epi8(offset_reg, shuffle_mask32[mask]);
-      _mm_storeu_si128((__m128i*)&position_data_B[count], _mm_add_epi32(p2,b_offset));
+      _mm_storeu_si128((__m128i*)&position_data_A[count], _mm_add_epi32(p1,a_offset));
 
+      //const __m128i p2 = _mm_shuffle_epi8(offset_reg, shuffle_mask32[mask]);
+      //_mm_storeu_si128((__m128i*)&position_data_B[count], _mm_add_epi32(p2,b_offset));
+
+      const size_t tmp_count = _mm_popcnt_u32(mask);;
+      size_t b_index = 0;
+      for(size_t i = count; i < (tmp_count+count); i ++){
+        while(B[i_b+b_index] < C[i]){
+          b_index++;
+        }
+        position_data_B[i] = b_index;
+        _mm_prefetch(&A_data[position_data_A[i]*words_per_block],_MM_HINT_T1);
+        _mm_prefetch(&B_data[position_data_B[i]*words_per_block],_MM_HINT_T1);
+      }
       //cout << "C[" << count << "]: " << C[count] << endl;
 
       //#endif
 
-      count += _mm_popcnt_u32(mask); // a number of elements is a weight of the mask
+      i_a += (a_max <= b_max) * 4;
+      i_b += (a_max >= b_max) * 4;
+      count += tmp_count;
+       // a number of elements is a weight of the mask
       //]
     }
     #endif
 
-    // intersect the tail using scalar intersection
+  // intersect the tail using scalar intersection
     bool notFinished = i_a < s_a  && i_b < s_b;
     while(notFinished){
       while(notFinished && B[i_b] < A[i_a]){
@@ -1254,6 +1269,8 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         C[count] = A[i_a];
         position_data_A[count] = i_a;
         position_data_B[count] = i_b;
+        _mm_prefetch(&A_data[i_a*words_per_block],_MM_HINT_T1);
+        _mm_prefetch(&B_data[i_b*words_per_block],_MM_HINT_T1);
         ++count;
       }
       ++i_a;
@@ -1293,8 +1310,8 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         C[count] = A[i_a];
         position_data_A[count] = i_a;
         position_data_B[count] = i_b;
-        _mm_prefetch(&A_data[i_a*words_per_block],_MM_HINT_T0);
-        _mm_prefetch(&B_data[i_b*words_per_block],_MM_HINT_T0);
+        _mm_prefetch(&A_data[i_a*words_per_block],_MM_HINT_T1);
+        _mm_prefetch(&B_data[i_b*words_per_block],_MM_HINT_T1);
         ++count;
       }
       ++i_a;
@@ -1345,7 +1362,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     size_t A_num_blocks = A_in->number_of_bytes/(sizeof(uint32_t)+(BLOCK_SIZE/8));
     size_t B_num_blocks = B_in->number_of_bytes/(sizeof(uint32_t)+(BLOCK_SIZE/8));
 
-    size_t A_scratch_space = A_num_blocks*sizeof(uint32_t);
+    size_t A_scratch_space = A_num_blocks*sizeof(uint64_t)*2;
     //size_t B_scratch_space = B_num_blocks*sizeof(size_t);
     //size_t scratch_space = A_scratch_space + B_scratch_space;
 
@@ -1360,7 +1377,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     uint32_t *A_offset_pointer = (uint32_t*)A_in->data;
     uint32_t *B_offset_pointer = (uint32_t*)B_in->data;
 
-    size_t offset_count = intersect_offsets((uint32_t *)C_in->data,
+    size_t offset_count = simd_intersect_offsets((uint32_t *)C_in->data,
       A_offset_positions,B_offset_positions,
       A_offset_pointer,A_num_blocks,
       B_offset_pointer,B_num_blocks,
@@ -1407,7 +1424,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       if(notFinished && (A[i_a] >> ADDRESS_BITS_PER_BLOCK) == B[i_b]){
         A_positions[count] = i_a;
         B_position_data[count] = i_b;
-        _mm_prefetch(&B_data[i_b*words_per_block],_MM_HINT_T0);
+        _mm_prefetch(&B_data[i_b*words_per_block],_MM_HINT_T1);
         ++count;
       }
       ++i_a;
@@ -1554,10 +1571,6 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     uint8_t *scratch3 = scratch2+scratch2_space; 
     //C_in->data += (scratch1_space+scratch2_space+scratch3_space);  
 
-    Set<uinteger>UU(scratch1);
-    Set<uinteger>UBS(scratch2);
-    Set<uinteger>BSU(scratch3);
-
     const Set<uinteger>A_I(A_uinteger_data,A_uint_card,A_num_uint_bytes,common::UINTEGER);
     const Set<uinteger>B_I(B_uinteger_data,B_uint_card,B_num_uint_bytes,common::UINTEGER);
 
@@ -1566,27 +1579,47 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
 
     size_t count = 0;
     
-    UU = ops::set_intersect(&UU,&A_I,&B_I);
-    count += UU.cardinality;
-
-    UBS = ops::set_intersect(&UBS,&A_I,&B_BS);
-    count += UBS.cardinality;
-
-    BSU = ops::set_intersect(&BSU,&B_I,&A_BS);
-    count += BSU.cardinality;
-
     uint8_t *C_pointer = C_in->data+sizeof(size_t);
+    if( (A_I.number_of_bytes != 0 || B_I.number_of_bytes != 0) &&
+      (A_BS.number_of_bytes != 0 || B_BS.number_of_bytes != 0)){
+      
+      Set<uinteger>UU(scratch1);
+      Set<uinteger>UBS(scratch2);
+      Set<uinteger>BSU(scratch3);
+
+      UU = ops::set_intersect(&UU,&A_I,&B_I);
+      count += UU.cardinality;
+
+      UBS = ops::set_intersect(&UBS,&A_I,&B_BS);
+      count += UBS.cardinality;
+
+      BSU = ops::set_intersect(&BSU,&B_I,&A_BS);
+      count += BSU.cardinality;
+
+      #if WRITE_VECTOR == 1
+      distinct_merge_three_way(
+        count,
+        (uint32_t*)(C_pointer),
+        (uint32_t*)UU.data,UU.cardinality, 
+        (uint32_t*)UBS.data,UBS.cardinality,
+        (uint32_t*)BSU.data,BSU.cardinality);
+      #endif
+    } else if(A_BS.number_of_bytes == 0 && B_BS.number_of_bytes == 0){
+      Set<uinteger>UU(C_pointer);
+      UU = ops::set_intersect(&UU,&A_I,&B_I);
+      count += UU.cardinality;
+
+      ((size_t*)C_in->data)[0] = (count*sizeof(uint32_t));
+      C_in->cardinality = count;
+      C_in->number_of_bytes = sizeof(size_t)+(count*sizeof(uint32_t));
+      C_in->density = 0.0;
+      C_in->type= common::NEW_TYPE;
+
+      return C_in;
+    }
+    
     const size_t num_uint = count;
-    #if WRITE_VECTOR == 1
     ((size_t*)C_in->data)[0] = (num_uint*sizeof(uint32_t));
-    distinct_merge_three_way(
-      count,
-      (uint32_t*)(C_pointer),
-      (uint32_t*)UU.data,UU.cardinality, 
-      (uint32_t*)UBS.data,UBS.cardinality,
-      (uint32_t*)BSU.data,BSU.cardinality);
-    #endif
- 
     C_pointer += (num_uint*sizeof(uint32_t));
 
     Set<bitset_new>BSBS(C_pointer);

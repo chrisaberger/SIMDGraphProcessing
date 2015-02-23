@@ -26,8 +26,8 @@
 #include <cstdarg>
 #include <set>
 
-static size_t ADDRESS_BITS_PER_BLOCK = 8;
-static size_t BLOCK_SIZE = 256;
+static size_t ADDRESS_BITS_PER_BLOCK = 9;
+static size_t BLOCK_SIZE = 512;
 
 // Experts only! Proceed wih caution!
 //#define ENABLE_PCM

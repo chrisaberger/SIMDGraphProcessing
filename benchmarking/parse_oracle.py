@@ -60,16 +60,12 @@ def main():
   options = parseInput();
 
   datasets = ["g_plus", "higgs", "socLivejournal", "orkut", "cid-patents", "twitter2010","wikipedia"]
-  orderings = ["random", "degree"]
-  data_types = ["pruned", "unpruned"]
-  layouts = ["uint","hybrid"]
-  threads = ["1"]
   runs = [str(x) for x in range(1, 8)]
 
   result = defaultdict(lambda: defaultdict(lambda: []))
   for dataset in datasets:
     for run in runs:
-        p = parse_file(options.folder +"/" + dataset + "_" + run + "_pruned_uint.log")
+        p = parse_file(options.folder +"/" + dataset + "_" + run + ".log")
         result[dataset]["uint"] += p.get("uint", [])
         result[dataset]["hybrid"] += p.get("hybrid", [])
         result[dataset]["oracle"] += p.get("oracle", [])

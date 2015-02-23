@@ -2,22 +2,23 @@
 
 source env.sh
 
-numruns="4"
+numruns="0"
 curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
 
-odir="${output}/intersection_benchmark_${date}_${curtime}"
+odir="${output}/new_intersection_benchmark_${date}_${curtime}"
 mkdir $odir
 
-skews="0.00002 0.00004 0.00008 0.00016 0.00032 0.00128 0.00256 0.00512 0.01024 0.02048"
-lenA="10000000"
-lenB="100000"
-
-range="1000000000000000"
+skews="0.0 0.00002 0.00032 0.02048"
+lens="2048" #512 1024 2048 4096 8192 16384 32768 65536 131072 262144"
+ranges="10000 20000 40000 80000 160000 320000 640000 1280000"
 
 for i in `seq 0 ${numruns}`; do
-  for skew in ${skews}; do
-    ${EMPTY_HEADED_HOME}/bin/intersection_benchmark_and_test ${range} ${range} ${lenA} ${lenB} ${skew} ${skew} | tee ${odir}/skew_${skews}_${i}.log
+  for len in ${lens}; do
+    for skew in ${skews}; do
+      for range in ${ranges}; do
+        ${EMPTY_HEADED_HOME}/stable_binaries/intersection_benchmark_and_test ${range} ${range} ${len} ${len} ${skew} ${skew} | tee ${odir}/${range}_${len}_${skew}_${i}.log
+       done
+    done
   done
 done
-

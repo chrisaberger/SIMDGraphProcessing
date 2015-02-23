@@ -1327,6 +1327,8 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     const Set<uinteger> *freq = (A_in->cardinality > B_in->cardinality) ? A_in:B_in;
     const unsigned long min_size = 1;
 
+    //return set_intersect_standard(C_in, rare, freq);
+
     if(std::max(A_in->cardinality,B_in->cardinality) / std::max(min_size, std::min(A_in->cardinality,B_in->cardinality)) > 16)
       return set_intersect_v3(C_in, rare, freq);
     else
@@ -1342,9 +1344,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
         const __m256 m1 = _mm256_loadu_ps((float*)(A + vector_index));
         const __m256 m2 = _mm256_loadu_ps((float*)(B + vector_index));
         const __m256 r = _mm256_and_ps(m1, m2);
-        #if WRITE_VECTOR == 1
         _mm256_storeu_ps((float*)(result_data+vector_index), r);
-        #endif
         count += _mm_popcnt_u64(result_data[vector_index]);
         count += _mm_popcnt_u64(result_data[vector_index+1]);
         count += _mm_popcnt_u64(result_data[vector_index+2]);
@@ -1454,6 +1454,8 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
     if((block[word_to_check] >> bit_to_check) % 2){
       #if WRITE_VECTOR == 1
       result[0] = value;
+      #else
+      (void) result;
       #endif
       return 1;
     } 

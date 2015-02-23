@@ -26,8 +26,8 @@
 #include <cstdarg>
 #include <set>
 
-static size_t ADDRESS_BITS_PER_BLOCK = 7;
-static size_t BLOCK_SIZE = 128;
+static size_t ADDRESS_BITS_PER_BLOCK = 8;
+static size_t BLOCK_SIZE = 256;
 
 // Experts only! Proceed wih caution!
 //#define ENABLE_PCM
@@ -35,7 +35,8 @@ static size_t BLOCK_SIZE = 128;
 //#define ENABLE_ATOMIC_UNION
 
 //TODO: Replace with new command line arguments.
-#define ALLOCATOR 200
+
+#define ALLOCATOR 2
 #define REALLOC_THRESHOLD 0.7
 
 //Needed for parallelization, prevents false sharing of cache lines

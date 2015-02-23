@@ -1354,7 +1354,7 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
       for(size_t i = 0; i < BLOCK_SIZE; i+=64){
         const uint64_t r = A[i/64] & B[i/64]; 
         #if WRITE_VECTOR == 1
-        C[i/64] = r;
+        result_data[i/64] = r;
         #endif
         count += _mm_popcnt_u64(r);
       }

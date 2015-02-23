@@ -37,10 +37,10 @@ def main():
 
   bfs_details = True
 
-  datasets = ["baidu","california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec","twitter2010","wikipedia"]
+  datasets = ["g_plus"]#["baidu","california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec","twitter2010","wikipedia"]
   #datasets = ["baidu","california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec"]#,"twitter2010","wikipedia"]
 
-  threads = ["1","24","48"]
+  threads = ["1","48"]
 
   print options.folder
   matchObj = re.match(r'/dfs/scratch0/\w*/output/(\w*)_.*', options.folder, re.M|re.I)

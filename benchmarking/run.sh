@@ -13,6 +13,7 @@ for system in $systems; do
   odir="${output}/${system}_${date}_${curtime}"
   mkdir $odir
   echo $odir
+  echo $datasets
    for dataset in $datasets; do
       for threads in $num_threads; do
          cd ${system}

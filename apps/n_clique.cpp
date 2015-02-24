@@ -53,8 +53,8 @@ class application{
     Set<R> *A = set_buffers[depth-1];
     Set<R> B = graph->get_decoded_row(node,decode_buffers->data[depth]);
 
-    Set<R> *C = ops::set_intersect(set_buffers[depth],A,&B); 
-    set_buffers[depth] = C;    
+    Set<R> *C = ops::set_intersect(set_buffers[depth],A,&B);
+    set_buffers[depth] = C;
 
     size_t count = 0;
     if(++depth == query_depth){

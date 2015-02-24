@@ -18,8 +18,10 @@ for system in "features"; do
   echo $odir
   for run in `seq $numruns`; do
    for dataset in $datasets; do
-     ${STABLE_BIN_DIR}/undirected_triangle_counting_noalgo --graph=/dfs/scratch0/caberger/datasets/${dataset}/bin/u_degree.bin --input_type=binary --t=1 --layout=uint | tee $odir/${dataset}_${run}_pruned.log
-     ${STABLE_BIN_DIR}/undirected_triangle_counting_noalgo_unpruned --graph=/dfs/scratch0/caberger/datasets/${dataset}/bin/u_degree.bin --input_type=binary --t=1 --layout=uint | tee $odir/${dataset}_${run}_unpruned.log
+     #${STABLE_BIN_DIR}/undirected_triangle_counting_noalgo --graph=/dfs/scratch0/caberger/datasets/${dataset}/bin/u_degree.bin --input_type=binary --t=1 --layout=uint | tee $odir/${dataset}_${run}_pruned.log
+     #${STABLE_BIN_DIR}/undirected_triangle_counting_noalgo_unpruned --graph=/dfs/scratch0/caberger/datasets/${dataset}/bin/u_degree.bin --input_type=binary --t=1 --layout=uint | tee $odir/${dataset}_${run}_unpruned.log
+     echo ${STABLE_BIN_DIR}/undirected_lollipop_counting_no_sra --graph=/dfs/scratch0/caberger/datasets/${dataset}/bin/u_degree.bin --input_type=binary --t=1 --layout=uint | tee $odir/${dataset}_${run}_pruned.log
+     ${STABLE_BIN_DIR}/undirected_lollipop_counting_no_sra --graph=/dfs/scratch0/caberger/datasets/${dataset}/bin/u_degree.bin --input_type=binary --t=1 --layout=uint | tee $odir/${dataset}_${run}_pruned.log
    done
   done
 done

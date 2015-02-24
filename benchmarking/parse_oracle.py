@@ -45,6 +45,10 @@ def parse_file(filename):
         if matchObj:
           perf["uint"] = [matchObj.group(1)]
 
+        matchObj = re.match(r'Block level time: (.*)', line, re.M | re.I)
+        if matchObj:
+          perf["block"] = [matchObj.group(1)]
+
   return perf
 
 def avg_runs(vals):
@@ -69,6 +73,7 @@ def main():
         result[dataset]["uint"] += p.get("uint", [])
         result[dataset]["hybrid"] += p.get("hybrid", [])
         result[dataset]["oracle"] += p.get("oracle", [])
+        result[dataset]["block"] += p.get("block", [])
 
   for ds, vs in result.iteritems():
     print ds

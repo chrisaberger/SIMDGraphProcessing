@@ -2,7 +2,7 @@
 
 source env.sh
 
-numruns="0"
+numruns="7"
 curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
 
@@ -13,7 +13,7 @@ skews="0.0 0.0001 0.0002 0.0004 0.0008 0.0016 0.0032 0.0064 0.0128 0.0256 0.0512
 lens="512 1024 2048 4096 8192"
 ranges="1000000"
 
-for i in `seq 0 ${numruns}`; do
+for i in `seq 1 ${numruns}`; do
   for len in ${lens}; do
     for skew in ${skews}; do
       for range in ${ranges}; do

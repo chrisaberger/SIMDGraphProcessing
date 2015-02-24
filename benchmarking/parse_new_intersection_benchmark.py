@@ -50,10 +50,19 @@ def parse_file(filename):
         matchObj = re.match(r'Size: (.*)', line, re.M|re.I)
         if matchObj:
           mem.append(int(matchObj.group(1)))
-  else:
-    print "Warning! " + filename + " not found"
+  # else:
+  #  print "Warning! " + filename + " not found"
 
   return labels, times, encoding_times, mem
+
+def avg_runs(vals):
+  vals = [float(v) for v in vals]
+  result = -1.0
+  if len(vals) >= 5:
+    result = np.average(np.sort(vals)[1:-1])
+  elif len(vals) > 0:
+    result = np.average(vals)
+  return result
 
 def main():
   options = parseInput();
@@ -64,13 +73,14 @@ def main():
   skews = ["0.0", "0.0001", "0.0002", "0.0004", "0.0008", "0.0016", "0.0032", "0.0064", "0.0128", "0.0256", "0.0512", "0.1024"]
 
   results = defaultdict(lambda: [])
-  for set_range in ranges:
-    for card in cards:
-      for skew in skews:
-        l, p, _, _ = parse_file(os.path.join(options.folder, set_range + "_" + card + "_" + skew + "_0.log"))
-        if len(labels) < len(l):
-          labels = l
-        results[card, skew].append(p)
+  for run in range(1, 8):
+    for set_range in ranges:
+      for card in cards:
+        for skew in skews:
+          l, p, _, _ = parse_file(os.path.join(options.folder, set_range + "_" + card + "_" + skew + "_" + str(run) + ".log"))
+          if len(labels) < len(l):
+            labels = l
+          results[card, skew].append(p)
 
   for set_range in ranges:
     print set_range
@@ -78,7 +88,13 @@ def main():
       print card
       print "\t" + "\t".join(labels)
       for skew in skews:
-        print skew + "\t" + "\t".join(results[card, skew][0])
+        max_len = np.max(map(lambda x: len(x), results[card, skew]))
+        if max_len > 0:
+          agg_results = [[] for x in range(max_len)]
+          for r in results[card, skew]:
+            if len(r) == max_len:
+              [agg_results[i].append(x) for i, x in enumerate(r)]
+          print skew + "\t" + "\t".join([str(avg_runs(vs)) for vs in agg_results])
       print
       print
 

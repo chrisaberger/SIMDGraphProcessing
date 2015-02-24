@@ -28,7 +28,7 @@
 
 static size_t ADDRESS_BITS_PER_BLOCK = 8;
 static size_t BLOCK_SIZE = 256;
-static double BITSET_THRESHOLD = 1.0 / 32.0;
+static double BITSET_THRESHOLD = 1.0 / 16.0;
 
 // Experts only! Proceed wih caution!
 //#define ENABLE_PCM
@@ -58,7 +58,7 @@ static double BITSET_THRESHOLD = 1.0 / 32.0;
 // Enables/disables hybrid that always chooses U-Int
 //#define HYBRID_UINT
 
-#define STATS
+//#define STATS
 
 //CONSTANTS THAT SHOULD NOT CHANGE
 #define SHORTS_PER_REG 8

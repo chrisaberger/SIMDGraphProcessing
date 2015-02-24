@@ -56,9 +56,9 @@ class application{
       system_counter_state_t before_sstate = pcm_get_counter_state();
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
-      ParallelBuffer<uint32_t> *y_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size * 4);
-      ParallelBuffer<uint32_t> *z_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size * 4);
-      ParallelBuffer<uint8_t> *r_buffers = new ParallelBuffer<uint8_t>(num_threads,graph->max_nbrhood_size*sizeof(uint32_t) * 4);
+      ParallelBuffer<uint32_t> *y_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size * 8);
+      ParallelBuffer<uint32_t> *z_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size * 8);
+      ParallelBuffer<uint8_t> *r_buffers = new ParallelBuffer<uint8_t>(num_threads,graph->max_nbrhood_size*sizeof(uint32_t) * 8);
 
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
@@ -82,15 +82,20 @@ class application{
              Set<R> zs = this->graph->get_decoded_row(y, z_buffer);
              ops::set_intersect(&rs, &ys, &zs);
 
+             t_num_lollipops += rs.cardinality * ys.cardinality;
+
+            /* 
              rs.foreach([&](uint32_t r) {
                if(y < r) {
+                 t_num_lollipops += ys.cardinality;
+               /*
                  ys.foreach([&](uint32_t w) {
                    if(w != y && w != r) {
                      t_num_lollipops++;
                    }
                  });
                }
-             });
+             });*/
            });
 
            t_count[tid*PADDING] += t_num_lollipops;
@@ -119,7 +124,7 @@ class application{
     queryOver();
     common::stopClock(this->query_name, start_time);
 
-    cout << "Count: " << num_triangles << endl << endl;
+    cout << "Count: " << num_triangles / 2 << endl << endl;
 
     common::dump_stats();
 

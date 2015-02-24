@@ -1,9 +1,9 @@
-#define WRITE_VECTOR 1
+#define WRITE_VECTOR 0
 
 #include "SparseMatrix.hpp"
 #include "common.hpp"
 
-#define DEBUG
+//#define DEBUG
 //#define FROM_FILE
 
 #define BUF_SIZE 1024L * 1024L * 1024L
@@ -300,11 +300,11 @@ int main(int argc, char* argv[]) {
 
     cout << endl << "label: BSNEW_BSNEW" << BLOCK_SIZE << endl;
     intersect<bitset_new,bitset_new,bitset_new,bitset_new,bitset_new>(len1, len2, in1, in2, "bsnew_bsnew",DEFAULT);
-/*
+
+    /*
     cout << endl << "label: UINT_BSNEW: " << BLOCK_SIZE << endl;
     intersect<uinteger,uinteger,bitset_new,bitset_new,uinteger>(len1, len2, in1, in2, "uint_bsnew",DEFAULT);
-    */
-/*
+
     for(size_t j = 0; j < 3; j++) {
       BITSET_THRESHOLD = bitset_thresholds[j];
 */

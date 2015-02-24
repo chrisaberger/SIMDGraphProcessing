@@ -56,8 +56,6 @@ class application{
     }
 
     inline void queryOver(){
-      //graph->print_data("graph.txt");
-
       system_counter_state_t before_sstate = pcm_get_counter_state();
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
@@ -79,25 +77,11 @@ class application{
            Set<R> A = this->graph->get_row(i);
            Set<R> C(buffers->data[tid]);
 
-          //cout << "Node: " << i << endl;
-
-           //std::cout << A.type;
            A.foreach([this, i, &A, &C, &t_num_triangles, &intersect_time] (uint32_t j){
              Set<R> B = this->graph->get_row(j);
 
-             //cout << "Edge: " << i << " " << j << endl;
-             //ops::set_intersect(&C,&A,&B)->cardinality;
-            //double timez = common::startClock();
-            const size_t tmp_count = ops::set_intersect(&C,&A,&B)->cardinality;
-            //intersect_time += common::stopClock(timez);
-
-            //cout << tmp_count << endl;
-
-             t_num_triangles += tmp_count;
+            t_num_triangles += ops::set_intersect(&C,&A,&B)->cardinality;
            });
-
-            //cout << t_num_triangles << endl;
-
 
            t_count[tid*PADDING] += t_num_triangles;
         },

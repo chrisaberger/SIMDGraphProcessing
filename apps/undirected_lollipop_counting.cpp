@@ -83,19 +83,6 @@ class application{
              ops::set_intersect(&rs, &ys, &zs);
 
              t_num_lollipops += rs.cardinality * ys.cardinality;
-
-            /* 
-             rs.foreach([&](uint32_t r) {
-               if(y < r) {
-                 t_num_lollipops += ys.cardinality;
-               /*
-                 ys.foreach([&](uint32_t w) {
-                   if(w != y && w != r) {
-                     t_num_lollipops++;
-                   }
-                 });
-               }
-             });*/
            });
 
            t_count[tid*PADDING] += t_num_lollipops;

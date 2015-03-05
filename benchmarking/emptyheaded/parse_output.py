@@ -12,7 +12,8 @@ def getInternalPerformanceInfo(f, get_compression=False, get_bfs_details=False):
   num_edges = -1.0
 
   for line in f:
-    matchObj = re.match(r'Time\[UNDIRECTED TRIANGLE.*: (.*) s', line, re.M|re.I)
+    matchObj = re.match(r'Time\[pure bfs time.*: (.*) s', line, re.M|re.I)
+    #matchObj = re.match(r'Time\[UNDIRECTED TRIANGLE.*: (.*) s', line, re.M|re.I)
     if matchObj:
       triangle_perf.append(matchObj.group(1))
 

@@ -115,6 +115,7 @@ class application{
   }
 
   inline void run(){
+
     double start_time = common::startClock();
     produceSubgraph();
     common::stopClock("Selections",start_time);

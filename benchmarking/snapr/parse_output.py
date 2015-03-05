@@ -2,6 +2,8 @@ import re
 
 def getSnaprPerformance(f):        
   perf = []
+  prune = []
+
   num_bytes = -1.0
   num_edges = -1.0
 
@@ -10,4 +12,8 @@ def getSnaprPerformance(f):
     if matchObj:
       perf.append(matchObj.group(1))
 
-  return {'perf':perf, 'bytes':num_bytes ,'edges':num_edges }
+    matchObj = re.match(r'Time\[PRUNING TIME\]: (.*) s', line, re.M|re.I)
+    if matchObj:
+      prune.append(matchObj.group(1))
+
+  return {'perf':perf, 'prune':prune ,'edges':num_edges }

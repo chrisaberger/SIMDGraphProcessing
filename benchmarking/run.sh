@@ -9,8 +9,8 @@ curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
 numruns="7"
 
-systems="graphlab snapr pgx emptyheaded"
-datasets="g_plus"
+systems="snapr" #"graphlab snapr pgx emptyheaded"
+datasets="baidu california higgs g_plus flickr socLivejournal orkut cid-patents pokec wikipedia twitter2010"
 num_threads="1 48"
 
 for system in $systems; do

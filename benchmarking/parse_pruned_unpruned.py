@@ -64,6 +64,7 @@ def main():
       for ordering in orderings:
         for datatype in data_types:
           for layout in layouts:
+            
             p = parse_file(options.folder +"/" + dataset + "_" + run + "_" + datatype + "_" + layout + "_" + ordering + ".log")
             result[dataset][datatype, layout, ordering] += p
 

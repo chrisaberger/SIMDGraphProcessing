@@ -37,8 +37,8 @@ def main():
 
   bfs_details = True
 
-  datasets = ["g_plus"]#["baidu","california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec","twitter2010","wikipedia"]
-  #datasets = ["baidu","california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec"]#,"twitter2010","wikipedia"]
+  #datasets = ["g_plus"]#["baidu","california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec","twitter2010","wikipedia"]
+  datasets = ["g_plus"]#["baidu","california","higgs","flickr","socLivejournal","orkut","cid-patents","pokec"]#"twitter2010","wikipedia"]
 
   threads = ["1","48"]
 
@@ -72,7 +72,9 @@ def main():
       elif system == "snapr":
         perf_info = getSnaprPerformance(f);
         avg = average_runs(perf_info['perf'])
+        avg2 = average_runs(perf_info['prune'])
         print "data: " + dataset + " t: " + thread + " time: " + str(avg)
+        print "data: " + dataset + " t: " + thread + " prune: " + str(avg2)
       elif system == "pgx":
         perf_info = getPGXPerformance(f);
         avg = average_runs(perf_info['perf'])

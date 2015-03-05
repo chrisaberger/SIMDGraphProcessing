@@ -413,7 +413,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_noattribute_graph(MutableGr
   size_t *tid_alloc_size = new size_t[num_threads * m];
 
   double parallel_range = common::startClock();
-  common::par_for_range(num_threads,0,matrix_size_in,128,
+  common::par_for_range(num_threads,0,matrix_size_in,256,
     //////////////////////////////////////////////////////////
     [alloc_size,tid_alloc_size,selected_data_buffer,row_data_buffer,indices,cardinalities](size_t tid){
       indices[tid * m] = 0;

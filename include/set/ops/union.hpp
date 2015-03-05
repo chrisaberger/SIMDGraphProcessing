@@ -59,7 +59,7 @@ namespace ops{
   }
   inline void set_union(Set<bitset> *A_in,Set<uinteger> *B_in){
     uint64_t* A = (uint64_t*)(A_in->data+sizeof(uint64_t));
-    const uint64_t start_index = (A_in->number_of_bytes > 0) ? ((uint64_t*)A_in->data)[0]:0;
+    const uint64_t start_index = 0;//(A_in->number_of_bytes > 0) ? ((uint64_t*)A_in->data)[0]:0;
 
     B_in->foreach( [&A_in,&A,start_index] (uint32_t cur){
       const size_t word_index = bitset::word_index(cur);

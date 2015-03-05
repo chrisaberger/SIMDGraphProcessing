@@ -62,7 +62,7 @@ inline size_t new_type::build(uint8_t *R, const uint32_t *A, const size_t s_a){
         i++;
       }
       double density = ((i-block_start_index) < 2) ? 0.0:(double)(i-block_start_index)/BLOCK_SIZE;
-      if(density > (double)(1.0/16.0)){
+      if(false){//density > (double)(1.0/16.0)){
         for(size_t j = block_start_index; j < i; j++){
           bitset_array[bs_i++] = A[j]; 
         }

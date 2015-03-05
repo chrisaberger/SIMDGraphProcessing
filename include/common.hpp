@@ -31,13 +31,13 @@ static size_t BLOCK_SIZE = 256;
 
 // Experts only! Proceed wih caution!
 //#define ENABLE_PCM
-//#define ENABLE_PRINT_THREAD_TIMES
+#define ENABLE_PRINT_THREAD_TIMES
 //#define ENABLE_ATOMIC_UNION
 
 //TODO: Replace with new command line arguments.
 
-#define ALLOCATOR 2
-#define REALLOC_THRESHOLD 0.7
+#define ALLOCATOR 4
+#define REALLOC_THRESHOLD 0.9
 
 //Needed for parallelization, prevents false sharing of cache lines
 #define PADDING 300
@@ -57,7 +57,7 @@ static size_t BLOCK_SIZE = 256;
 // Enables/disables hybrid that always chooses U-Int
 //#define HYBRID_UINT
 
-//#define STATS
+#define STATS
 
 //CONSTANTS THAT SHOULD NOT CHANGE
 #define SHORTS_PER_REG 8

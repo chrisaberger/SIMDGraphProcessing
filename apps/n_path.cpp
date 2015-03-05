@@ -74,18 +74,23 @@ class application{
       vis_bufs[i * PADDING] = new Set<bitset>(bs_size);
     }
 
+    double sum_union = 0.0;
+    double sum_difference = 0.0;
+    double sum_merge = 0.0;
+    double sum_copy_time = 0.0;
 
     size_t path_length = 0;
     double pure_bfs_time = common::startClock();
     while(true){
-      cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << dense_frontier << endl;
+      //cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << " DENSITY: " << dense_frontier << endl;
 
       double copy_time = common::startClock();
       old_visited.copy_from(visited);
-      common::stopClock("copy time",copy_time);
+      //sum_copy_time += common::stopClock("copy time",copy_time);
 
       double union_time = common::startClock();
       size_t real_num_threads = num_threads;
+      /*
       if(dense_frontier){
         real_num_threads = common::par_for_range(num_threads, 0, graph->matrix_size, 2048,
           [&](size_t tid, size_t i) {
@@ -105,16 +110,17 @@ class application{
           }
         );
       } else{
-        double start_uint_union = common::startClock();
+        */
+        //double start_uint_union = common::startClock();
         real_num_threads = frontier.par_foreach(num_threads,
           [&] (size_t tid,uint32_t n){
             Set<T> outnbrs = this->graph->get_row(n);
             ops::set_union(vis_bufs[tid * PADDING], &outnbrs);
         });
-        common::stopClock("uint union", start_uint_union);
-      }
+        //common::stopClock("uint union", start_uint_union);
+      //}
 
-      double union_threads_time = common::startClock();
+      //double merge_time = common::startClock();
       size_t left_to_merge = real_num_threads;
       while(left_to_merge > 1) {
         for(size_t i = 0; i < left_to_merge / 2; i++){
@@ -123,25 +129,31 @@ class application{
         left_to_merge = left_to_merge / 2 + (left_to_merge % 2);
       }
       ops::set_union(&visited, vis_bufs[0]);
-      common::stopClock("union thread", union_threads_time);
+      //sum_merge += common::stopClock("merge_time", merge_time);
 
-      common::stopClock("union time",union_time);
+      //sum_union += common::stopClock("union time",union_time);
 
-      double diff_time = common::startClock();
+      //double diff_time = common::startClock();
       frontier = *ops::set_difference(&frontier,&visited,&old_visited);
-      common::stopClock("difference",diff_time);
+      //sum_difference += common::stopClock("difference",diff_time);
 
       if(frontier.cardinality == 0 || path_length >= depth)
         break;
       path_length++;
 
       //TO TURN BEAMER OFF COMMENT OUT THIS LINE
-      dense_frontier = ((double)frontier.cardinality / graph->matrix_size) > 0.06;
+      dense_frontier = false;//(double)frontier.cardinality / graph->matrix_size) > 0.06;
     }
     common::stopClock("pure bfs time", pure_bfs_time);
 
     cout << "path length: " << path_length << endl;
     cout << "frontier size: " << frontier.cardinality << endl;
+
+    cout << "Sum of merge: " << sum_merge << endl;
+    cout << "Sum of unions: " << sum_union << endl;
+    cout << "Sum of differences: " << sum_difference << endl;
+    cout << "Sum of copy time: " << sum_copy_time << endl;
+
   }
 
   inline void run(){

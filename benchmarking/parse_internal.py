@@ -29,9 +29,9 @@ def parseInput():
 def main():
   options = parseInput();
 
-  datasets = ["orkut","cid-patents","socLivejournal","higgs"] #,"twitter2010","wikipedia","orkut"]
-  orderings = ["u_the_game"]
-  layouts = ["uint","hybrid"]
+  datasets = ["g_plus","cid-patents","socLivejournal","higgs","orkut",] #,"twitter2010","wikipedia","orkut"]
+  orderings = ["u_degree"]
+  layouts = ["new_type"]
   threads = ["1"]
 
   my_output = {}
@@ -40,14 +40,17 @@ def main():
     for thread in threads:
       for ordering in orderings:
         for layout in layouts:
-          f = open(options.folder +"/non_simd." + dataset + "." + thread + "." + ordering + "." + layout + ".log", 'r')
+          f = open(options.folder +"/np_new_overhead." + dataset + "." + thread + "." + ordering + "." + layout + ".log", 'r')
           perf_info = getIInternalPerformanceInfo(f);
           non_simd_avg = average_runs(perf_info['perf'])
+          print dataset + " NP OVERHEAD: " + str(non_simd_avg) 
 
-          f = open(options.folder +"/simd." + dataset + "." + thread + "." + ordering + "." + layout + ".log", 'r')
+          f = open(options.folder +"/new_overhead." + dataset + "." + thread + "." + ordering + "." + layout + ".log", 'r')
           perf_info = getIInternalPerformanceInfo(f);
           simd_avg = average_runs(perf_info['perf'])
+          print dataset + " OVERHEAD: " + str(simd_avg) 
 
+          comment='''
           f = open(options.folder +"/up_non_simd." + dataset + "." + thread + "." + ordering + "." + layout + ".log", 'r')
           perf_info = getIInternalPerformanceInfo(f);
           up_non_simd_avg = average_runs(perf_info['perf'])
@@ -57,7 +60,7 @@ def main():
           up_simd_avg = average_runs(perf_info['perf'])
 
           my_output[dataset].update({layout:{thread:{'non_simd':str(non_simd_avg),'simd':str(simd_avg),'up_non_simd':str(up_non_simd_avg),'up_simd':str(up_simd_avg)}}})
-
+          '''
         #end for layout
       #end for ordering  
     #end for dataset

@@ -80,6 +80,7 @@ inline size_t new_type::build(uint8_t *R, const uint32_t *A, const size_t s_a){
     R += total_bytes_used;
 
     total_bytes_used += bitset_new::build(R,bitset_array,bs_i);
+    std::cout << "Num uints: " << num_uint_bytes / sizeof(uint) << std::endl;
     return total_bytes_used;
   }
   return 0;

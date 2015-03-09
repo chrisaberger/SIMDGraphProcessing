@@ -41,7 +41,7 @@ class application{
     }
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
       (void) node; (void) nbr; (void) attribute;
-      return true;
+      return true; //node != nbr;
     }
     #endif
 
@@ -63,7 +63,7 @@ class application{
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
 
-      common::par_for_range(num_threads, 0, matrix_size, 100,
+      common::par_for_range(num_threads, 0, matrix_size, 20,
         [&](size_t tid){
           y_buffers->allocate(tid);
           z_buffers->allocate(tid);
@@ -82,7 +82,10 @@ class application{
              Set<R> zs = this->graph->get_decoded_row(y, z_buffer);
              ops::set_intersect(&rs, &ys, &zs);
 
-             t_num_lollipops += rs.cardinality * ys.cardinality;
+             rs.foreach([&](uint32_t z) {
+               if(z < y)
+                 t_num_lollipops += ys.cardinality;
+             });
            });
 
            t_count[tid*PADDING] += t_num_lollipops;
@@ -111,7 +114,7 @@ class application{
     queryOver();
     common::stopClock(this->query_name, start_time);
 
-    cout << "Count: " << num_triangles / 2 << endl << endl;
+    cout << "Count: " << num_triangles << endl << endl;
 
     common::dump_stats();
 

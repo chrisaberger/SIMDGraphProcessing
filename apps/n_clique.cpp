@@ -81,28 +81,29 @@ class application{
     ParallelTable<uint64_t>* output = new ParallelTable<uint64_t>(num_threads,query_depth,estimated_table_size);
     ParallelTable<uint32_t>* decode_buffers = new ParallelTable<uint32_t>(num_threads,query_depth,graph->max_nbrhood_size*sizeof(uint32_t));
     Set<R> **set_buffers = new Set<R>*[PADDING*query_depth*num_threads];
+    uint8_t* common_buffer = new uint8_t[num_threads * query_depth * graph->matrix_size];
 
     common::par_for_range(num_threads,0,matrix_size,100,
       ///////////////////////////////////////////////////////////
-      [this,set_buffers,decode_buffers,output](size_t tid){
+      [this,set_buffers,decode_buffers,output,common_buffer](size_t tid){
         for(size_t j = 0; j < query_depth; j++){
-          set_buffers[PADDING*tid*query_depth+j] = new Set<R>(graph->matrix_size*8*8); //OVERALLOCATING FOR BITSET
+          set_buffers[PADDING*tid*query_depth+j] = new Set<R>(common_buffer + (tid * query_depth + j) * graph->matrix_size, graph->matrix_size); //`new Set<R>(graph->matrix_size); //OVERALLOCATING FOR BITSET
         }
         decode_buffers->allocate(tid);
         output->allocate(tid);
       },
       //////////////////////////////////////////////////////////
-      [this,output,set_buffers,decode_buffers](size_t tid, size_t i) {
+      [&](size_t tid, size_t i) {
         Table<uint32_t> *thread_decode_buffers = decode_buffers->table[tid];
         Table<uint64_t> *thread_output = output->table[tid];
         Set<R> **thread_set_buffers = &set_buffers[PADDING*tid*query_depth];
 
         Set<R> A = this->graph->get_decoded_row(i,thread_decode_buffers->data[query_depth*tid]);
-        thread_output->tuple[0] = graph->id_map[i];  
+        thread_output->tuple[0] = graph->id_map[i];
         thread_set_buffers[1] = &A;
 
-        A.foreach([this,tid,thread_decode_buffers,thread_set_buffers,thread_output] (uint32_t j){
-          thread_output->tuple[1] = graph->id_map[j];  
+        A.foreach([&] (uint32_t j){
+          thread_output->tuple[1] = graph->id_map[j];
           thread_output->cardinality += this->apply_function(j,2,thread_set_buffers,thread_decode_buffers,thread_output);
         });
       },

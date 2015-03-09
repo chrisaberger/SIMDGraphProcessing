@@ -9,6 +9,10 @@ curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
 numruns="1"
 
+systems="graphlab snapr pgx emptyheaded"
+datasets="g_plus"
+num_threads="1 48"
+
 for system in $systems; do
   odir="${output}/advanced_${system}_${date}_${curtime}"
   mkdir $odir

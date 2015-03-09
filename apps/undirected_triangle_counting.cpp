@@ -60,7 +60,6 @@ class application{
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
       ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,512*graph->max_nbrhood_size*sizeof(uint32_t));
-      common::alloc_scratch_space(512*graph->max_nbrhood_size*sizeof(uint32_t),num_threads);
 
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
@@ -105,6 +104,7 @@ class application{
     if(pcm_init() < 0)
        return;
 
+    common::alloc_scratch_space(512*graph->max_nbrhood_size*sizeof(uint32_t),num_threads);
     start_time = common::startClock();
     queryOver();
     common::stopClock("UNDIRECTED TRIANGLE COUNTING",start_time);

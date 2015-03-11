@@ -1,5 +1,0 @@
-_num_in_out[x] = value <- agg<<value = count()>> dedge(x, y), dedge(y, x).
-_num_out_nbrs[src] = value <- agg<<value = count()>> dedge(src, _).
-_num_in_nbrs[dest] = value <- agg<<value = count()>> dedge(_, dest).
-_ratio[x] = value <- value = int:decimal:convert[_num_in_out[x]] / (int:decimal:convert[_num_out_nbrs[x] + _num_in_nbrs[x] - _num_in_out[x]]).
-_count[] = value <- agg<<value = count()>> _ratio[_] > 0.5.

@@ -1,2 +1,0 @@
-_common_nbrs[z] = value <- agg<<value = count()>> highest[] = x, uedge(x, y), uedge(y, z).
-_count[] = value <- agg<<value = count()>> _common_nbrs[_] > 10.

@@ -7,14 +7,14 @@ ifeq ($(UNAME), Linux)
 	LIBS=-lnuma
 endif
 
-CXX = c++
+#CXX ?= g++-4.7
 #CXX = /dfs/scratch0/noetzli/downloads/tmp/cilkplus-install/bin/g++
 override CXXFLAGS += -mavx -std=c++0x -fopenmp -pedantic -O3 -Wall -Wextra -Wcast-align -march=native -mtune=native
 
-INCLUDE_DIRS=-Iinclude
+INCLUDE_DIRS=-Isrc
 OBJDIR=build
 EXEDIR=bin
-HEADERS=$(wildcard include/*hpp)
+HEADERS=$(wildcard src/*hpp)
 SOURCES=$(wildcard src/*cpp)
 OBJECTS=$(SOURCES:src/%.cpp=$(OBJDIR)/%.o)
 
@@ -57,7 +57,4 @@ $(OBJECTS): $(SOURCES) $(HEADERS) $(OBJDIR)
 
 clean:
 	rm -rf $(OBJDIR) $(EXEDIR)
-
-intersect: intersect.cpp
-	$(CXX) $(CXXFLAGS) intersect.cpp $(OBJECTS) $(EXT_OBJECTS) $(LIBS) -o intersect $(INCLUDE_DIRS)
 

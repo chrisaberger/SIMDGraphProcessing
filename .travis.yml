@@ -2,4 +2,4 @@ language: cpp
 compiler: gcc
 
 # Change this to your needs
-script: make clean && make
+script: make clean && make run_test && ./bin/run_test

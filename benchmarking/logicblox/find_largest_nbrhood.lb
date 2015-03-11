@@ -1,3 +1,0 @@
-num_nbrs[x] = value <- agg<<value = count()>> uedge(x, _).
-max_nbrs[] = value <- agg<<value = max(v)>> num_nbrs[_] = v.
-highest[] = value <- agg<<value = max(x)>> num_nbrs[x] = max_nbrs[].

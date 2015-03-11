@@ -1,3 +1,0 @@
-edge(src, dest) -> int(src), int(dest).
-uedge(src, dest) -> int(src), int(dest).
-dedge(src, dest) -> int(src), int(dest).

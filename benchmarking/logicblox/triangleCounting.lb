@@ -1,1 +1,0 @@
-_count[] = value <- agg<<value = count()>> edge(x, y), edge(y, z), edge(x, z).

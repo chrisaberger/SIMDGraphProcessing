@@ -23,30 +23,14 @@ class application{
       layout = input_data.layout;
     }
 
-#ifdef ATTRIBUTES
-    inline bool myNodeSelection(uint32_t node, uint32_t attribute){
-      (void)node; (void) attribute;
-      return true;//attribute > 500;
-    }
-    inline bool myEdgeSelection(uint32_t src, uint32_t dst, uint32_t attribute){
-      (void) attribute;
-      return attribute == 2012 && src < dst;
-    }
-#else
     inline bool myNodeSelection(uint32_t node, uint32_t attribute){
       (void)node; (void) attribute;
       return true;
     }
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
       (void) attribute;
-#ifdef PRUNING
       return nbr < node;
-#else
-      (void) nbr; (void) node;
-      return true;
-#endif
     }
-    #endif
 
     inline void produceSubgraph(){
       auto node_selection = std::bind(&application::myNodeSelection, this, _1, _2);
@@ -75,8 +59,7 @@ class application{
            Set<R> C(buffers->data[tid]);
 
            A.foreach([this, i, &A, &C, &t_num_triangles] (uint32_t j){
-             Set<R> B = this->graph->get_row(j);
-
+            Set<R> B = this->graph->get_row(j);
             t_num_triangles += ops::set_intersect(&C,&A,&B)->cardinality;
            });
 
@@ -100,8 +83,6 @@ class application{
     produceSubgraph();
     common::stopClock("Selections",start_time);
 
-    //graph->print_data("graph.txt");
-
     if(pcm_init() < 0)
        return;
 
@@ -121,10 +102,6 @@ class application{
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) { 
-  //common::bitset_length = atol(argv[1]);
-  //common::pshort_requirement = atol(argv[2]);
-  //common::bitset_req = atof(argv[3]);
-
   Parser input_data = input_parser::parse(argc,argv,"undirected_triangle_counting");
 
   if(input_data.layout.compare("uint") == 0){

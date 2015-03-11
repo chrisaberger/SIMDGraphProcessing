@@ -136,6 +136,8 @@ class application{
     if(pcm_init() < 0)
        return;
 
+    common::alloc_scratch_space(512 * graph->max_nbrhood_size * sizeof(uint32_t), num_threads);
+
     start_time = common::startClock();
     queryOver();
     common::stopClock(this->query_name, start_time);

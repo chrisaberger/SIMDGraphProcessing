@@ -78,7 +78,6 @@ class application{
   }
 
   inline void run(){
-
     double start_time = common::startClock();
     produceSubgraph();
     common::stopClock("Selections",start_time);
@@ -86,7 +85,8 @@ class application{
     if(pcm_init() < 0)
        return;
 
-    common::alloc_scratch_space(512*graph->max_nbrhood_size*sizeof(uint32_t),num_threads);
+    common::alloc_scratch_space(512 * graph->max_nbrhood_size * sizeof(uint32_t), num_threads);
+
     start_time = common::startClock();
     queryOver();
     common::stopClock("UNDIRECTED TRIANGLE COUNTING",start_time);

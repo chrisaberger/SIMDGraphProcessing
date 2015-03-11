@@ -25,16 +25,6 @@ class application{
       layout = input_data.layout;
     }
 
-#ifdef ATTRIBUTES
-    inline bool myNodeSelection(uint32_t node, uint32_t attribute){
-      (void)node; (void) attribute;
-      return true;//attribute > 500;
-    }
-    inline bool myEdgeSelection(uint32_t src, uint32_t dst, uint32_t attribute){
-      (void) attribute;
-      return attribute == 2012 && src < dst;
-    }
-#else
     inline bool myNodeSelection(uint32_t node, uint32_t attribute){
       (void)node; (void) attribute;
       return true;
@@ -43,7 +33,6 @@ class application{
       (void) node; (void) nbr; (void) attribute;
       return true;
     }
-    #endif
 
     inline void produceSubgraph(){
       auto node_selection = std::bind(&application::myNodeSelection, this, _1, _2);
@@ -53,8 +42,6 @@ class application{
     }
 
     inline void queryOver(){
-      //graph->print_data("graph.txt");
-
       system_counter_state_t before_sstate = pcm_get_counter_state();
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
@@ -131,6 +118,8 @@ class application{
 
     if(pcm_init() < 0)
        return;
+
+    common::alloc_scratch_space(512 * graph->max_nbrhood_size * sizeof(uint32_t), num_threads);
 
     start_time = common::startClock();
     queryOver();

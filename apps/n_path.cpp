@@ -106,6 +106,8 @@ class application{
       if(pcm_init() < 0)
         return;
 
+      common::alloc_scratch_space(512 * graph->max_nbrhood_size * sizeof(uint32_t), num_threads);
+
       double bfs_time = common::startClock();
       queryOver(internal_start);
       common::stopClock("BFS",bfs_time);

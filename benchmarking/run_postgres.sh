@@ -7,12 +7,12 @@ source env.sh
 
 curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
-numruns="7"
-datasets="cid-patents higgs socLivejournal orkut g_plus" # higgs socLivejournal orkut g_plus"
+numruns="2"
+datasets="higgs socLivejournal" # cid-patents" # orkut g_plus" # higgs socLivejournal orkut g_plus"
 system="postgres"
 num_threads="1"
 
-odir="${output}/DM_${system}_${date}_${curtime}"
+odir="${output}/${system}_${date}_${curtime}"
 mkdir $odir
 echo $odir
 for i in `seq 1 $numruns`; do

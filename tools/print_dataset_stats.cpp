@@ -21,11 +21,13 @@ int main(int argc, char* argv[]) {
   };
 
   MutableGraph *inputGraph = MutableGraph::undirectedFromBinary(argv[1]);
-  auto graph = SparseMatrix<hybrid, hybrid>::from_symmetric_graph(
+  auto graph = SparseMatrix<uinteger, uinteger>::from_symmetric_graph(
       inputGraph,
       node_selection,
       edge_selection,
       1);
+
+  vector<double> densities;
 
   uint64_t total = graph->matrix_size;
   uint32_t* src_buffer = new uint32_t[total * 4];
@@ -33,30 +35,44 @@ int main(int argc, char* argv[]) {
   uint64_t max_range = 0;
   uint64_t total_card = 0;
   uint64_t max_card = 0;
+  double total_density = 0.0;
+
   for(size_t i = 0; i < total; i++) {
-    Set<hybrid> S = graph->get_decoded_row(i, src_buffer);
+    Set<uinteger> S = graph->get_decoded_row(i, src_buffer);
+    uint64_t range = S.data[S.cardinality - 1] - S.data[0];
+    double density = (double) S.cardinality / range;
 
-    int64_t min_elem = -1;
-    int64_t max_elem = -1;
-    S.foreach([&] (uint32_t x) {
-      if(min_elem == -1) {
-        min_elem = x;
-      }
-      max_elem = x;
-    });
-
-    uint64_t range = max_elem - min_elem;
-    max_range = max(range, max_range);
-    total_range += range;
-
-    total_card += S.cardinality;
-    max_card = max(S.cardinality, max_card);
+    total_density += density;
+    densities.push_back(density);
   }
+
+  std::sort (densities.begin(), densities.end());
+
+  const size_t num_buckets = 100;
+  vector<size_t> num_elems(num_buckets);
+  for(auto density : densities) {
+    num_elems->at((size_t) (density * num_buckets))++;
+  }
+  double mode = (double) std::distance(num_elems.begin(), std::max_element(num_elems.begin(), num_elems.end())) / num_buckets;
+  double median = densities->at(densities.size() / 2);
+  double avg_density = ((double) total_density) / total;
+
+  double variance = 0.0;
+  for(auto density : densities) {
+    variance += (density - avg_density) * (density - avg_density);
+  }
+  variance /= total;
 
   std::cout << "Avg. range: " << ((double) total_range) / total << std::endl;
   std::cout << "Max range: " << max_range << std::endl;
   std::cout << "Avg. card: " << ((double) total_card) / total << std::endl;
   std::cout << "Max card: " << max_card << std::endl;
+  std::cout << "Avg. density: " << avg_density << std::endl;
+  std::cout << "Median. density: " << median << std::endl;
+  std::cout << "Density mode: " << mode << std::endl;
+  std::cout << "Density variance: " << variance << std::endl;
+  std::cout << "Pearson first skewness: " << (mean - mode) / sqrt(variance) << std::endl;
+  std::cout << "Pearson second skewness: " << (mean - median) / sqrt(variance) << std::endl;
 
   std::cout << "Stats: " << std::endl;
   std::cout << (double) common::num_bs / total << "\t";

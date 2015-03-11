@@ -137,7 +137,7 @@ def main():
     v_perf.write(",".join([str(x) for x in results[curTup]]) + '\n')
     current_line.append(str(algos_to_layout[np.argmin(results_wo_hybrid)]))
     current_line2.append(str(results[curTup][-1] / np.min(results_wo_hybrid)))
-    diff_worst_best_line.append(str(max(results_wo_hybrid) / np.min(results_wo_hybrid)))
+    diff_worst_best_line.append(str(np.min(results_wo_hybrid[0:5]) / np.min(results_wo_hybrid)))
 
   f_perf.write("\t".join(current_line) + "\n")
   d_perf.write("\t".join(current_line2) + "\n")

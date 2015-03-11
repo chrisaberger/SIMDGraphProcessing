@@ -2,7 +2,8 @@ DROP TABLE IF EXISTS edge;
 DROP TABLE IF EXISTS edgeRaw;
 DROP TABLE IF EXISTS uedge;
 
-CREATE TABLESPACE ramspace LOCATION '/dev/shm/postgresql/data';
+DROP TABLESPACE ramspace;
+CREATE TABLESPACE ramspace LOCATION '/dev/shm/noetzli/postgresql/data';
 
 CREATE TABLE edgeRaw(a BIGINT, b BIGINT) TABLESPACE ramspace;
 CREATE TABLE edge(a BIGINT, b BIGINT) TABLESPACE ramspace;
@@ -12,7 +13,7 @@ COPY edgeRaw FROM :'dataset' DELIMITER ' ';
 
 -- Pruned edge relation
 INSERT INTO edge(a, b) (
-   SELECT DISTINCT LEAST(a, b), GREATEST(a, b) FROM edgeRaw
+   SELECT a, b FROM edgeRaw WHERE a != b
 );
 
 CREATE INDEX edge_a_index ON edge(a);
@@ -25,7 +26,7 @@ INSERT INTO uedge(a, b) (
 );
 
 INSERT INTO uedge(a, b) (
-   SELECT b, a FROM edgeRaw
+   SELECT b, a FROM edgeRaw WHERE b != a
 );
 
 CREATE INDEX uedge_a_index ON uedge(a);

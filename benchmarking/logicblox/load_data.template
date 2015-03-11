@@ -1,5 +1,5 @@
 _in(offset; src, dest) -> int(offset), int(src), int(dest).
-lang:physical:filePath[`_in] = "input.txt".
+lang:physical:filePath[`_in] = "${input_file}".
 lang:physical:fileMode[`_in] = "import".
 lang:physical:delimiter[`_in] = " ".
 

@@ -50,9 +50,9 @@ $(OBJECTS): $(SOURCES) $(HEADERS) $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(LIB_INCS) -o $@ -c $(@:build%.o=src%.cpp) $(INCLUDE_DIRS)
 
 run_test: $(OBJECTS) $(EXEDIR)
-	$(shell ./lib/gtest-1.7.0/configure)
+	$(shell cd /lib/gtest-1.7.0/ && ./configure && cd -)
 	make -C ./lib/gtest-1.7.0
-	$(CXX) $(CXXFLAGS) test/test_undirected_triangle_counting.cpp $(OBJECTS) ./lib/gtest-1.7.0/src/gtest_main.o  ./lib/gtest-1.7.0/src/gtest-all.o $(EXT_OBJECTS) $(LIBS) -o bin/$@ $(INCLUDE_DIRS) -I./test -I./lib/gtest-1.7.0/include/ -I./lib/gtest-1.7.0/ -I./apps/
+	$(CXX) $(CXXFLAGS) test/test1.cpp $(OBJECTS) ./lib/gtest-1.7.0/src/gtest_main.o  ./lib/gtest-1.7.0/src/gtest-all.o $(EXT_OBJECTS) $(LIBS) -o bin/$@ $(INCLUDE_DIRS) -I./test -I./lib/gtest-1.7.0/include/ -I./lib/gtest-1.7.0/ -I./apps/
 
 clean:
 	rm -rf $(OBJDIR) $(EXEDIR)

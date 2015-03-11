@@ -1,7 +1,6 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-//#include "numa_alloc.hpp"
 #include <x86intrin.h>
 #include <omp.h>
 #include <unordered_map>
@@ -64,25 +63,6 @@ static double BITSET_THRESHOLD = 1.0 / 16.0;
 #define SHORTS_PER_REG 8
 #define INTS_PER_REG 4
 #define BYTES_PER_REG 16
-
-// As seen in the dimmwitted project...
-
-// If we are not compiling on OSX, we use the NUMA library
-#ifndef __MACH__
-#include <numa.h>
-#include <numaif.h>
-#endif
-
-// If we are compiling on OSX, we define stubs for functions in the NUMA library
-#ifdef __MACH__
-#include <math.h>
-#include <stdlib.h>
-#define numa_alloc_onnode(X,Y) malloc(X)
-#define numa_max_node() 0
-#define numa_run_on_node(X) 0
-#define numa_set_localalloc() 0
-#define numa_available() -1
-#endif
 
 using namespace std;
 using namespace std::placeholders;
@@ -222,26 +202,6 @@ namespace common{
     cout << "Num PSHORT/PSHORT: " << num_pshort_pshort << endl;
     cout << "Num PSHORT/BS: " << num_pshort_bs << endl;
     cout << "Num BS/BS: " << num_bs_bs << endl;
-  }
-
-  static void* allocate_local(size_t num, size_t size, int node) {
-     size_t total_size = num * size;
-     return numa_alloc_onnode(total_size, node);
-     //return calloc(num, size);
-  }
-
-  static void free_local(void* start, size_t num, size_t size) {
-     size_t total_size = num * size;
-     numa_free(start, total_size);
-     //free(start);
-  }
-
-  static int find_memory_node_for_addr(void* ptr) {
-    // See: http://stackoverflow.com/questions/7986903/can-i-get-the-numa-node-from-a-pointer-address-in-c-on-linux
-    int numa_node = -1;
-    if(get_mempolicy(&numa_node, NULL, 0, ptr, MPOL_F_NODE | MPOL_F_ADDR) < 0)
-       cout << "WARNING: get_mempolicy failed" << endl;
-    return numa_node;
   }
 
   static thread* threads = NULL;

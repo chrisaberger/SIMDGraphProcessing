@@ -1,11 +1,5 @@
-UNAME := $(shell uname)
-
 # Uncomment the following line to compile without PCM support
 #INTEL_PCM_HOME=/afs/cs.stanford.edu/u/noetzli/IntelPerformanceCounterMonitorV2.7
-
-ifeq ($(UNAME), Linux)
-	LIBS=-lnuma
-endif
 
 #CXX ?= g++-4.7
 #CXX = /dfs/scratch0/noetzli/downloads/tmp/cilkplus-install/bin/g++

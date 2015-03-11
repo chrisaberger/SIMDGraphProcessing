@@ -61,14 +61,16 @@ inline size_t new_type::build(uint8_t *R, const uint32_t *A, const size_t s_a){
       while(i < s_a && in_range(A[i],block_id)) {
         i++;
       }
+
       double density = ((i-block_start_index) < 2) ? 0.0:(double)(i-block_start_index)/BLOCK_SIZE;
-      if(false){//density > (double)(1.0/16.0)){
+
+      if(density > BITSET_THRESHOLD){
         for(size_t j = block_start_index; j < i; j++){
-          bitset_array[bs_i++] = A[j]; 
+          bitset_array[bs_i++] = A[j];
         }
       } else{
         for(size_t j = block_start_index; j < i; j++){
-          uint_array[uint_i++] = A[j]; 
+          uint_array[uint_i++] = A[j];
         }
       }
     }
@@ -79,6 +81,7 @@ inline size_t new_type::build(uint8_t *R, const uint32_t *A, const size_t s_a){
     R += total_bytes_used;
 
     total_bytes_used += bitset_new::build(R,bitset_array,bs_i);
+    std::cout << "Num uints: " << num_uint_bytes / sizeof(uint) << std::endl;
     return total_bytes_used;
   }
   return 0;

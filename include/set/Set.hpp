@@ -73,6 +73,15 @@ class Set{
       density = in.density;
       type = in.type;
     }
+
+    Set(uint8_t* data_in, size_t number_of_bytes_in):
+      data(data_in), number_of_bytes(number_of_bytes_in) {
+        cardinality = 0;
+        number_of_bytes = number_of_bytes_in;
+        density = 0.0;
+        type = T::get_type();
+    }
+
     template <class U> 
     Set<T>(Set<U> *in){
       data = in->data;

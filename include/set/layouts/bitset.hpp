@@ -159,7 +159,7 @@ inline void bitset::foreach(
     const uint64_t* A64 = (uint64_t*)(A+sizeof(uint64_t));
 
     for(size_t i = 0; i < num_data_words; i++){
-      const uint64_t cur_word = A64[i];
+      const uint64_t cur_word = *A64;
       if(cur_word != 0) {
         for(size_t j = 0; j < BITS_PER_WORD; j++){
           if((cur_word >> j) % 2) {
@@ -167,6 +167,7 @@ inline void bitset::foreach(
           }
         }
       }
+      A64++;
     }
   }
 }

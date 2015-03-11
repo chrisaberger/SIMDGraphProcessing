@@ -19,7 +19,7 @@ def cycle_counting():
   `total(0, $sum(1L)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), x != z.`
 
 def lollipop_counting():
-  `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), uedge(x, z), y < z, uedge(x, w), w != y, w != z.`
+  `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), uedge(x, z), uedge(x, w).`
 
 def tadpole_counting():
   `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), x != z, uedge(z, w), y != w, uedge(x, w), w < y, uedge(x, a), a != y, a != z, a != w, uedge(a, b), b != x.`

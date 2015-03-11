@@ -7,6 +7,9 @@
 
 using namespace pcm_helper;
 
+string name = "symbiocity";
+const static double N = 0.5;
+
 template<class T, class R>
 class application{
   public:
@@ -26,7 +29,7 @@ class application{
 #ifdef ATTRIBUTES
     inline bool myNodeSelection(uint32_t node, uint32_t attribute){
       (void)node; (void) attribute;
-      return true;//attribute > 500;
+      return true;
     }
     inline bool myEdgeSelection(uint32_t src, uint32_t dst, uint32_t attribute){
       (void) attribute;
@@ -38,13 +41,8 @@ class application{
       return true;
     }
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
-      (void) attribute;
-#ifdef PRUNING
-      return nbr < node;
-#else
-      (void) nbr; (void) node;
+      (void) node; (void) nbr; (void) attribute;
       return true;
-#endif
     }
     #endif
 
@@ -52,7 +50,7 @@ class application{
       auto node_selection = std::bind(&application::myNodeSelection, this, _1, _2);
       auto edge_selection = std::bind(&application::myEdgeSelection, this, _1, _2, _3);
 
-      graph = SparseMatrix<T,R>::from_symmetric_graph(inputGraph,node_selection,edge_selection,num_threads);
+      graph = SparseMatrix<T,R>::from_asymmetric_graph(inputGraph,node_selection,edge_selection,num_threads);
     }
 
     inline void queryOver(){
@@ -60,27 +58,27 @@ class application{
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
       ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,512*graph->max_nbrhood_size*sizeof(uint32_t));
+      common::alloc_scratch_space(512*graph->max_nbrhood_size*sizeof(uint32_t),num_threads);
 
-      const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
-      common::par_for_range(num_threads, 0, matrix_size, 100,
+      common::par_for_range(num_threads, 0, graph->matrix_size, 100,
         [this,buffers,t_count](size_t tid){
           buffers->allocate(tid);
           t_count[tid*PADDING] = 0;
         },
         ////////////////////////////////////////////////////
-        [this,buffers,t_count](size_t tid, size_t i) {
-           long t_num_triangles = 0;
+        [&](size_t tid, size_t i) {
+           long t_num_sim_nodes = 0;
            Set<R> A = this->graph->get_row(i);
+           Set<R> B = this->graph->get_column(i);
            Set<R> C(buffers->data[tid]);
+           const size_t num_in_out = ops::set_intersect(&C,&A,&B)->cardinality;
+           double ratio = (double) num_in_out / (A.cardinality + B.cardinality - num_in_out);
+           if(ratio > N) {
+             t_num_sim_nodes++;
+           }
 
-           A.foreach([this, i, &A, &C, &t_num_triangles] (uint32_t j){
-             Set<R> B = this->graph->get_row(j);
-
-            t_num_triangles += ops::set_intersect(&C,&A,&B)->cardinality;
-           });
-
-           t_count[tid*PADDING] += t_num_triangles;
+           t_count[tid*PADDING] += t_num_sim_nodes;
         },
         ////////////////////////////////////////////////////////////
         [this,t_count](size_t tid){
@@ -95,65 +93,56 @@ class application{
   }
 
   inline void run(){
-
     double start_time = common::startClock();
     produceSubgraph();
     common::stopClock("Selections",start_time);
 
-    //graph->print_data("graph.txt");
-
     if(pcm_init() < 0)
        return;
 
-    common::alloc_scratch_space(512*graph->max_nbrhood_size*sizeof(uint32_t),num_threads);
     start_time = common::startClock();
     queryOver();
-    common::stopClock("UNDIRECTED TRIANGLE COUNTING",start_time);
+    common::stopClock(name, start_time);
 
     cout << "Count: " << num_triangles << endl << endl;
 
     common::dump_stats();
 
-    
     pcm_cleanup();
   }
 };
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
-int main (int argc, char* argv[]) { 
-  //common::bitset_length = atol(argv[1]);
-  //common::pshort_requirement = atol(argv[2]);
-  //common::bitset_req = atof(argv[3]);
-
-  Parser input_data = input_parser::parse(argc,argv,"undirected_triangle_counting");
+int main (int argc, char* argv[]) {
+  Parser input_data = input_parser::parse(argc, argv, "n_path");
 
   if(input_data.layout.compare("uint") == 0){
     application<uinteger,uinteger> myapp(input_data);
     myapp.run();
   } else if(input_data.layout.compare("bs") == 0){
     application<bitset,bitset> myapp(input_data);
-    myapp.run();  
+    myapp.run();
   } else if(input_data.layout.compare("pshort") == 0){
     application<pshort,pshort> myapp(input_data);
-    myapp.run();  
+    myapp.run();
   } else if(input_data.layout.compare("hybrid") == 0){
     application<hybrid,hybrid> myapp(input_data);
-    myapp.run();  
+    myapp.run();
   } else if(input_data.layout.compare("new_type") == 0){
     application<new_type,new_type> myapp(input_data);
-    myapp.run();  
+    myapp.run();
   } else if(input_data.layout.compare("bitset_new") == 0){
     application<bitset_new,bitset_new> myapp(input_data);
-    myapp.run();  
-  } 
+    myapp.run();
+  }
   #if COMPRESSION == 1
   else if(input_data.layout.compare("v") == 0){
     application<variant,uinteger> myapp(input_data);
-    myapp.run();  
+    myapp.run();
   } else if(input_data.layout.compare("bp") == 0){
     application<bitpacked,uinteger> myapp(input_data);
     myapp.run();
-  } 
+  }
   #endif
   else{
     cout << "No valid layout entered." << endl;

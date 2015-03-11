@@ -26,8 +26,9 @@
 #include <cstdarg>
 #include <set>
 
-static size_t ADDRESS_BITS_PER_BLOCK = 8;
-static size_t BLOCK_SIZE = 256;
+static size_t ADDRESS_BITS_PER_BLOCK = 7;
+static size_t BLOCK_SIZE = 128;
+static double BITSET_THRESHOLD = 1.0 / 16.0;
 
 // Experts only! Proceed wih caution!
 //#define ENABLE_PCM
@@ -41,7 +42,7 @@ static size_t BLOCK_SIZE = 256;
 
 //Needed for parallelization, prevents false sharing of cache lines
 #define PADDING 300
-#define MAX_THREADS 512 
+#define MAX_THREADS 512
 
 //#define ATTRIBUTES
 #define WRITE_TABLE 0

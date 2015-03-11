@@ -1,4 +1,4 @@
-#define WRITE_VECTOR 0
+#define WRITE_VECTOR 1
 
 #include "SparseMatrix.hpp"
 #include "MutableGraph.hpp"
@@ -15,8 +15,10 @@ class application{
     MutableGraph *inputGraph;
     size_t num_threads;
     string layout;
+    string query_name;
 
     application(Parser input_data){
+      query_name = "lollipop";
       num_triangles = 0;
       inputGraph = input_data.input_graph;
       num_threads = input_data.num_threads;
@@ -38,13 +40,8 @@ class application{
       return true;
     }
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
-      (void) attribute;
-#ifdef PRUNING
-      return nbr < node;
-#else
-      (void) nbr; (void) node;
+      (void) node; (void) nbr; (void) attribute;
       return true;
-#endif
     }
     #endif
 
@@ -59,31 +56,46 @@ class application{
       system_counter_state_t before_sstate = pcm_get_counter_state();
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
-      ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,512*graph->max_nbrhood_size*sizeof(uint32_t));
+      ParallelBuffer<uint32_t> *y_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size * 8);
+      ParallelBuffer<uint32_t> *z_buffers = new ParallelBuffer<uint32_t>(num_threads,graph->max_nbrhood_size * 8);
+      ParallelBuffer<uint8_t> *r_buffers = new ParallelBuffer<uint8_t>(num_threads,graph->max_nbrhood_size*sizeof(uint32_t) * 8);
 
       const size_t matrix_size = graph->matrix_size;
       size_t *t_count = new size_t[num_threads * PADDING];
-      common::par_for_range(num_threads, 0, matrix_size, 100,
-        [this,buffers,t_count](size_t tid){
-          buffers->allocate(tid);
+
+      common::par_for_range(num_threads, 0, matrix_size, 1,
+        [&](size_t tid){
+          y_buffers->allocate(tid);
+          z_buffers->allocate(tid);
+          r_buffers->allocate(tid);
           t_count[tid*PADDING] = 0;
         },
         ////////////////////////////////////////////////////
-        [this,buffers,t_count](size_t tid, size_t i) {
-           long t_num_triangles = 0;
-           Set<R> A = this->graph->get_row(i);
-           Set<R> C(buffers->data[tid]);
+        [&](size_t tid, size_t x) {
+           long t_num_lollipops = 0;
+           uint32_t* y_buffer = y_buffers->data[tid];
+           uint32_t* z_buffer = z_buffers->data[tid];
 
-           A.foreach([this, i, &A, &C, &t_num_triangles] (uint32_t j){
-             Set<R> B = this->graph->get_row(j);
+           Set<R> ys = this->graph->get_decoded_row(x, y_buffer);
+           ys.foreach([&](uint32_t y) {
+             Set<R> rs(r_buffers->data[tid]);
+             Set<R> zs = this->graph->get_decoded_row(y, z_buffer);
+             ops::set_intersect(&rs, &ys, &zs);
 
-            t_num_triangles += ops::set_intersect(&C,&A,&B)->cardinality;
+             rs.foreach([&](uint32_t z) {
+               if(z < y) {
+                 ys.foreach([&](uint32_t y2) {
+                   (void) y2;
+                   t_num_lollipops += 1;
+                 });
+               }
+             });
            });
 
-           t_count[tid*PADDING] += t_num_triangles;
+           t_count[tid*PADDING] += t_num_lollipops;
         },
         ////////////////////////////////////////////////////////////
-        [this,t_count](size_t tid){
+        [&](size_t tid){
           num_triangles += t_count[tid*PADDING];
         }
       );
@@ -95,61 +107,46 @@ class application{
   }
 
   inline void run(){
-
     double start_time = common::startClock();
     produceSubgraph();
     common::stopClock("Selections",start_time);
 
-    //graph->print_data("graph.txt");
-
     if(pcm_init() < 0)
        return;
 
-    common::alloc_scratch_space(512*graph->max_nbrhood_size*sizeof(uint32_t),num_threads);
     start_time = common::startClock();
     queryOver();
-    common::stopClock("UNDIRECTED TRIANGLE COUNTING",start_time);
+    common::stopClock(this->query_name, start_time);
 
     cout << "Count: " << num_triangles << endl << endl;
 
     common::dump_stats();
 
-    
     pcm_cleanup();
   }
 };
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
-int main (int argc, char* argv[]) { 
-  //common::bitset_length = atol(argv[1]);
-  //common::pshort_requirement = atol(argv[2]);
-  //common::bitset_req = atof(argv[3]);
-
-  Parser input_data = input_parser::parse(argc,argv,"undirected_triangle_counting");
+int main (int argc, char* argv[]) {
+  Parser input_data = input_parser::parse(argc,argv,"undirected_tadpole_counting");
 
   if(input_data.layout.compare("uint") == 0){
     application<uinteger,uinteger> myapp(input_data);
     myapp.run();
   } else if(input_data.layout.compare("bs") == 0){
     application<bitset,bitset> myapp(input_data);
-    myapp.run();  
+    myapp.run();
   } else if(input_data.layout.compare("pshort") == 0){
     application<pshort,pshort> myapp(input_data);
-    myapp.run();  
+    myapp.run();
   } else if(input_data.layout.compare("hybrid") == 0){
     application<hybrid,hybrid> myapp(input_data);
-    myapp.run();  
-  } else if(input_data.layout.compare("new_type") == 0){
-    application<new_type,new_type> myapp(input_data);
-    myapp.run();  
-  } else if(input_data.layout.compare("bitset_new") == 0){
-    application<bitset_new,bitset_new> myapp(input_data);
-    myapp.run();  
+    myapp.run();
   } 
   #if COMPRESSION == 1
   else if(input_data.layout.compare("v") == 0){
     application<variant,uinteger> myapp(input_data);
-    myapp.run();  
+    myapp.run();
   } else if(input_data.layout.compare("bp") == 0){
     application<bitpacked,uinteger> myapp(input_data);
     myapp.run();

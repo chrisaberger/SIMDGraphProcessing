@@ -15,6 +15,7 @@ class application{
     MutableGraph *inputGraph;
     size_t num_threads;
     string layout;
+    const static size_t N = 10;
 
     application(Parser input_data){
       num_triangles = 0;
@@ -38,13 +39,8 @@ class application{
       return true;
     }
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
-      (void) attribute;
-#ifdef PRUNING
-      return nbr < node;
-#else
-      (void) nbr; (void) node;
+      (void) node; (void) nbr; (void) attribute;
       return true;
-#endif
     }
     #endif
 
@@ -60,27 +56,57 @@ class application{
       server_uncore_power_state_t* before_uncstate = pcm_get_uncore_power_state();
 
       ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,512*graph->max_nbrhood_size*sizeof(uint32_t));
+      common::alloc_scratch_space(512*graph->max_nbrhood_size*sizeof(uint32_t),num_threads);
+/*
+      const size_t bs_size = (((graph->matrix_size + 64) / 64) * 8) + 8;
+      Set<bitset> visited(bs_size);
+      uint64_t* const visited_data = (uint64_t*)(visited.data + sizeof(uint64_t));
+      */
 
-      const size_t matrix_size = graph->matrix_size;
+      uint32_t node = graph->get_max_row_id();
+      Set<R> A = this->graph->get_row(node);
+
+      buffers->allocate(0);
       size_t *t_count = new size_t[num_threads * PADDING];
-      common::par_for_range(num_threads, 0, matrix_size, 100,
+      t_count[0] = 0;
+/*
+      A.par_foreach([&] (uint32_t x) {
+          Set<R> B = this->graph->get_row(x);
+          B.foreach([&] (uint32_t y) {
+             if(!bitset::is_set(y, visited_data, 0)) {
+               bitset::set(y, visited_data, 0);
+               long t_num_similar_nodes = 0;
+               Set<R> C = this->graph->get_row(y);
+               Set<R> D(buffers->data[0]);
+               const size_t common_neighbors = ops::set_intersect(&D,&A,&C)->cardinality;
+
+               if(common_neighbors > N) {
+                 t_num_similar_nodes++;
+               }
+
+               t_count[0] += t_num_similar_nodes;
+             }
+          });
+      });
+      num_triangles += t_count[0];
+      */
+
+      common::par_for_range(num_threads, 0, graph->matrix_size, 100,
         [this,buffers,t_count](size_t tid){
           buffers->allocate(tid);
           t_count[tid*PADDING] = 0;
         },
         ////////////////////////////////////////////////////
-        [this,buffers,t_count](size_t tid, size_t i) {
-           long t_num_triangles = 0;
-           Set<R> A = this->graph->get_row(i);
+        [&](size_t tid, size_t i) {
+           long t_num_similar_nodes = 0;
+           Set<R> B = this->graph->get_row(i);
            Set<R> C(buffers->data[tid]);
+           const size_t common_neighbors = ops::set_intersect(&C,&A,&B)->cardinality;
+           if(common_neighbors > N) {
+             t_num_similar_nodes++;
+           }
 
-           A.foreach([this, i, &A, &C, &t_num_triangles] (uint32_t j){
-             Set<R> B = this->graph->get_row(j);
-
-            t_num_triangles += ops::set_intersect(&C,&A,&B)->cardinality;
-           });
-
-           t_count[tid*PADDING] += t_num_triangles;
+           t_count[tid*PADDING] += t_num_similar_nodes;
         },
         ////////////////////////////////////////////////////////////
         [this,t_count](size_t tid){
@@ -95,7 +121,6 @@ class application{
   }
 
   inline void run(){
-
     double start_time = common::startClock();
     produceSubgraph();
     common::stopClock("Selections",start_time);
@@ -105,7 +130,6 @@ class application{
     if(pcm_init() < 0)
        return;
 
-    common::alloc_scratch_space(512*graph->max_nbrhood_size*sizeof(uint32_t),num_threads);
     start_time = common::startClock();
     queryOver();
     common::stopClock("UNDIRECTED TRIANGLE COUNTING",start_time);

@@ -3,8 +3,9 @@
 #include "SparseMatrix.hpp"
 #include "common.hpp"
 
-#define DEBUG
-#define FROM_FILE
+//#define DEBUG
+//#define FROM_FILE
+//#define SKEW_SET
 
 #define BUF_SIZE 1024L * 1024L * 1024L
 #define DUMMY_SIZE 1024L * 1024L * 64L
@@ -41,18 +42,18 @@ template<class T, class R, class U, class P, class F> void intersect(size_t len_
 
   Set<F> set_c(set_c_buffer);
 
-  std::cout << "Start encoding" << std::endl;
-  
+  //std::cout << "Start encoding" << std::endl;
+
   auto start_time_encoding = common::startClock();
   size_t as = Set<T>::flatten_from_array(set_a_buffer, a, len_a);
   size_t bs = Set<U>::flatten_from_array(set_b_buffer, b, len_b);
 
-  common::stopClock("encoding", start_time_encoding);
+  //common::stopClock("encoding", start_time_encoding);
 
   // erase caches
-  for(size_t i = 0; i < DUMMY_SIZE; i++) {
-    dummy1[i] = dummy1[i] + dummy2[i] + 1;
-  }
+  //for(size_t i = 0; i < DUMMY_SIZE; i++) {
+  //  dummy1[rand() % DUMMY_SIZE] = dummy1[rand() % DUMMY_SIZE] + dummy2[rand() % DUMMY_SIZE] + 1;
+  //}
 
   std::cout << "Size: " << (as+bs) << std::endl;
   auto start_time_intersect = common::startClock();
@@ -143,7 +144,7 @@ vector<uint32_t> gen_set(uint64_t len, uint64_t range, size_t run_len) {
       // Check if we can place a run here
       all_free = true;
       for(size_t i = 0; i < run_len; i++) {
-        if(result.find(v) != result.end()) {
+        if(result.find(v + i) != result.end()) {
           all_free = false;
           break;
         }
@@ -154,6 +155,95 @@ vector<uint32_t> gen_set(uint64_t len, uint64_t range, size_t run_len) {
     for(size_t i = 0; i < run_len; i++) {
       result.insert(v + i);
     }
+  }
+
+  std::cout << "LEN: " << result.size() << std::endl;
+
+  return vector<uint32_t>(result.begin(), result.end());
+}
+
+vector<uint32_t> gen_skew_set(size_t range, size_t len) {
+  set<uint32_t> result;
+
+  //size_t range = range;
+  size_t range2 = 500000;//range * ratio;
+  size_t len2 = range2;
+  size_t run_len = 1;
+  const uint64_t max_offset = (uint64_t)(max(1.0, len * 0.1));
+  const uint32_t min_v = rand() % max_offset;
+  const uint32_t max_v = min_v + range;
+
+  for(size_t i = 0; i < run_len; i++) {
+    result.insert(min_v);
+    result.insert(max_v);
+  }
+
+  uint32_t v;
+  while(result.size() < len + len2) {
+    if(result.size() < len) {
+      do {
+        v = rand() % range + min_v + 1;
+      } while(result.find(v) != result.end());
+
+      result.insert(v);
+    } else {
+      bool all_free = false;
+
+      for(size_t i = 0; i < range2; i++)
+        result.insert(min_v + range + i + 1);
+/*
+      while(!all_free) {
+        // Pick a random value in the range
+        v = rand() % range2 + range1 + min_v + 1;
+
+        // Check if we can place a run here
+        all_free = true;
+        for(size_t i = 0; i < run_len; i++) {
+          if(result.find(v + i) != result.end()) {
+            all_free = false;
+            break;
+          }
+        }
+      }
+
+      for(size_t i = 0; i < run_len; i++) {
+        result.insert(v + i);
+      }*/
+    }
+
+    /*
+    double f = (double)rand() / RAND_MAX;
+    bool next_dense = f > ratio;
+
+    if(next_dense) {
+      while(!all_free) {
+        // Pick a random value in the range
+        v = rand() % (max_v - min_v - 1) + min_v + 1;
+
+        // Check if we can place a run here
+        all_free = true;
+        for(size_t i = 0; i < run_len; i++) {
+          if(result.find(v + i) != result.end()) {
+            all_free = false;
+            break;
+          }
+        }
+      }
+
+      for(size_t i = 0; i < run_len; i++) {
+        result.insert(v + i);
+      }
+    }
+    else {
+      for(size_t i = 0; i < run_len; i++) {
+        do {
+          // Pick a random value in the range
+          v = rand() % (max_v - min_v - 1) + min_v + 1;
+        } while(result.find(v) != result.end());
+
+        result.insert(v);
+      }
+    }*/
   }
 
   std::cout << "LEN: " << result.size() << std::endl;
@@ -231,8 +321,13 @@ int main(int argc, char* argv[]) {
   size_t run_len_a = (len_a * skew_a)+1;
   size_t run_len_b = (len_b * skew_b)+1;
 
+#ifndef SKEW_SET
   vector<uint32_t> vec_a = gen_set(len_a, range_a, run_len_a);
   vector<uint32_t> vec_b = gen_set(len_b, range_b, run_len_b);
+#else
+  vector<uint32_t> vec_a = gen_skew_set(range_a, len_a);
+  vector<uint32_t> vec_b = gen_skew_set(range_b, len_b);
+#endif
   uint32_t* a = vec_a.data();
   uint32_t* b = vec_b.data();
 
@@ -250,64 +345,90 @@ int main(int argc, char* argv[]) {
 
   uint32_t *in1 = a;
   uint32_t *in2 = b;
-  const size_t len1 = len_a;
-  const size_t len2 = len_b;
+  const size_t len1 = vec_a.size();
+  const size_t len2 = vec_b.size();
 
-  cout << "A start: " << a[0] << " A end: " << a[len_a-1] << endl;
-  cout << "B start: " << b[0] << " B end: " << b[len_b-1] << endl;
+  cout << "A start: " << a[0] << " A end: " << a[len1-1] << endl;
+  cout << "B start: " << b[0] << " B end: " << b[len2-1] << endl;
   cout << "Density A: " << denA << endl;
   cout << "Density B: " << denB << endl;
-  /*
-  cout << endl << "UINTEGER_UINTEGER_IBM" << endl;
+  cout << "Run len A: " << run_len_a << endl;
+  cout << "Run len B: " << run_len_b << endl;
+
+  cout << endl << "label: UINTEGER_UINTEGER" << endl;
+  intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger",DEFAULT);
+
+  cout << endl << "label: UINTEGER_UINTEGER_IBM" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_ibm",IBM);
 
-  cout << endl << "UINTEGER_UINTEGER_STANDARD" << endl;
+  cout << endl << "label: UINTEGER_UINTEGER_STANDARD" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_standard",STANDARD);
 
-  cout << endl << "UINTEGER_UINTEGER_V3" << endl;
+  cout << endl << "label: UINTEGER_UINTEGER_V3" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_v3",V3);
 
-  cout << endl << "UINTEGER_UINTEGER_V1" << endl;
+  cout << endl << "label: UINTEGER_UINTEGER_V1" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_v1",V1);
 
-  cout << endl << "UINTEGER_UINTEGER_GALLOP" << endl;
+  cout << endl << "label: UINTEGER_UINTEGER_GALLOP" << endl;
   intersect<uinteger,uinteger,uinteger,uinteger,uinteger>(len1, len2, in1, in2, "uinteger_uinteger_gallop",GALLOP);
 
-  cout << endl << "PSHORT_PSHORT" << endl;
-  intersect<pshort,pshort,pshort,pshort,pshort>(len1, len2, in1, in2, "pshort_pshort",DEFAULT);
-  */
-
-  cout << endl << "BITSET_BITSET" << endl;
+/*
+  cout << endl << "label: BITSET_BITSET" << endl;
   intersect<bitset,bitset,bitset,bitset,bitset>(len1, len2, in1, in2, "bitset_bitset",DEFAULT);
 
-  cout << endl << "UINTEGER_PSHORT" << endl;
+  cout << endl << "label: BSNEW_BSNEW" << BLOCK_SIZE << endl;
+  intersect<bitset_new,bitset_new,bitset_new,bitset_new,bitset_new>(len1, len2, in1, in2, "bsnew_bsnew",DEFAULT);
+
+  cout << endl << "label: NT_NT: " << BLOCK_SIZE << " " << BITSET_THRESHOLD << endl;
+  intersect<new_type,new_type,new_type,new_type,new_type>(len1, len2, in1, in2, "nt_nt",DEFAULT);
+
+/*
+  cout << endl << "label: PSHORT_PSHORT" << endl;
+  intersect<pshort,pshort,pshort,pshort,pshort>(len1, len2, in1, in2, "pshort_pshort",DEFAULT);
+  */
+  /*
+
+  cout << endl << "label: BITSET_BITSET" << endl;
+  intersect<bitset,bitset,bitset,bitset,bitset>(len1, len2, in1, in2, "bitset_bitset",DEFAULT);
+*/
+  /*
+  cout << endl << "label: UINTEGER_PSHORT" << endl;
   intersect<uinteger,uinteger,pshort,pshort,uinteger>(len1, len2, in1, in2, "uinteger_pshort",DEFAULT);
 
-  /*
-  cout << endl << "UINTEGER_BITSET" << endl;
+  cout << endl << "label: UINTEGER_BITSET" << endl;
   intersect<uinteger,uinteger,bitset,bitset,uinteger>(len1, len2, in1, in2, "uinteger_bitset",DEFAULT);
 
-  cout << endl << "PSHORT_BITSET" << endl;
+  cout << endl << "label: PSHORT_BITSET" << endl;
   intersect<pshort,pshort,bitset,bitset,pshort>(len1, len2, in1, in2, "pshort_bitset",DEFAULT);
-
-  int block_size[] = {256, 512, 1024, 4096};
-  int address_bits[] = {8, 9, 10, 12};
+  */
+/*
+  int block_size[] = {64, 128, 256, 4096};
+  int address_bits[] = {6, 7, 8, 12};
+  double bitset_thresholds[] = { 1.0 / 16.0, 1.0 / 8.0, 1.0 / 4.0 };
   for(size_t i = 0; i < 4; i++){
     ADDRESS_BITS_PER_BLOCK = address_bits[i];
     BLOCK_SIZE = block_size[i];
 
-    cout << endl << "BSNEW_BSNEW" << endl;
+    cout << endl << "label: BSNEW_BSNEW" << BLOCK_SIZE << endl;
     intersect<bitset_new,bitset_new,bitset_new,bitset_new,bitset_new>(len1, len2, in1, in2, "bsnew_bsnew",DEFAULT);
 
-    cout << endl << "UINT_BSNEW: " << BLOCK_SIZE << endl;
+    /*
+    cout << endl << "label: UINT_BSNEW: " << BLOCK_SIZE << endl;
     intersect<uinteger,uinteger,bitset_new,bitset_new,uinteger>(len1, len2, in1, in2, "uint_bsnew",DEFAULT);
 
-    cout << endl << "NT_NT: " << BLOCK_SIZE << endl;
-    intersect<new_type,new_type,new_type,new_type,new_type>(len1, len2, in1, in2, "nt_nt",DEFAULT);
-  }
+    for(size_t j = 0; j < 3; j++) {
+      BITSET_THRESHOLD = bitset_thresholds[j];
+*/
+  /*
+      cout << endl << "label: NT_NT: " << BLOCK_SIZE << " " << BITSET_THRESHOLD << endl;
+      intersect<new_type,new_type,new_type,new_type,new_type>(len1, len2, in1, in2, "nt_nt",DEFAULT);
+      */
+//   }
+  //}
 
-  cout << endl << "HYBRID" << endl;
-  intersect<hybrid,hybrid,hybrid,hybrid,hybrid>(len1, len2, in1, in2, "hybrid",DEFAULT);
-  */
+  //cout << endl << "label: HYBRID" << endl;
+  //intersect<hybrid,hybrid,hybrid,hybrid,hybrid>(len1, len2, in1, in2, "hybrid",DEFAULT);
+
   return 0;
 }

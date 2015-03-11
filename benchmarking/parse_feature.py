@@ -29,25 +29,13 @@ def parseInput():
   return opts
 
 def parse_file(filename):
-  perf = {}
+  perf = []
   if os.path.isfile(filename):
     with open(filename, 'r') as f:
       for line in f:
-        matchObj = re.match(r'Best cost time: (.*)', line, re.M | re.I)
+        matchObj = re.match(r'Time\[UNDIRECTED TRIANGLE.*: (.*) s', line, re.M | re.I)
         if matchObj:
-          perf["oracle"] = [matchObj.group(1)]
-
-        matchObj = re.match(r'Hybrid time: (.*)', line, re.M | re.I)
-        if matchObj:
-          perf["hybrid"] = [matchObj.group(1)]
-
-        matchObj = re.match(r'U\-Int time: (.*)', line, re.M | re.I)
-        if matchObj:
-          perf["uint"] = [matchObj.group(1)]
-
-        matchObj = re.match(r'Block level time: (.*)', line, re.M | re.I)
-        if matchObj:
-          perf["block"] = [matchObj.group(1)]
+          perf.append(matchObj.group(1))
 
   return perf
 
@@ -63,19 +51,24 @@ def avg_runs(vals):
 def main():
   options = parseInput();
 
-  datasets = ["g_plus", "higgs", "socLivejournal", "orkut", "cid-patents", "twitter2010","wikipedia"]
+  datasets = ["g_plus", "higgs", "socLivejournal", "orkut", "cid-patents"] #, "twitter2010","wikipedia"]
+  data_types = ["", "_no_p", "_no_s", "_no_sp", "_no_r", "_no_rp", "_no_a", "_no_ap", "_no_sra", "_no_srap"]
+  threads = ["1"]
   runs = [str(x) for x in range(1, 8)]
 
   result = defaultdict(lambda: defaultdict(lambda: []))
   for dataset in datasets:
     for run in runs:
-        p = parse_file(options.folder +"/" + dataset + "_" + run + ".log")
-        result[dataset]["uint"] += p.get("uint", [])
-        result[dataset]["hybrid"] += p.get("hybrid", [])
-        result[dataset]["oracle"] += p.get("oracle", [])
-        result[dataset]["block"] += p.get("block", [])
+      for datatype in data_types:
+        #print (dataset + "_" + run + datatype + ".log")
+        p = parse_file(options.folder +"/" + dataset + "_" + run + datatype + ".log")
+        if datatype == "":
+          result[dataset]["standard"] += p
+        else:
+          result[dataset][datatype] += p
 
   for ds, vs in result.iteritems():
+    print
     print ds
     for k, v in vs.iteritems():
       print k, avg_runs(v)

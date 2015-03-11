@@ -1329,8 +1329,8 @@ inline Set<bitset>* set_intersect(Set<bitset> *C_in, const Set<bitset> *A_in, co
 
     //return set_intersect_standard(C_in, rare, freq);
 
-    if(std::max(A_in->cardinality,B_in->cardinality) / std::max(min_size, std::min(A_in->cardinality,B_in->cardinality)) > 16)
-      return set_intersect_galloping(C_in, rare, freq); //FIXME
+    if(std::max(A_in->cardinality,B_in->cardinality) / std::max(min_size, std::min(A_in->cardinality,B_in->cardinality)) > 32)
+      return set_intersect_galloping(C_in, rare, freq);
     else
       return set_intersect_standard(C_in, rare, freq);
   }

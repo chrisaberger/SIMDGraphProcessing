@@ -7,14 +7,14 @@ source env.sh
 
 curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
-numruns="7"
+numruns="1"
 
 systems="snapr" #"graphlab snapr pgx emptyheaded"
 datasets="baidu california higgs g_plus flickr socLivejournal orkut cid-patents pokec wikipedia twitter2010"
 num_threads="1 48"
 
 for system in $systems; do
-  odir="${output}/${system}_${date}_${curtime}"
+  odir="${output}/advanced_${system}_${date}_${curtime}"
   mkdir $odir
   echo $odir
   echo $datasets

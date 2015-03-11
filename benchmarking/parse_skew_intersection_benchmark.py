@@ -70,10 +70,10 @@ def main():
   labels = []
   ranges = ["1000000", "5000000", "10000000"]
   cards = ["8", "16", "32", "64", "128", "256", "512", "1024", "2048", "4096", "8192", "16384", "32768", "65536", "131072", "262144"]
-  skews = ["0.0", "0.0001", "0.0002", "0.0004", "0.0008", "0.0016", "0.0032", "0.0064", "0.0128", "0.0256", "0.0512", "0.1024"]
+  skews = ["0.0", "0.0001", "0.0002", "0.0004", "0.0008", "0.0016", "0.0032", "0.0064", "0.0128", "0.0256", "0.0512", "0.1024", "0.00625", "0.0125", "0.025", "0.05", "0.1", "0.2", "0.4", "0.8"]
 
   results = defaultdict(lambda: [])
-  for run in range(1, 10):
+  for run in range(1, 8):
     for set_range in ranges:
       for card in cards:
         for skew in skews:
@@ -81,22 +81,6 @@ def main():
           if len(labels) < len(l):
             labels = l
           results[set_range, card, skew].append(p)
-
-#  for set_range in ranges:
-#    print set_range
-#    for card in cards:
-#      print card
-#      print "\t" + "\t".join(labels)
-#      for skew in skews:
-#        max_len = np.max(map(lambda x: len(x), results[set_range, card, skew]))
-#        if max_len > 0:
-#          agg_results = [[] for x in range(max_len)]
-#          for r in results[set_range, card, skew]:
-#            if len(r) == max_len:
-#              [agg_results[i].append(x) for i, x in enumerate(r)]
-#          print skew + "\t" + "\t".join([str(avg_runs(vs)) for vs in agg_results])
-#      print
-#      print
 
   for set_range in ranges:
     print set_range

@@ -29,25 +29,16 @@ def parseInput():
   return opts
 
 def parse_file(filename):
-  perf = {}
+  perf = []
   if os.path.isfile(filename):
     with open(filename, 'r') as f:
       for line in f:
-        matchObj = re.match(r'Best cost time: (.*)', line, re.M | re.I)
+        matchObj = re.match(r'Time\[N-CLIQUE.*: (.*) s', line, re.M | re.I)
         if matchObj:
-          perf["oracle"] = [matchObj.group(1)]
-
-        matchObj = re.match(r'Hybrid time: (.*)', line, re.M | re.I)
+          perf.append(matchObj.group(1))
+        matchObj = re.match(r'Time\[lollipop.*: (.*) s', line, re.M | re.I)
         if matchObj:
-          perf["hybrid"] = [matchObj.group(1)]
-
-        matchObj = re.match(r'U\-Int time: (.*)', line, re.M | re.I)
-        if matchObj:
-          perf["uint"] = [matchObj.group(1)]
-
-        matchObj = re.match(r'Block level time: (.*)', line, re.M | re.I)
-        if matchObj:
-          perf["block"] = [matchObj.group(1)]
+          perf.append(matchObj.group(1))
 
   return perf
 
@@ -63,19 +54,27 @@ def avg_runs(vals):
 def main():
   options = parseInput();
 
-  datasets = ["g_plus", "higgs", "socLivejournal", "orkut", "cid-patents", "twitter2010","wikipedia"]
+  queries = ["lollipop", "clique"]
+  datasets = ["g_plus", "higgs", "socLivejournal", "orkut", "cid-patents"] #, "twitter2010","wikipedia"]
+  data_types = ["", "_no_sra", "_slow"]
+  threads = ["1", "48"]
   runs = [str(x) for x in range(1, 8)]
 
   result = defaultdict(lambda: defaultdict(lambda: []))
-  for dataset in datasets:
-    for run in runs:
-        p = parse_file(options.folder +"/" + dataset + "_" + run + ".log")
-        result[dataset]["uint"] += p.get("uint", [])
-        result[dataset]["hybrid"] += p.get("hybrid", [])
-        result[dataset]["oracle"] += p.get("oracle", [])
-        result[dataset]["block"] += p.get("block", [])
+  for query in queries:
+    for dataset in datasets:
+      for run in runs:
+        for num_threads in threads:
+          for datatype in data_types:
+            #print (dataset + "_" + run + datatype + ".log")
+            p = parse_file(options.folder +"/" + query + "_" + dataset + "_" + run + "_" + num_threads + datatype + ".log")
+            if datatype == "":
+              result[dataset][query, num_threads, "standard"] += p
+            else:
+              result[dataset][query, num_threads, datatype] += p
 
   for ds, vs in result.iteritems():
+    print
     print ds
     for k, v in vs.iteritems():
       print k, avg_runs(v)

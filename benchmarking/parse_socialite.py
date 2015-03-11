@@ -29,56 +29,45 @@ def parseInput():
   return opts
 
 def parse_file(filename):
-  perf = {}
+  perf = defaultdict(lambda: [])
+
   if os.path.isfile(filename):
     with open(filename, 'r') as f:
       for line in f:
-        matchObj = re.match(r'Best cost time: (.*)', line, re.M | re.I)
+        matchObj = re.match(r'(.*) time: (.*)', line, re.M | re.I)
         if matchObj:
-          perf["oracle"] = [matchObj.group(1)]
-
-        matchObj = re.match(r'Hybrid time: (.*)', line, re.M | re.I)
-        if matchObj:
-          perf["hybrid"] = [matchObj.group(1)]
-
-        matchObj = re.match(r'U\-Int time: (.*)', line, re.M | re.I)
-        if matchObj:
-          perf["uint"] = [matchObj.group(1)]
-
-        matchObj = re.match(r'Block level time: (.*)', line, re.M | re.I)
-        if matchObj:
-          perf["block"] = [matchObj.group(1)]
+          perf[matchObj.group(1)].append(matchObj.group(2))
 
   return perf
 
 def avg_runs(vals):
+  for v in vals:
+    if v == "timeout":
+      return "timeout"
+
   vals = [float(v) for v in vals]
   result = -1.0
   if len(vals) >= 5:
     result = np.average(np.sort(vals)[1:-1])
   elif len(vals) > 0:
     result = np.average(vals)
-  return result
+  return "Avg:", result, "Min:", np.min(vals), "Max:", np.max(vals)
 
 def main():
   options = parseInput();
+  datasets = ["g_plus", "higgs", "socLivejournal", "orkut", "cid-patents"]
+  threads = ["1", "48"]
 
-  datasets = ["g_plus", "higgs", "socLivejournal", "orkut", "cid-patents", "twitter2010","wikipedia"]
-  runs = [str(x) for x in range(1, 8)]
-
-  result = defaultdict(lambda: defaultdict(lambda: []))
+  result = defaultdict(lambda: {})
   for dataset in datasets:
-    for run in runs:
-        p = parse_file(options.folder +"/" + dataset + "_" + run + ".log")
-        result[dataset]["uint"] += p.get("uint", [])
-        result[dataset]["hybrid"] += p.get("hybrid", [])
-        result[dataset]["oracle"] += p.get("oracle", [])
-        result[dataset]["block"] += p.get("block", [])
+    for num_threads in threads:
+      p = parse_file(options.folder +"/socialite." + dataset + "." + num_threads + ".1.log")
+      result[dataset][num_threads] = p
 
   for ds, vs in result.iteritems():
     print ds
     for k, v in vs.iteritems():
-      print k, avg_runs(v)
+      print k, [(q, avg_runs(ts)) for q, ts in v.iteritems()]
 
 if __name__ == "__main__":
     main()

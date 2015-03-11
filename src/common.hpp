@@ -200,6 +200,11 @@ namespace common{
     NEW_TYPE = 8
   };
 
+  enum graph_type {
+    DIRECTED,
+    UNDIRECTED
+  };
+
   static void dump_stats(){
     cout << endl;
     cout << "Num Bitset: " << num_bs << endl;

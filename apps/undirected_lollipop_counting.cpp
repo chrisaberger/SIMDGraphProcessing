@@ -124,7 +124,7 @@ class application{
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) {
-  Parser input_data = input_parser::parse(argc,argv,"undirected_tadpole_counting");
+  Parser input_data = input_parser::parse(argc, argv, "undirected_lollipop_counting", common::UNDIRECTED);
 
   if(input_data.layout.compare("uint") == 0){
     application<uinteger,uinteger> myapp(input_data);
@@ -138,7 +138,7 @@ int main (int argc, char* argv[]) {
   } else if(input_data.layout.compare("hybrid") == 0){
     application<hybrid,hybrid> myapp(input_data);
     myapp.run();
-  } 
+  }
   #if COMPRESSION == 1
   else if(input_data.layout.compare("v") == 0){
     application<variant,uinteger> myapp(input_data);

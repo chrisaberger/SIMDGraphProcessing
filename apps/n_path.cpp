@@ -115,8 +115,8 @@ class application{
 };
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
-int main (int argc, char* argv[]) { 
-  Parser input_data = input_parser::parse(argc,argv,"n_path");
+int main (int argc, char* argv[]) {
+  Parser input_data = input_parser::parse(argc, argv, "n_path", common::DIRECTED);
 
   if(input_data.layout.compare("uint") == 0){
     application<uinteger,uinteger> myapp(input_data);

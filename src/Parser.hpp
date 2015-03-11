@@ -1,7 +1,9 @@
 // class templates
+#include <getopt.h>
+
+#include "common.hpp"
 #include "SparseMatrix.hpp"
 #include "MutableGraph.hpp"
-#include <getopt.h>
 
 using namespace pcm_helper;
 
@@ -29,8 +31,8 @@ class Parser{
 //Main setup code
 //////////////////////////////////////////////////////////////////////////////////////////
 //Ideally the user shouldn't have to concern themselves with what happens down here.
-namespace input_parser{
-  inline void printUsage(string app){
+namespace input_parser {
+  inline void printUsage(string app) {
     cout << "USAGE: ./application <OPTIONS>" << endl;
     cout << "OPTIONS: " << endl;
     cout <<"\tREQUIRED: --graph=<path to graph> --input_type=<\'binary\' or \'text\'> --t=<# of threads>" << endl;
@@ -44,7 +46,8 @@ namespace input_parser{
     }
     exit (0);
   }
-  Parser parse(int argc, char* argv[], string app){ 
+
+  Parser parse(int argc, char* argv[], string app, common::graph_type g_type) {
     char* graph_path = NULL;
     char* attribute_path = NULL;
     char* input_type = NULL;
@@ -139,7 +142,7 @@ namespace input_parser{
 #endif
 
     MutableGraph *inputGraph;
-    if(app.compare("n_path") == 0 || app.compare("symbiosity")) {
+    if(g_type == common::DIRECTED) {
       if(attribute_path != NULL) {
         #ifndef ATTRIBUTES
         cout << "WARNING: Gave a attributes file but pragma is turned off." << endl;

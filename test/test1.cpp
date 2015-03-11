@@ -1,0 +1,7 @@
+#define WRITE_VECTOR 0
+
+#include "gtest/gtest.h"
+
+TEST(GLMTEST_DENSE_SGD, DENSE_PERCORE_DATAFULL) {
+  EXPECT_EQ(1.0, 1.0);
+}

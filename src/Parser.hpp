@@ -78,7 +78,7 @@ namespace input_parser{
       if (c == -1)
         break;
 
-      switch (c){
+      switch (c) {
         case 0:
           /* If this option set a flag, do nothing else now. */
           if (long_options[option_index].flag != 0)
@@ -139,33 +139,37 @@ namespace input_parser{
 #endif
 
     MutableGraph *inputGraph;
-    if(app.compare("n_path") == 0){
-      if(attribute_path != NULL){
+    if(app.compare("n_path") == 0 || app.compare("symbiosity")) {
+      if(attribute_path != NULL) {
         #ifndef ATTRIBUTES
         cout << "WARNING: Gave a attributes file but pragma is turned off." << endl;
-        #endif 
+        #endif
         inputGraph = MutableGraph::directedFromAttributeList(graph_path,attribute_path);
-      } else{
-        if(string(input_type).compare("text") == 0){
+      }
+      else {
+        if(string(input_type).compare("text") == 0) {
           inputGraph = MutableGraph::directedFromEdgeList(graph_path);
-        } else{
+        }
+        else {
           inputGraph = MutableGraph::directedFromBinary(graph_path);
         }
       }
-    } else{
-      if(attribute_path != NULL){
+    }
+    else {
+      if(attribute_path != NULL) {
         #ifndef ATTRIBUTES
         cout << "WARNING: Gave a attributes file but pragma is turned off." << endl;
-        #endif         
+        #endif
         inputGraph = MutableGraph::undirectedFromAttributeList(graph_path,attribute_path);
-      } else{
-        if(string(input_type).compare("text") == 0){
+      } else {
+        if(string(input_type).compare("text") == 0) {
           inputGraph = MutableGraph::undirectedFromEdgeList(graph_path);
-        } else{
+        } else {
           inputGraph = MutableGraph::undirectedFromBinary(graph_path);
         }
       }
     }
+
     return Parser(num_threads,attribute_path!=NULL,n,start_node,inputGraph,layout_type);
   }
 }

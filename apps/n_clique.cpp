@@ -64,7 +64,7 @@ class application{
       return C->cardinality;
     } else{
       C->foreach([this,&count,depth,set_buffers,output,decode_buffers] (uint32_t i){
-        output->tuple[depth-1] = graph->id_map[i]; 
+        output->tuple[depth-1] = graph->id_map[i];
         count += this->apply_function(i,depth,set_buffers,decode_buffers,output);
       });
     }

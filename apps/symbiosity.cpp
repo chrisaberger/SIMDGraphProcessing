@@ -14,28 +14,18 @@ template<class T, class R>
 class application{
   public:
     SparseMatrix<T,R>* graph;
-    long num_triangles;
+    long count;
     MutableGraph *inputGraph;
     size_t num_threads;
     string layout;
 
     application(Parser input_data){
-      num_triangles = 0;
+      count = 0;
       inputGraph = input_data.input_graph;
       num_threads = input_data.num_threads;
       layout = input_data.layout;
     }
 
-#ifdef ATTRIBUTES
-    inline bool myNodeSelection(uint32_t node, uint32_t attribute){
-      (void)node; (void) attribute;
-      return true;
-    }
-    inline bool myEdgeSelection(uint32_t src, uint32_t dst, uint32_t attribute){
-      (void) attribute;
-      return attribute == 2012 && src < dst;
-    }
-#else
     inline bool myNodeSelection(uint32_t node, uint32_t attribute){
       (void)node; (void) attribute;
       return true;
@@ -44,7 +34,6 @@ class application{
       (void) node; (void) nbr; (void) attribute;
       return true;
     }
-    #endif
 
     inline void produceSubgraph(){
       auto node_selection = std::bind(&application::myNodeSelection, this, _1, _2);
@@ -78,11 +67,11 @@ class application{
              t_num_sim_nodes++;
            }
 
-           t_count[tid*PADDING] += t_num_sim_nodes;
+           t_count[tid * PADDING] += t_num_sim_nodes;
         },
         ////////////////////////////////////////////////////////////
         [this,t_count](size_t tid){
-          num_triangles += t_count[tid*PADDING];
+          count += t_count[tid*PADDING];
         }
       );
 
@@ -104,7 +93,7 @@ class application{
     queryOver();
     common::stopClock(name, start_time);
 
-    cout << "Count: " << num_triangles << endl << endl;
+    cout << "Count: " << count << endl << endl;
 
     common::dump_stats();
 
@@ -114,7 +103,7 @@ class application{
 
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) {
-  Parser input_data = input_parser::parse(argc, argv, "n_path");
+  Parser input_data = input_parser::parse(argc, argv, "symbiosity");
 
   if(input_data.layout.compare("uint") == 0){
     application<uinteger,uinteger> myapp(input_data);

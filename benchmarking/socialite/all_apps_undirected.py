@@ -6,7 +6,7 @@ import os
 import signal
 
 # Timeout for queries
-timeout = 7200
+timeout = 1800
 
 # Here come the queries
 def triangle_counting():
@@ -16,10 +16,10 @@ def clique_counting():
   `total(0, $sum(1L)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), edge(x, z), edge(y, w).`
 
 def cycle_counting():
-  `total(0, $sum(1L)) :- edge(x, y), edge(y, z), edge(z, w), edge(x, w), x != z.`
+  `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), uedge(z, w), uedge(x, w), x < z, w < y.`
 
 def lollipop_counting():
-  `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), uedge(x, z), uedge(x, w).`
+  `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), uedge(x, z), y < z, uedge(x, w).`
 
 def tadpole_counting():
   `total(0, $sum(1L)) :- uedge(x, y), uedge(y, z), x != z, uedge(z, w), y != w, uedge(x, w), w < y, uedge(x, a), a != y, a != z, a != w, uedge(a, b), b != x.`
@@ -60,14 +60,24 @@ if __name__ == '__main__':
   num_runs = int(sys.argv[2])
 
   print "Loading data (undirected)"
-  `edge(int a:0..20000000, (int b)) indexby a, sortby b.
-   uedge(int a:0..20000000, (int b)) indexby a, sortby b.
-   edgeRaw(int a:0..20000000, (int b)) indexby a, sortby b.
+  `edgeRaw(int a:0..50000000, (int b)) indexby a, sortby b.
+   nodeNums(int x:0..50000000).
    total(int x:0..0, long s).
+   num_nodes(int x:0..0, int s).
    edgeRaw(a, b) :- l = $read($filename), (v1,v2) = $split(l, " "), a = $toInt(v1), b = $toInt(v2).`
 
+  print "Counting nodes"
+  `nodeNums(x) :- edgeRaw(x, _).
+   nodeNums(x) :- edgeRaw(_, x).
+   num_nodes(0, $max(x)) :- nodeNums(x).`
+
+  for i, s in `num_nodes(i, s)`:
+    nodecount = s
+
   print "Preprocessing data"
-  `edge(a, b) :- edgeRaw(a, b), a < b.
+  `edge(int a:0..$nodecount, (int b)) indexby a, sortby b.
+   uedge(int a:0..$nodecount, (int b)) indexby a, sortby b.
+   edge(a, b) :- edgeRaw(a, b), a < b.
    edge(b, a) :- edgeRaw(a, b), b < a.
    uedge(a, b) :- edgeRaw(a, b).
    uedge(b, a) :- edgeRaw(a, b).`

@@ -8,21 +8,19 @@ source env.sh
 curtime="$(date +'%H-%M-%S')"
 date="$(date +'%d-%m-%Y')"
 numruns="1"
-
-systems="snapr" #"graphlab snapr pgx emptyheaded"
-datasets="baidu california higgs g_plus flickr socLivejournal orkut cid-patents pokec wikipedia twitter2010"
-num_threads="1 48"
+datasets="cid-patents higgs socLivejournal orkut g_plus" # higgs socLivejournal orkut g_plus"
 
 for system in $systems; do
-  odir="${output}/advanced_${system}_${date}_${curtime}"
+  odir="${output}/DM_${system}_${date}_${curtime}"
   mkdir $odir
   echo $odir
-  echo $datasets
    for dataset in $datasets; do
       for threads in $num_threads; do
          cd ${system}
          echo "Benchmarking ${system} on ${dataset} with ${threads} threads"
-         ./run.sh $numruns /dfs/scratch0/caberger/datasets/${dataset} $threads | tee $odir/${system}.${dataset}.${threads}.log
+         ./run.sh $numruns /dfs/scratch0/caberger/datasets/${dataset} $threads |& tee $odir/${system}.${dataset}.${threads}.log
+         #./run_symbiosity.sh $numruns /dfs/scratch0/caberger/datasets/${dataset} $threads |& tee $odir/SYMB_${system}.${dataset}.${threads}.log
+         #./run_similarity.sh $numruns /dfs/scratch0/caberger/datasets/${dataset} $threads |& tee $odir/SIM_${system}.${dataset}.${threads}.log
          cd ..
       done
    done

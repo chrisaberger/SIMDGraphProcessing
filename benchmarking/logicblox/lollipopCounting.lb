@@ -1,0 +1,1 @@
+_count[] = value <- agg<<value = count()>> uedge(x, y), uedge(y, z), uedge(x, z), uedge(x, _), y < z.

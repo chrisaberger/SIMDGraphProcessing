@@ -47,58 +47,30 @@ def main():
 
   lens = set()
   sweep_lens = set()
-  ranges = set()
-  sweep_ranges = set()
   results_lens = dict()
-  results_ranges = dict()
   for filename in os.listdir(options.folder):
-    matchObj = re.match(r'lens_(.*)_(.*)_(.*).log', filename, re.M | re.I)
+    matchObj = re.match(r'(.*)_(.*)_(.*).log', filename, re.M | re.I)
     if matchObj:
-      len_sets = int(matchObj.group(1))
-      range_sets = int(matchObj.group(2))
+      lenA = int(matchObj.group(1))
+      lenB = int(matchObj.group(2))
       abs_filename = os.path.join(options.folder, filename)
       times, _ = parse_file(open(abs_filename))
-      ranges.add(range_sets)
-      sweep_lens.add(len_sets)
+      lens.add(lenA)
+      sweep_lens.add(lenB)
 
-      if (len_sets, range_sets) in results_lens:
-        [ts.append(t) for ts, t in zip(results_lens[len_sets, range_sets], times)]
+      if (lenA, lenB) in results_lens:
+        [ts.append(t) for ts, t in zip(results_lens[lenA, lenB], times)]
       else:
-        results_lens[len_sets, range_sets] = [[t] for t in times]
-
-    matchObj = re.match(r'range_(.*)_(.*)_(.*).log', filename, re.M | re.I)
-    if matchObj:
-      len_sets = int(matchObj.group(1))
-      range_sets = int(matchObj.group(2))
-      abs_filename = os.path.join(options.folder, filename)
-      times, _ = parse_file(open(abs_filename))
-      lens.add(len_sets)
-      sweep_ranges.add(range_sets)
-
-      if (len_sets, range_sets) in results_ranges:
-        [ts.append(t) for ts, t in zip(results_ranges[len_sets, range_sets], times)]
-      else:
-        results_ranges[len_sets, range_sets] = [[t] for t in times]
+        results_lens[lenA, lenB] = [[t] for t in times]
 
   for k in results_lens:
     results_lens[k] = [np.average(t) for t in results_lens[k]]
 
-  for k in results_ranges:
-    results_ranges[k] = [np.average(t) for t in results_ranges[k]]
-
   for l in sorted(lens):
-    with open('results_len_' + str(l), 'w') as f:
+    with open('results_len_len_' + str(l), 'w') as f:
       f.write("Range" + "\t" + "\t".join(intersections) + "\n")
-      for r in sorted(sweep_ranges):
-        f.write(str(r) + "\t" + "\t".join([str(x) for x in results_ranges[l, r]]) + "\n")
-
-
-  for r in sorted(ranges):
-    with open('results_range_' + str(r), 'w') as f:
-      f.write("Length" + "\t" + "\t".join(intersections) + "\n")
-      for l in sorted(sweep_lens):
-        f.write(str(l) + "\t" + "\t".join([str(x) for x in results_lens[l, r]]) + "\n")
-
+      for sl in sorted(sweep_lens):
+        f.write(str(sl) + "\t" + "\t".join([str(x) for x in results_lens[l, sl]]) + "\n")
 
 if __name__ == "__main__":
     main()

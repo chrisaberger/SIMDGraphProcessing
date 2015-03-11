@@ -9,6 +9,8 @@ import numpy as np
 
 from average_runs import average_runs
 
+algos_to_layout = [0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
 def parseInput():
   parser = OptionParser()
   parser.add_option("-f", "--data_folder", dest="folder",
@@ -44,67 +46,103 @@ def parse_file(f):
 
   return times, encoding_times, mem
 
+def den_to_card(d):
+  return int(d * 1000000)
+
 def main():
   options = parseInput();
   f_perf = open('intersection_density_perf.csv', 'w')
-  diff_perf = open('diff_density_perf.csv', 'w')
   v_perf = open('vintersection_density_perf.csv', 'w')
+  d_perf = open('dintersection_density_perf.csv', 'w')
+  diff_worst_best = open('diff_worst_best.csv', 'w')
 
-  skews=["0.00002","0.00004","0.00008","0.00016","0.00032"] #"0.00128","0.00256","0.00512","0.01024","0.02048"]
-  lensA=["20","40","80","160","320","1280","2560","5120","10240","20480","40960","163840","327680","655360","1310720"]
-  lensB=["20","40","80","160","320","1280","2560","5120","10240","20480","40960","163840","327680","655360","1310720"]
-  data_range = "10000000"
+  results = dict()
+  mem_results = dict()
+  constr_results = dict()
+  for filename in os.listdir(options.folder):
+    matchObj = re.match(r'(.*)_(.*)_(.*).log', filename, re.M | re.I)
+    if matchObj:
+      densityA = float(matchObj.group(1))
+      densityB = float(matchObj.group(2))
 
-  uint_dict = {}
-  min_types = {}
-  min_times = {}
+      abs_filename = os.path.join(options.folder, filename)
+      times, encoding_times, mem = parse_file(open(abs_filename))
 
-  for skew in skews:
-    f_perf = open('intersection_density_perf_' + skew + '.csv', 'w')
-    f_perf.write('\t' + "\t".join(lensB) +  '\n')
-    d_perf = open('diff_intersection_density_perf_' + skew + '.csv', 'w')
-    d_perf.write('\t' + "\t".join(lensB) +  '\n')
-    for lenA in lensA:
-      type_output = []
-      times_output = []
-      for lenB in lensB:
-        if int(lenA) <= int(lenB):
-          print options.folder + '/' + skew + "." + lenA + "." + lenB + "." +  data_range + ".0.log"
-          filename = open(options.folder + '/' + skew + "." + lenA + "." + lenB + "." + data_range + ".0.log", 'r')
-          times,encoding_times,mem = parse_file(filename)
+      if (densityA, densityB) in results:
+        [ts.append(t) for ts, t in zip(results[densityA, densityB], times)]
+        [ts.append(t) for ts, t in zip(constr_results[densityA, densityB], encoding_times)]
+      else:
+        results[densityA, densityB] = [[t] for t in times]
+        constr_results[densityA, densityB] = [[t] for t in encoding_times]
+        #mem_results[density, comp] = mem
 
-          #First deal with the UINT algos
-          uint_dict.update({skew+"_"+lenA+"_"+lenB:[times[0],times[1],times[2],times[3],times[4]]})
-          min_uint = 100000000.0          
-          for i in range(0,5):
-            if float(times[i]) < min_uint:
-              min_uint = float(times[i])
+  densities_set = set()
+  comps_set = set()
 
-          min_time = min_uint 
-          min_type = 0
-          for i in range(5,10):
-            print str(min_time) + " " + str(times[i])
-            if(float(times[i]) < min_time):
-              min_time = float(times[i])
-              min_type = i-4
+  my_keys = results.keys()
+  my_keys.sort()
 
-          relative_perf = float(min_uint)/float(min_time)
+  prev = -1
+  current_line = []
+  num_intersections = 0
+  for k in my_keys:
+    if(k[0] == prev or prev == -1):
+      num_intersections += 1
+      current_line.append(str(den_to_card(k[1])))
+      prev = k[0]
 
-          type_output.append(str(min_type))
-          times_output.append(str(relative_perf))
+  header = "\t" + "\t".join(current_line) + "\n"
+  f_perf.write(header)
+  d_perf.write(header)
+  diff_worst_best.write(header)
 
-          print times
+  numShift = 0
+  lastDen = -1
+  first = True
+  diff = 1e6
 
-          min_types.update({skew+"_"+lenA+"_"+lenB:min_type})
-          min_times.update({skew+"_"+lenA+"_"+lenB:relative_perf})
-        else:
-          type_output.append("-1")
-          times_output.append("-1")
+  key_str = str(den_to_card(my_keys[0][0]))
+  current_line = [key_str]
+  current_line2 = [key_str]
+  diff_worst_best_line = [key_str]
 
-      f_perf.write(lenA + '\t' + "\t".join(type_output) +  '\n')
-      d_perf.write(lenA + '\t' + "\t".join(times_output) +  '\n')
+  for k in my_keys:
+    times = results[k]
+    denA = k[0]
+    denB = k[1]
 
+    if(denA != lastDen and lastDen != -1):
+      f_perf.write("\t".join(current_line) + "\n")
+      d_perf.write("\t".join(current_line2) + "\n")
+      diff_worst_best.write("\t".join(diff_worst_best_line) + "\n")
 
+      key_str = str(den_to_card(denA))
+      current_line = [key_str]
+      current_line2 = [key_str]
+      diff_worst_best_line = [key_str]
+
+      numShift += 1
+      for i in range(0,numShift):
+        current_line.append('-1')
+        current_line2.append('-1')
+        diff_worst_best_line.append('-1')
+
+    lastDen = denA
+
+    curTup = k
+    results[curTup] = [average_runs(t) for t in times]
+    v_perf.write(str(curTup[0]) + "|" + str(curTup[1]) + ',')
+
+    results_wo_hybrid = results[curTup][0:-1]
+    v_perf.write(",".join([str(x) for x in results[curTup]]) + '\n')
+    current_line.append(str(algos_to_layout[np.argmin(results_wo_hybrid)]))
+    current_line2.append(str(results[curTup][-1] / np.min(results_wo_hybrid)))
+    diff_worst_best_line.append(str(np.min(results_wo_hybrid[0:5]) / np.min(results_wo_hybrid)))
+
+  f_perf.write("\t".join(current_line) + "\n")
+  d_perf.write("\t".join(current_line2) + "\n")
+  diff_worst_best.write("\t".join(diff_worst_best_line) + "\n")
+  diff_worst_best.close()
 
 if __name__ == "__main__":
     main()

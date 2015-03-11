@@ -19,7 +19,7 @@ endif
 
 APPS_SOURCES=$(shell ls apps)
 TOOLS_SOURCES=$(shell ls tools)
-TESTS_SOURCES=$(shell ls tests)
+TESTS_SOURCES=$(shell ls test)
 
 APPS=$(APPS_SOURCES:.cpp=)
 TOOLS=$(TOOLS_SOURCES:.cpp=)
@@ -44,10 +44,14 @@ $(TOOLS_EXES): $(OBJECTS) $(EXEDIR)
 	$(CXX) $(CXXFLAGS) $(@:bin%=tools%.cpp) $(OBJECTS) $(EXT_OBJECTS) $(LIBS) -o $@ $(INCLUDE_DIRS)
 
 $(TESTS_EXES): $(OBJECTS) $(EXEDIR)
-	$(CXX) $(CXXFLAGS) $(@:bin%=tests%.cpp) $(OBJECTS) $(EXT_OBJECTS) $(LIBS) -o $@ $(INCLUDE_DIRS)
+	$(CXX) $(CXXFLAGS) $(@:bin%=test%.cpp) $(OBJECTS) $(EXT_OBJECTS) $(LIBS) -o $@ $(INCLUDE_DIRS)
 
 $(OBJECTS): $(SOURCES) $(HEADERS) $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(LIB_INCS) -o $@ -c $(@:build%.o=src%.cpp) $(INCLUDE_DIRS)
+
+run_test: $(OBJECTS) $(EXEDIR)
+	make -C ./lib/gtest-1.7.0
+	$(CXX) $(CXXFLAGS) test/test_undirected_triangle_counting.cpp $(OBJECTS) ./lib/gtest-1.7.0/src/gtest_main.o  ./lib/gtest-1.7.0/src/gtest-all.o $(EXT_OBJECTS) $(LIBS) -o bin/$@ $(INCLUDE_DIRS) -I./test -I./lib/gtest-1.7.0/include/ -I./lib/gtest-1.7.0/ -I./apps/
 
 clean:
 	rm -rf $(OBJDIR) $(EXEDIR)

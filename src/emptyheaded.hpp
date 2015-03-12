@@ -2,6 +2,8 @@
 #include "MutableGraph.hpp"
 #include "pcm_helper.hpp"
 #include "Parser.hpp"
+#include "ParallelBuffer.hpp"
+#include "Table.hpp"
 
 template<class T, class R>
 class application{

@@ -57,7 +57,7 @@ static double BITSET_THRESHOLD = 1.0 / 16.0;
 // Enables/disables hybrid that always chooses U-Int
 //#define HYBRID_UINT
 
-#define STATS
+//#define STATS
 
 //CONSTANTS THAT SHOULD NOT CHANGE
 #define SHORTS_PER_REG 8

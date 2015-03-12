@@ -9,7 +9,14 @@ size_t application(Parser input_data);
 #ifndef GOOGLE_TEST
 //Ideally the user shouldn't have to concern themselves with what happens down here.
 int main (int argc, char* argv[]) {
-  Parser input_data = input_parser::parse(argc, argv, "undirected_triangle_counting", common::UNDIRECTED);
+  std::string s(argv[0]);
+  size_t count = 0;
+  while((s.size()-1-count)>0 && s.compare(s.size()-1-count,1,"/")!=0){
+    count++;
+  }
+  std::string app = s.substr(s.size()-count,count+1);
+
+  Parser input_data = input_parser::parse(argc, argv, app, common::UNDIRECTED);
 
   common::alloc_scratch_space(512 * input_data.input_graph->max_nbrhood_size * sizeof(uint32_t), input_data.num_threads);
 

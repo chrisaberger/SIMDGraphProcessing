@@ -21,7 +21,7 @@ class undirected_triangle_counting: public application<T,R> {
         (void) attribute;
         return nbr < node;
       };
-      return SparseMatrix<T,R>::from_symmetric_graph(this->input_graph,node_selection,edge_selection,this->num_threads);
+      return SparseMatrix<T,R>::build(this->input_graph,node_selection,edge_selection,this->num_threads);
     }
 
     void run(){

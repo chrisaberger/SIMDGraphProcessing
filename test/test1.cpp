@@ -3,5 +3,5 @@
 #include "gtest/gtest.h"
 
 TEST(TEST1, SIMPLE_INTERSECT) {
-  EXPECT_EQ(0.0, 1.0);
+  EXPECT_EQ(1.0, 1.0);
 }

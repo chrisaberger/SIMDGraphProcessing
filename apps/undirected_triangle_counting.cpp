@@ -1,12 +1,70 @@
 #define WRITE_VECTOR 0
 
-#include "SparseMatrix.hpp"
-#include "MutableGraph.hpp"
-#include "pcm_helper.hpp"
-#include "Parser.hpp"
+#include "emptyheaded.hpp"
 
 using namespace pcm_helper;
 
+inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
+  (void) attribute;
+  return nbr < node;
+}
+
+template<class T, class R>
+SparseMatrix<T,R>* materialize_graph(MutableGraph *input_graph, const size_t num_threads){
+  auto node_selection = [](uint32_t node, uint32_t attribute){
+    (void) node; (void) attribute;
+    return true;
+  };
+  auto edge_selection = [](uint32_t node, uint32_t nbr, uint32_t attribute){
+    (void) attribute;
+    return nbr < node;
+  };
+  return SparseMatrix<T,R>::from_symmetric_graph(input_graph,node_selection,edge_selection,num_threads);
+}
+
+template<class T, class R>
+void application(Parser input_data){
+  const size_t num_threads = input_data.num_threads;
+  const string layout = input_data.layout;
+  MutableGraph *input_graph = input_data.input_graph;
+
+  SparseMatrix<T,R>* graph = materialize_graph<T,R>(input_graph,num_threads);
+  long num_triangles = 0;
+
+  double start_time = common::startClock();
+
+  ParallelBuffer<uint8_t> *buffers = new ParallelBuffer<uint8_t>(num_threads,512*graph->max_nbrhood_size*sizeof(uint32_t));
+
+  const size_t matrix_size = graph->matrix_size;
+  size_t *t_count = new size_t[num_threads * PADDING];
+  common::par_for_range(num_threads, 0, matrix_size, 100,
+    [&](size_t tid){
+      buffers->allocate(tid);
+      t_count[tid*PADDING] = 0;
+    },
+    ////////////////////////////////////////////////////
+    [&](size_t tid, size_t i) {
+       long t_num_triangles = 0;
+       Set<R> A = graph->get_row(i);
+       Set<R> C(buffers->data[tid]);
+
+       A.foreach([&] (uint32_t j){
+        Set<R> B = graph->get_row(j);
+        t_num_triangles += ops::set_intersect(&C,&A,&B)->cardinality;
+       });
+
+       t_count[tid*PADDING] += t_num_triangles;
+    },
+    ////////////////////////////////////////////////////////////
+    [&](size_t tid){
+      num_triangles += t_count[tid*PADDING];
+    }
+  );
+  common::stopClock("UNDIRECTED TRIANGLE COUNTING",start_time);
+
+  cout << "Number of Triangles: " << num_triangles << endl;
+}
+/*
 template<class T, class R>
 class application{
   public:
@@ -30,13 +88,6 @@ class application{
     inline bool myEdgeSelection(uint32_t node, uint32_t nbr, uint32_t attribute){
       (void) attribute;
       return nbr < node;
-    }
-
-    inline void produceSubgraph(){
-      auto node_selection = std::bind(&application::myNodeSelection, this, _1, _2);
-      auto edge_selection = std::bind(&application::myEdgeSelection, this, _1, _2, _3);
-
-      graph = SparseMatrix<T,R>::from_symmetric_graph(inputGraph,node_selection,edge_selection,num_threads);
     }
 
     inline void queryOver(){
@@ -85,7 +136,6 @@ class application{
     if(pcm_init() < 0)
        return;
 
-    common::alloc_scratch_space(512 * graph->max_nbrhood_size * sizeof(uint32_t), num_threads);
 
     start_time = common::startClock();
     queryOver();
@@ -97,43 +147,4 @@ class application{
 
     pcm_cleanup();
   }
-};
-
-//Ideally the user shouldn't have to concern themselves with what happens down here.
-int main (int argc, char* argv[]) {
-  Parser input_data = input_parser::parse(argc, argv, "undirected_triangle_counting", common::UNDIRECTED);
-
-  if(input_data.layout.compare("uint") == 0){
-    application<uinteger,uinteger> myapp(input_data);
-    myapp.run();
-  } else if(input_data.layout.compare("bs") == 0){
-    application<bitset,bitset> myapp(input_data);
-    myapp.run();
-  } else if(input_data.layout.compare("pshort") == 0){
-    application<pshort,pshort> myapp(input_data);
-    myapp.run();
-  } else if(input_data.layout.compare("hybrid") == 0){
-    application<hybrid,hybrid> myapp(input_data);
-    myapp.run();
-  } else if(input_data.layout.compare("new_type") == 0){
-    application<new_type,new_type> myapp(input_data);
-    myapp.run();
-  } else if(input_data.layout.compare("bitset_new") == 0){
-    application<bitset_new,bitset_new> myapp(input_data);
-    myapp.run();
-  }
-  #if COMPRESSION == 1
-  else if(input_data.layout.compare("v") == 0){
-    application<variant,uinteger> myapp(input_data);
-    myapp.run();
-  } else if(input_data.layout.compare("bp") == 0){
-    application<bitpacked,uinteger> myapp(input_data);
-    myapp.run();
-  }
-  #endif
-  else{
-    cout << "No valid layout entered." << endl;
-    exit(0);
-  }
-  return 0;
-}
+};*/

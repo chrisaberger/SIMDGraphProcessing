@@ -49,9 +49,11 @@ $(TESTS_EXES): $(OBJECTS) $(EXEDIR)
 $(OBJECTS): $(SOURCES) $(HEADERS) $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(LIB_INCS) -o $@ -c $(@:build%.o=src%.cpp) $(INCLUDE_DIRS)
 
-run_test: $(OBJECTS) $(EXEDIR)
+gtest:
 	cd ./lib/gtest-1.7.0/ && ./configure
 	make -C ./lib/gtest-1.7.0
+
+test: $(OBJECTS) $(EXEDIR)
 	$(CXX) $(CXXFLAGS) test/test1.cpp $(OBJECTS) ./lib/gtest-1.7.0/src/gtest_main.o  ./lib/gtest-1.7.0/src/gtest-all.o $(EXT_OBJECTS) $(LIBS) -o bin/$@ $(INCLUDE_DIRS) -I./test -I./lib/gtest-1.7.0/include/ -I./lib/gtest-1.7.0/ -I./apps/
 
 clean:

@@ -37,14 +37,7 @@ int main (int argc, char* argv[]) {
   }
   std::string app = s.substr(s.size()-count,count+1);
 
-  cout << "APP NAME: " << app << " " << app.compare("n_path") << endl;
-
-  common::graph_type gt = common::UNDIRECTED;
-  if(app.compare("n_path") == 0){
-    cout << "LOADING A DIRECTED FILE. " << endl;
-    gt = common::DIRECTED;
-  } 
-  Parser input_data = input_parser::parse(argc, argv, app, gt);
+  Parser input_data = input_parser::parse(argc, argv, app);
   
   common::alloc_scratch_space(512 * input_data.input_graph->max_nbrhood_size * sizeof(uint32_t), input_data.num_threads);
 

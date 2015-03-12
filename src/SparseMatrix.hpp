@@ -87,6 +87,11 @@ class SparseMatrix{
     SparseMatrix* clone_on_node(int node);
     void *parallel_constructor(void *);
 
+    static SparseMatrix* build( MutableGraph *inputGraph,
+      const std::function<bool(uint32_t,uint32_t)> node_selection,
+      const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
+      const size_t num_threads);
+
     static SparseMatrix* from_symmetric_graph(MutableGraph *inputGraph,
       const std::function<bool(uint32_t,uint32_t)> node_selection,
       const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
@@ -261,7 +266,18 @@ inline pair<size_t,size_t> pack_data(const uint32_t i,
 }
 
 template<class T,class R>
-SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGraph,
+inline SparseMatrix<T,R>* SparseMatrix<T,R>::build(MutableGraph* inputGraph,
+  const std::function<bool(uint32_t,uint32_t)> node_selection,
+  const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
+  const size_t num_threads){
+  if(inputGraph->symmetric)
+    return SparseMatrix<T,R>::from_symmetric_graph(inputGraph,node_selection,edge_selection,num_threads);
+  else
+    return SparseMatrix<T,R>::from_asymmetric_graph(inputGraph,node_selection,edge_selection,num_threads);
+}
+
+template<class T,class R>
+inline SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGraph,
   const std::function<bool(uint32_t,uint32_t)> node_selection,
   const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
   const size_t num_threads){
@@ -272,7 +288,7 @@ SparseMatrix<T,R>* SparseMatrix<T,R>::from_symmetric_graph(MutableGraph* inputGr
 }
 //Directed Graph
 template<class T,class R>
-SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputGraph,
+inline SparseMatrix<T,R>* SparseMatrix<T,R>::from_asymmetric_graph(MutableGraph* inputGraph,
   const std::function<bool(uint32_t,uint32_t)> node_selection,
   const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection, const size_t num_threads){
   if(inputGraph->node_attr == NULL)

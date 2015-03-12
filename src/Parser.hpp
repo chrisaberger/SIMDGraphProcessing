@@ -38,7 +38,7 @@ namespace input_parser {
     cout <<"\tREQUIRED: --graph=<path to graph> --input_type=<\'binary\' or \'text\'> --t=<# of threads>" << endl;
     cout << "\t\t--layout=<uint,pshort,bs,v,bp,hybrid>" << endl;
     if(app.compare("n_path") == 0){
-      cout << "\tOPTIONAL: --start_node=<start node, default is higest degree> --n=<path length, default finds all paths>" << endl;
+      cout << "\tOPTIONAL: --start_node=<start node, default is higest degree> --n=<path length, default finds all paths> --asymmetric" << endl;
       cout << "*takes a directed graph as input*" << endl;
     } else if(app.compare("n_clique") == 0 || app.compare("n_cycle") == 0){
       cout << "\tOPTIONAL: --n=<size of cliques or cycles to find, default is 4>" << endl;
@@ -47,7 +47,7 @@ namespace input_parser {
     exit (0);
   }
 
-  Parser parse(int argc, char* argv[], string app, common::graph_type g_type) {
+  Parser parse(int argc, char* argv[], string app) {
     char* graph_path = NULL;
     char* attribute_path = NULL;
     char* input_type = NULL;
@@ -56,6 +56,7 @@ namespace input_parser {
     int n = -1;
     long start_node = -1;
     bool help = false;
+    common::graph_type g_type = common::UNDIRECTED;
 
     int c;
     while (1){
@@ -70,6 +71,7 @@ namespace input_parser {
           {"n",required_argument,0,'n'},
           {"start_node",required_argument,0,'s'},
           {"input_type",  required_argument, 0, 'f'},
+          {"asymmetric",  optional_argument, 0, 'm'},
           {0, 0, 0, 0}
         };
       /* getopt_long stores the option index here. */
@@ -115,6 +117,9 @@ namespace input_parser {
         case 's':
           start_node = atol(optarg);
           break;
+        case 'm':
+          g_type = common::DIRECTED;
+          break;
         case '?':
           /* getopt_long already printed an error message. */
           break;
@@ -143,6 +148,7 @@ namespace input_parser {
 
     MutableGraph *inputGraph;
     if(g_type == common::DIRECTED) {
+      cout << "Loading a directed graph" << endl;
       if(attribute_path != NULL) {
         #ifndef ATTRIBUTES
         cout << "WARNING: Gave a attributes file but pragma is turned off." << endl;
@@ -159,6 +165,7 @@ namespace input_parser {
       }
     }
     else {
+      cout << "Loading a undirected graph" << endl;
       if(attribute_path != NULL) {
         #ifndef ATTRIBUTES
         cout << "WARNING: Gave a attributes file but pragma is turned off." << endl;

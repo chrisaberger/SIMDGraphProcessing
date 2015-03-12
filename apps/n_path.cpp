@@ -21,7 +21,7 @@ class n_path: public application<T,R> {
         (void) node; (void) nbr; (void) attribute;
         return true;
       };
-      return SparseMatrix<T,R>::from_symmetric_graph(this->input_graph,node_selection,edge_selection,this->num_threads);
+      return SparseMatrix<T,R>::build(this->input_graph,node_selection,edge_selection,this->num_threads);
     }
 
     void run(){
@@ -39,7 +39,6 @@ class n_path: public application<T,R> {
       uint8_t *f_data = new uint8_t[graph->matrix_size*sizeof(uint64_t)];
       uint32_t *start_array = new uint32_t[1];
       start_array[0] = internal_start;
-      cout << "Start node: " << internal_start << endl;
 
       const size_t bs_size = (((graph->matrix_size + 64) / 64) * 8) + 8;
 
@@ -57,13 +56,13 @@ class n_path: public application<T,R> {
 
       double pure_bfs_time = common::startClock();
       while(true){
-        cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << endl;
+        //cout << endl << " Path: " << path_length << " F-TYPE: " << frontier.type <<  " CARDINALITY: " << frontier.cardinality << endl;
         old_visited.copy_from(visited);
 
         size_t real_num_threads = this->num_threads;
         real_num_threads = frontier.par_foreach(this->num_threads,
           [&] (size_t tid,uint32_t n){
-            Set<T> outnbrs = this->graph->get_row(n);
+            Set<T> outnbrs = graph->get_row(n);
             ops::set_union(vis_bufs[tid * PADDING], &outnbrs);
         });
 

@@ -140,11 +140,7 @@ namespace input_parser {
       }
     }
 
-#if VECTORIZE == 1
-    std::cout << "VECTORIZE = 1" << std::endl;
-#else
-    std::cout << "VECTORIZE = 0" << std::endl;
-#endif
+    std::cout << "VECTORIZE = " << VECTORIZE << std::endl;
 
     MutableGraph *inputGraph;
     if(g_type == common::DIRECTED) {

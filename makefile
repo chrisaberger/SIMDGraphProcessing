@@ -19,7 +19,7 @@ endif
 
 APPS_SOURCES=$(shell ls apps)
 TOOLS_SOURCES=$(shell ls tools)
-TESTS_SOURCES=$(shell ls test)
+TESTS_SOURCES=$(shell find test -name '*.cpp' -exec basename {} \;)
 
 APPS=$(APPS_SOURCES:.cpp=)
 TOOLS=$(TOOLS_SOURCES:.cpp=)
@@ -44,7 +44,7 @@ $(TOOLS_EXES): $(OBJECTS) $(EXEDIR)
 	$(CXX) $(CXXFLAGS) $(@:bin%=tools%.cpp) $(OBJECTS) $(EXT_OBJECTS) $(LIBS) -o $@ $(INCLUDE_DIRS)
 
 $(TESTS_EXES): $(OBJECTS) $(EXEDIR)
-	$(CXX) $(CXXFLAGS) $(@:bin%=test%.cpp) $(OBJECTS) $(EXT_OBJECTS) $(LIBS) -o $@ $(INCLUDE_DIRS)
+	$(CXX) $(CXXFLAGS) $(@:bin%=test%.cpp) $(OBJECTS) ./lib/gtest-1.7.0/src/gtest_main.o ./lib/gtest-1.7.0/src/gtest-all.o $(EXT_OBJECTS) $(LIBS) -o $@ $(INCLUDE_DIRS) -DGOOGLE_TEST -I./lib/gtest-1.7.0/include/ -I./lib/gtest-1.7.0/ -I./apps/
 
 $(OBJECTS): $(SOURCES) $(HEADERS) $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(LIB_INCS) -o $@ -c $(@:build%.o=src%.cpp) $(INCLUDE_DIRS)
@@ -53,8 +53,8 @@ gtest:
 	cd ./lib/gtest-1.7.0/ && ./configure
 	make -C ./lib/gtest-1.7.0
 
-test: $(OBJECTS) $(EXEDIR)
-	$(CXX) $(CXXFLAGS) test/test.cpp $(OBJECTS) ./lib/gtest-1.7.0/src/gtest_main.o  ./lib/gtest-1.7.0/src/gtest-all.o $(EXT_OBJECTS) $(LIBS) -o bin/$@ $(INCLUDE_DIRS) -DGOOGLE_TEST -I./test -I./lib/gtest-1.7.0/include/ -I./lib/gtest-1.7.0/ -I./apps/
+test: $(TESTS_EXES)
+	@$(foreach bin, $(TESTS_EXES), $(bin);)
 
 clean:
 	rm -rf $(OBJDIR) $(EXEDIR)

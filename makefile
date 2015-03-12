@@ -54,6 +54,7 @@ gtest:
 	make -C ./lib/gtest-1.7.0
 
 test: $(TESTS_EXES)
+	@$(foreach bin, $(TESTS_EXES), $(bin);)
 
 clean:
 	rm -rf $(OBJDIR) $(EXEDIR)

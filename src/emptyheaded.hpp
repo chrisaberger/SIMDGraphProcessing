@@ -11,10 +11,16 @@ class application{
     SparseMatrix<T,R>* graph;
     MutableGraph *input_graph;
     size_t num_threads;
+    string layout;
+    size_t query_depth;
+    long start_node;
 
     application(Parser input_data) {
       input_graph = input_data.input_graph; 
       num_threads = input_data.num_threads;
+      layout = input_data.layout;
+      query_depth = input_data.n;
+      start_node = input_data.start_node;
     }
 
     virtual void run() = 0;
@@ -33,8 +39,11 @@ int main (int argc, char* argv[]) {
   }
   std::string app = s.substr(s.size()-count,count+1);
 
+  cout << "APP NAME: " << app << " " << app.compare("n_path") << endl;
+
   common::graph_type gt = common::UNDIRECTED;
-  if(app == "n_path"){
+  if(app.compare("n_path") == 0){
+    cout << "LOADING A DIRECTED FILE. " << endl;
     gt = common::DIRECTED;
   } 
   Parser input_data = input_parser::parse(argc, argv, app, gt);
@@ -53,19 +62,23 @@ int main (int argc, char* argv[]) {
   } else if(input_data.layout.compare("hybrid") == 0){
     application<hybrid,hybrid>* myapp = compute<hybrid,hybrid>(input_data);
     myapp->run();
-  } else if(input_data.layout.compare("new_type") == 0){
+  } 
+  #ifndef PATH
+  //BFS is not supported on these layouts.
+  else if(input_data.layout.compare("new_type") == 0){
     application<new_type,new_type>* myapp = compute<new_type,new_type>(input_data);
     myapp->run();
   } else if(input_data.layout.compare("bitset_new") == 0){
     application<bitset_new,bitset_new>* myapp = compute<bitset_new,bitset_new>(input_data);
     myapp->run();
   }
+  #endif
   #if COMPRESSION == 1
   else if(input_data.layout.compare("v") == 0){
-    application<variant,uinteger>* myapp = compute<bitset_new,bitset_new>(input_data);
+    application<variant,uinteger>* myapp = compute<variant,uinteger>(input_data);
     myapp->run();
   } else if(input_data.layout.compare("bp") == 0){
-    application<bitpacked,uinteger>* myapp = compute<bitset_new,bitset_new>(input_data);
+    application<bitpacked,uinteger>* myapp = compute<bitpacked,uinteger>(input_data);
     myapp->run();
   }
   #endif

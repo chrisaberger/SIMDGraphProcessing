@@ -6,6 +6,7 @@
 TEST(TEST1, FACEBOOK_TRIANGLES_HYBRID) {
   MutableGraph* inputGraph = MutableGraph::undirectedFromBinary("test/facebook.bin");
   Parser input_data(4,false,0,0,inputGraph,"hybrid");
-  int num_triangles = (int)application<hybrid,hybrid>(input_data);
-  EXPECT_EQ(1612010, num_triangles);
+  undirected_triangle_counting<hybrid,hybrid> triangle_app(input_data);
+  triangle_app.run();
+  EXPECT_EQ(1612010, triangle_app.num_triangles);
 }

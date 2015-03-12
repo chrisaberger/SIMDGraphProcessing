@@ -3,8 +3,23 @@
 #include "pcm_helper.hpp"
 #include "Parser.hpp"
 
+template<class T, class R>
+class application{
+  public:
+    SparseMatrix<T,R>* graph;
+    MutableGraph *input_graph;
+    size_t num_threads;
+
+    application(Parser input_data) {
+      input_graph = input_data.input_graph; 
+      num_threads = input_data.num_threads;
+    }
+
+    virtual void run() = 0;
+};
+
 template<class T, class R> 
-size_t application(Parser input_data);
+application<T,R>* compute(Parser input_data);
 
 #ifndef GOOGLE_TEST
 //Ideally the user shouldn't have to concern themselves with what happens down here.
@@ -16,29 +31,40 @@ int main (int argc, char* argv[]) {
   }
   std::string app = s.substr(s.size()-count,count+1);
 
-  Parser input_data = input_parser::parse(argc, argv, app, common::UNDIRECTED);
-
+  common::graph_type gt = common::UNDIRECTED;
+  if(app == "n_path"){
+    gt = common::DIRECTED;
+  } 
+  Parser input_data = input_parser::parse(argc, argv, app, gt);
+  
   common::alloc_scratch_space(512 * input_data.input_graph->max_nbrhood_size * sizeof(uint32_t), input_data.num_threads);
 
   if(input_data.layout.compare("uint") == 0){
-    application<uinteger,uinteger>(input_data);
-  }
-  else if(input_data.layout.compare("bs") == 0){
-    application<bitset,bitset>(input_data);
+    application<uinteger,uinteger>* myapp = compute<uinteger,uinteger>(input_data);
+    myapp->run();
+  } else if(input_data.layout.compare("bs") == 0){
+    application<bitset,bitset>* myapp = compute<bitset,bitset>(input_data);
+    myapp->run();
   } else if(input_data.layout.compare("pshort") == 0){
-    application<pshort,pshort>(input_data);
+    application<pshort,pshort>* myapp = compute<pshort,pshort>(input_data);
+    myapp->run();
   } else if(input_data.layout.compare("hybrid") == 0){
-    application<hybrid,hybrid>(input_data);
+    application<hybrid,hybrid>* myapp = compute<hybrid,hybrid>(input_data);
+    myapp->run();
   } else if(input_data.layout.compare("new_type") == 0){
-    application<new_type,new_type>(input_data);
+    application<new_type,new_type>* myapp = compute<new_type,new_type>(input_data);
+    myapp->run();
   } else if(input_data.layout.compare("bitset_new") == 0){
-    application<bitset_new,bitset_new>(input_data);
+    application<bitset_new,bitset_new>* myapp = compute<bitset_new,bitset_new>(input_data);
+    myapp->run();
   }
   #if COMPRESSION == 1
   else if(input_data.layout.compare("v") == 0){
-    application<variant,uinteger>(input_data);
+    application<variant,uinteger>* myapp = compute<bitset_new,bitset_new>(input_data);
+    myapp->run();
   } else if(input_data.layout.compare("bp") == 0){
-    application<bitpacked,uinteger>(input_data);
+    application<bitpacked,uinteger>* myapp = compute<bitset_new,bitset_new>(input_data);
+    myapp->run();
   }
   #endif
   else{

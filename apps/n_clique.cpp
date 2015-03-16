@@ -24,7 +24,7 @@ class n_clique: public application<T,R> {
         (void) attribute;
         return nbr < node;
       };
-      return SparseMatrix<T,R>::from_symmetric_graph(this->input_graph,node_selection,edge_selection,this->num_threads);
+      return SparseMatrix<T,R>::build(this->input_graph,node_selection,edge_selection,this->num_threads);
     }
 
     inline size_t apply_function(size_t node, size_t depth, Set<R> **set_buffers, Table<uint32_t>* decode_buffers, Table<uint64_t>* output) {

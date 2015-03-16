@@ -270,10 +270,12 @@ inline SparseMatrix<T,R>* SparseMatrix<T,R>::build(MutableGraph* inputGraph,
   const std::function<bool(uint32_t,uint32_t)> node_selection,
   const std::function<bool(uint32_t,uint32_t,uint32_t)> edge_selection,
   const size_t num_threads){
-  if(inputGraph->symmetric)
+  if(inputGraph->symmetric) {
     return SparseMatrix<T,R>::from_symmetric_graph(inputGraph,node_selection,edge_selection,num_threads);
-  else
+  }
+  else {
     return SparseMatrix<T,R>::from_asymmetric_graph(inputGraph,node_selection,edge_selection,num_threads);
+  }
 }
 
 template<class T,class R>

@@ -312,9 +312,10 @@ struct MutableGraph {
     }
     outfile.close();
   }
+
   static MutableGraph* undirectedFromBinary(const string path) {
-    ifstream infile; 
-    infile.open(path, ios::binary | ios::in); 
+    ifstream infile;
+    infile.open(path, ios::binary | ios::in);
 
     vector<uint64_t> *id_map = new vector<uint64_t>();
     vector<uint32_t> *id_attributes = NULL;
@@ -326,32 +327,38 @@ struct MutableGraph {
 
     size_t max_nbrhood_size = 0;
 
-    infile.read((char *)&num_nodes, sizeof(num_nodes)); 
+    infile.read((char *)&num_nodes, sizeof(num_nodes));
     for(size_t i = 0; i < num_nodes; ++i){
       uint64_t external_id;
-      infile.read((char *)&external_id, sizeof(uint64_t)); 
+      infile.read((char *)&external_id, sizeof(uint64_t));
       id_map->push_back(external_id);
 
       size_t row_size = 0;
-      infile.read((char *)&row_size, sizeof(row_size)); 
+      infile.read((char *)&row_size, sizeof(row_size));
       num_edges += row_size;
 
       if(row_size > max_nbrhood_size)
         max_nbrhood_size = row_size;
 
-      vector<uint32_t> *row = new vector<uint32_t>();
-      row->reserve(row_size);
-      uint32_t *tmp_data = new uint32_t[row_size];
-      infile.read((char *)&tmp_data[0], sizeof(uint32_t)*row_size); 
-      row->assign(&tmp_data[0],&tmp_data[row_size]);
-      delete[] tmp_data;
-      //TODO: can you delete row?
+      vector<uint32_t> *row = new vector<uint32_t>(row_size);
+      infile.read((char*)(row->data()), sizeof(uint32_t) * row->size());
       neighborhoods->push_back(row);
     }
     infile.close();
 
-    return new MutableGraph(neighborhoods->size(),num_edges,max_nbrhood_size,true,id_map,id_attributes,neighborhoods,neighborhoods,edge_attributes,edge_attributes); 
+    return new MutableGraph(
+        neighborhoods->size(),
+        num_edges,
+        max_nbrhood_size,
+        true,
+        id_map,
+        id_attributes,
+        neighborhoods,
+        neighborhoods,
+        edge_attributes,
+        edge_attributes);
   }
+
   static MutableGraph* undirectedFromAttributeList(const string path, const string node_path) {
     ////////////////////////////////////////////////////////////////////////////////////
     //Place graph into vector of vectors then decide how you want to

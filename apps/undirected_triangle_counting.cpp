@@ -5,7 +5,7 @@
 template<class T, class R>
 class undirected_triangle_counting: public application<T,R> {
   public:
-    long num_triangles;
+    size_t num_triangles;
 
     undirected_triangle_counting(Parser input_data):
       application<T,R>(input_data) {

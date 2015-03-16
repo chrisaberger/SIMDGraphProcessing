@@ -8,5 +8,6 @@ TEST(TEST1, FACEBOOK_TRIANGLES_HYBRID) {
   Parser input_data(4,false,0,0,inputGraph,"hybrid");
   undirected_triangle_counting<hybrid,hybrid> triangle_app(input_data);
   triangle_app.run();
-  EXPECT_EQ(1612010, triangle_app.num_triangles);
+  size_t expected_result = 1612010;
+  EXPECT_EQ(expected_result, triangle_app.num_triangles);
 }

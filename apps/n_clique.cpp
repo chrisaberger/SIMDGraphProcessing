@@ -102,6 +102,6 @@ class n_clique: public application<T,R> {
 };
 
 template<class T, class R>
-static application<T,R>* compute(Parser input_data) {
+static application<T,R>* init_app(Parser input_data) {
   return new n_clique<T,R>(input_data);
 }

@@ -13,11 +13,11 @@ class n_path: public application<T,R> {
     }
 
     SparseMatrix<T,R>* materialize_graph(){
-      auto node_selection = [](uint32_t node, uint32_t attribute){
+      auto node_selection = [](uint32_t node, uint32_t attribute) -> bool {
         (void) node; (void) attribute;
         return true;
       };
-      auto edge_selection = [](uint32_t node, uint32_t nbr, uint32_t attribute){
+      auto edge_selection = [](uint32_t node, uint32_t nbr, uint32_t attribute) -> bool {
         (void) node; (void) nbr; (void) attribute;
         return true;
       };
@@ -88,6 +88,6 @@ class n_path: public application<T,R> {
 };
 
 template<class T, class R>
-static application<T,R>* compute(Parser input_data){
-  return new n_path<T,R>(input_data); 
+static application<T,R>* init_app(Parser input_data){
+  return new n_path<T,R>(input_data);
 }

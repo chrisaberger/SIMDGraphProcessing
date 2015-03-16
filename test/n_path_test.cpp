@@ -8,5 +8,5 @@ TEST(BFSTest, FacebookCliqueCounting) {
   Parser input_data(4,false,4,0,inputGraph,"uint");
   n_path<uinteger,uinteger> n_path(input_data);
   n_path.run();
-  EXPECT_EQ(4, n_path.path_length);
+  EXPECT_EQ((size_t) 4, n_path.path_length);
 }

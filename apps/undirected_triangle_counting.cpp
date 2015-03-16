@@ -7,17 +7,17 @@ class undirected_triangle_counting: public application<T,R> {
   public:
     long num_triangles;
 
-    undirected_triangle_counting(Parser input_data): 
+    undirected_triangle_counting(Parser input_data):
       application<T,R>(input_data) {
       num_triangles = 0;
     }
 
     SparseMatrix<T,R>* materialize_graph(){
-      auto node_selection = [](uint32_t node, uint32_t attribute){
+      auto node_selection = [](uint32_t node, uint32_t attribute) -> bool {
         (void) node; (void) attribute;
         return true;
       };
-      auto edge_selection = [](uint32_t node, uint32_t nbr, uint32_t attribute){
+      auto edge_selection = [](uint32_t node, uint32_t nbr, uint32_t attribute) -> bool {
         (void) attribute;
         return nbr < node;
       };
@@ -37,7 +37,7 @@ class undirected_triangle_counting: public application<T,R> {
 
         //The heart of the application.
         common::par_for_range(this->num_threads, 0, graph->matrix_size, 100,
-          [&](size_t tid){
+          [&](size_t tid) {
             buffers.allocate(tid);
             t_count[tid*PADDING] = 0;
           },
@@ -66,6 +66,6 @@ class undirected_triangle_counting: public application<T,R> {
 };
 
 template<class T, class R>
-static application<T,R>* compute(Parser input_data){
-  return new undirected_triangle_counting<T,R>(input_data); 
+static application<T,R>* init_app(Parser input_data){
+  return new undirected_triangle_counting<T,R>(input_data);
 }
